@@ -5,9 +5,9 @@ import 'package:flutter/material.dart';
 class AppColors {
   AppColors._();
 
-  static const Color primary = Color(0xFF1B4332);      // deep green - trust/growth
+  static const Color primary = Color(0xFF1B4332); // deep green - trust/growth
   static const Color primaryLight = Color(0xFF52796F);
-  static const Color secondary = Color(0xFFB08968);     // warm gold accent
+  static const Color secondary = Color(0xFFB08968); // warm gold accent
   static const Color background = Color(0xFFFFFFFF);
   static const Color surface = Color(0xFFF8F9FA);
   static const Color error = Color(0xFFBA1A1A);
