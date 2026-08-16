@@ -1,6 +1,6 @@
 // import 'package:dio/dio.dart';
-// import 'package:ethio_venture/core/network/api_endpoints.dart';
-// import 'package:ethio_venture/core/network/auth_interceptor.dart';
+// import 'package:ethioventure/core/network/api_endpoints.dart';
+// import 'package:ethioventure/core/network/auth_interceptor.dart';
 
 // /// Thin wrapper around Dio, configured once and injected everywhere.
 // /// The Node.js/Express REST API is the single source of truth;

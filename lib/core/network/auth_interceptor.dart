@@ -1,5 +1,5 @@
 // import 'package:dio/dio.dart';
-// import 'package:ethio_venture/core/utils/token_storage.dart';
+// import 'package:ethioventure/core/utils/token_storage.dart';
 
 // /// Attaches the JWT to every outgoing request and can trigger
 // /// a refresh-token flow on a 401. Kept in core/network since both
