@@ -1,17 +1,34 @@
-/// Exceptions thrown by datasources (remote or local).
-/// Repositories catch these and map them to a [Failure].
-class ServerException implements Exception {
+/// Exceptions thrown by a data source before a repository maps them to failures.
+sealed class AppException implements Exception {
+  const AppException(this.message, {this.statusCode});
+
   final String message;
   final int? statusCode;
-  ServerException({this.message = 'Server error', this.statusCode});
+
+  @override
+  String toString() => '$runtimeType: $message';
 }
 
-class CacheException implements Exception {
-  final String message;
-  CacheException({this.message = 'Cache error'});
+class ServerException extends AppException {
+  const ServerException({
+    String message = 'Server error',
+    int? statusCode,
+  }) : super(message, statusCode: statusCode);
 }
 
-class AuthException implements Exception {
-  final String message;
-  AuthException({this.message = 'Auth error'});
+class CacheException extends AppException {
+  const CacheException({String message = 'Local cache error'}) : super(message);
+}
+
+class AuthException extends AppException {
+  const AuthException({String message = 'Authentication failed'}) : super(message);
+}
+
+class NetworkException extends AppException {
+  const NetworkException({String message = 'No internet connection'})
+    : super(message);
+}
+
+class ValidationException extends AppException {
+  const ValidationException(String message) : super(message);
 }
