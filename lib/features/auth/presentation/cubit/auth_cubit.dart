@@ -44,6 +44,7 @@ class AuthCubit extends Cubit<AuthState> {
       }
 
       final user = await _repository.register(
+        name: cleanName,
         email: cleanEmail,
         password: password,
         role: role,

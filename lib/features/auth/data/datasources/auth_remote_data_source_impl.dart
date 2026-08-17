@@ -1,27 +1,30 @@
-import 'dart:convert';
-
-import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/error/exceptions.dart';
-import '../../../../core/network/api_endpoints.dart';
 import '../../domain/entities/user_entity.dart';
 import '../models/user_model.dart';
 import 'auth_remote_data_source.dart';
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
-  final http.Client _client;
+  final SupabaseClient _client;
 
-  AuthRemoteDataSourceImpl({http.Client? client})
-      : _client = client ?? http.Client();
+  AuthRemoteDataSourceImpl({SupabaseClient? client})
+      : _client = client ?? Supabase.instance.client;
 
   @override
   Future<UserModel> register({
+    required String name,
     required String email,
     required String password,
     required String role,
   }) async {
     final normalizedEmail = email.trim();
+    final cleanName = name.trim();
+
+    if (cleanName.isEmpty) {
+      throw const FormatException('Please enter your name.');
+    }
+
     if (!normalizedEmail.contains('@')) {
       throw const FormatException('Please enter a valid email address.');
     }
@@ -32,16 +35,40 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       );
     }
 
-    final roleValue = role == UserRole.investor.name
+    final userRole = role == UserRole.investor.name
         ? UserRole.investor
         : UserRole.startup;
 
-    return UserModel(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      name: normalizedEmail.split('@').first,
-      email: normalizedEmail,
-      role: roleValue,
-    );
+    try {
+      final response = await _client.auth.signUp(
+        email: normalizedEmail,
+        password: password,
+        data: {
+          'full_name': cleanName,
+          'role': userRole.name,
+        },
+      );
+
+      final user = response.user;
+      if (user == null) {
+        throw const AuthException(message: 'Unable to create your account.');
+      }
+
+      return UserModel(
+        id: user.id,
+        name: user.userMetadata?['full_name']?.toString() ?? cleanName,
+        email: user.email ?? normalizedEmail,
+        role: userRole,
+      );
+    } on AuthException {
+      rethrow;
+    } on FormatException {
+      rethrow;
+    } on PostgrestException catch (error) {
+      throw ServerException(message: error.message);
+    } catch (error) {
+      throw ServerException(message: 'Unable to create your account. Please try again.');
+    }
   }
 
   @override
@@ -60,69 +87,36 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       );
     }
 
-    final uri = Uri.parse('${ApiEndpoints.baseUrl}${ApiEndpoints.login}');
-
     try {
-      final response = await _client.post(
-        uri,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: jsonEncode({
-          'email': normalizedEmail,
-          'password': password,
-        }),
+      final response = await _client.auth.signInWithPassword(
+        email: normalizedEmail,
+        password: password,
       );
 
-      final decodedBody = response.body.trim().isEmpty
-          ? <String, dynamic>{}
-          : jsonDecode(response.body);
-
-      if (response.statusCode == 401 || response.statusCode == 403) {
-        throw ServerException(
-          message: 'Invalid email or password',
-          statusCode: response.statusCode,
-        );
+      final sessionUser = response.user;
+      if (sessionUser == null) {
+        throw const AuthException(message: 'Invalid email or password');
       }
 
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final dynamic payload = decodedBody is Map && decodedBody.containsKey('user')
-            ? decodedBody['user']
-            : decodedBody is Map && decodedBody.containsKey('data')
-                ? decodedBody['data']
-                : decodedBody;
+      final metadata = sessionUser.userMetadata ?? const {};
+      final role = _roleFromMetadata(metadata['role']);
 
-        if (payload is! Map<String, dynamic> && payload is! Map) {
-          throw ServerException(
-            message: 'Invalid response from server.',
-            statusCode: response.statusCode,
-          );
-        }
-
-        final userJson = Map<String, dynamic>.from(payload as Map);
-        return UserModel.fromJson(userJson);
-      }
-
-      final message = _extractServerErrorMessage(decodedBody);
-      throw ServerException(
-        message: message,
-        statusCode: response.statusCode,
+      return UserModel(
+        id: sessionUser.id,
+        name: metadata['full_name']?.toString() ??
+            metadata['name']?.toString() ??
+            normalizedEmail.split('@').first,
+        email: sessionUser.email ?? normalizedEmail,
+        role: role,
       );
-    } on ServerException {
-      rethrow;
+    } on AuthException catch (error) {
+      throw ServerException(message: error.message);
     } on FormatException {
       rethrow;
-    } on http.ClientException catch (e, stackTrace) {
-      debugPrint('Login request failed with client exception: $e');
-      debugPrintStack(stackTrace: stackTrace);
-      throw ServerException(
-        message: 'Network error. Please check your connection and try again.',
-      );
-    } catch (e, stackTrace) {
-      debugPrint('Unexpected login exception: $e');
-      debugPrintStack(stackTrace: stackTrace);
-      throw ServerException(
+    } on PostgrestException catch (error) {
+      throw ServerException(message: error.message);
+    } catch (_) {
+      throw const ServerException(
         message: 'Something went wrong. Please try again later.',
       );
     }
@@ -130,24 +124,14 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
   @override
   Future<void> logout() async {
-    await Future.delayed(const Duration(milliseconds: 200));
+    await _client.auth.signOut();
   }
-}
 
-String _extractServerErrorMessage(dynamic decodedBody) {
-  if (decodedBody is Map<String, dynamic>) {
-    final message = decodedBody['message'];
-    if (message is String && message.trim().isNotEmpty) {
-      return message;
+  UserRole _roleFromMetadata(dynamic value) {
+    final roleName = value?.toString().toLowerCase();
+    if (roleName == UserRole.investor.name) {
+      return UserRole.investor;
     }
+    return UserRole.startup;
   }
-
-  if (decodedBody is Map) {
-    final message = decodedBody['message'];
-    if (message is String && message.trim().isNotEmpty) {
-      return message;
-    }
-  }
-
-  return 'Authentication failed. Please try again.';
 }
