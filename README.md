@@ -1,6 +1,21 @@
 # ethioventure
 
-A new Flutter project.
+Flutter application for Ethio Venture.
+
+## Supabase configuration
+
+Before first run, copy `.env.example` to `.env` and enter this project's
+Supabase URL and publishable key. The local `.env` file is intentionally not
+tracked by Git.
+
+```powershell
+Copy-Item .env.example .env
+flutter pub get
+flutter run
+```
+
+See [the Supabase setup guide](docs/supabase-setup.md) for team workflow,
+security requirements, and usage examples.
 
 ## Getting Started
 
