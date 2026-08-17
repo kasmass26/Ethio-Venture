@@ -52,7 +52,7 @@ class _LoginPageState extends State<LoginPage> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
-                      'Welcome back! Logged in as $roleName',
+                      'Login successful. Logged in as $roleName',
                     ),
                     behavior: SnackBarBehavior.floating,
                   ),
@@ -94,7 +94,7 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                         const SizedBox(height: 26),
                         const Text(
-                          'Welcome Back',
+                          'Welcome to Ethio Venture',
                           style: TextStyle(
                             fontSize: 30,
                             fontWeight: FontWeight.bold,
@@ -104,16 +104,20 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                         const SizedBox(height: 10),
                         const Text(
-                          'Login to your Ethio Venture account',
+                          'Sign in to continue building or funding the next big opportunity.',
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.white70),
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 15,
+                            height: 1.4,
+                          ),
                         ),
                         const SizedBox(height: 32),
                         TextFormField(
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
                           decoration: const InputDecoration(
-                            labelText: 'Email',
+                            labelText: 'Email address',
                             prefixIcon: Icon(Icons.email_outlined),
                           ),
                           validator: (value) {
@@ -172,10 +176,16 @@ class _LoginPageState extends State<LoginPage> {
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(14),
                                 ),
+                                backgroundColor: const Color(0xFF0F766E),
+                                foregroundColor: Colors.white,
+                                elevation: 0,
                               ),
                               child: const Text(
                                 'Login',
-                                style: TextStyle(fontSize: 16),
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             );
                           },
@@ -196,7 +206,13 @@ class _LoginPageState extends State<LoginPage> {
                                   ),
                                 );
                               },
-                              child: const Text('Create one'),
+                              child: const Text(
+                                'Create one',
+                                style: TextStyle(
+                                  color: Color(0xFF5EEAD4),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                             ),
                           ],
                         ),

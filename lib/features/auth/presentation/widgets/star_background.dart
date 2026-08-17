@@ -45,7 +45,7 @@ class StarBackground extends StatelessWidget {
           Positioned.fill(
             child: DecoratedBox(
               decoration: BoxDecoration(
-                color: overlayColor.withOpacity(overlayOpacity),
+                color: overlayColor.withValues(alpha: overlayOpacity),
               ),
             ),
           ),

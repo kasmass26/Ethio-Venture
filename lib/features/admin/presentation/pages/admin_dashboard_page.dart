@@ -45,7 +45,7 @@ class AdminDashboardPage extends StatelessWidget {
                       ),
                       const SizedBox(height: 12),
                       Card(
-                        color: Colors.white.withOpacity(0.06),
+                        color: Colors.white.withValues(alpha: 0.06),
                         child: ListTile(
                           leading: const Icon(Icons.email, color: Colors.white),
                           title: const Text(

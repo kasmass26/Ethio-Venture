@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/error/exceptions.dart';
 import '../../data/datasources/auth_remote_data_source_impl.dart';
 import '../../data/repositories/auth_repository_impl.dart';
 import '../../domain/entities/user_entity.dart';
@@ -81,10 +82,15 @@ class AuthCubit extends Cubit<AuthState> {
       );
 
       emit(AuthSuccess(user));
+    } on ServerException catch (e) {
+      final message = e.statusCode == 401 || e.statusCode == 403
+          ? 'Invalid email or password'
+          : e.message;
+      emit(AuthError(message));
     } on FormatException catch (e) {
       emit(AuthError(e.message));
     } catch (e) {
-      emit(AuthError(e.toString()));
+      emit(AuthError('Something went wrong. Please try again later.'));
     }
   }
 }
