@@ -1,87 +1,89 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../domain/usecases/get_current_user_use_case.dart';
-import '../../domain/usecases/login_use_case.dart';
-import '../../domain/usecases/logout_use_case.dart';
-import '../../domain/usecases/register_use_case.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' show AuthException;
+
+import '../../domain/usecases/login_usecase.dart';
+import '../../domain/usecases/logout_user.dart';
+import '../../domain/usecases/register_usecase.dart';
 import 'auth_state.dart';
 
-/// Cubit managing Startup Founder Authentication workflow & state transitions.
 class AuthCubit extends Cubit<AuthState> {
+  final LoginUser loginUser;
+  final RegisterUser registerUser;
+  final LogoutUser logoutUser;
+
   AuthCubit({
-    required LoginUseCase loginUseCase,
-    required RegisterUseCase registerUseCase,
-    required LogoutUseCase logoutUseCase,
-    required GetCurrentUserUseCase getCurrentUserUseCase,
-  })  : _loginUseCase = loginUseCase,
-        _registerUseCase = registerUseCase,
-        _logoutUseCase = logoutUseCase,
-        _getCurrentUserUseCase = getCurrentUserUseCase,
-        super(const AuthInitial());
+    required this.loginUser,
+    required this.registerUser,
+    required this.logoutUser,
+  }) : super(const AuthInitial());
 
-  final LoginUseCase _loginUseCase;
-  final RegisterUseCase _registerUseCase;
-  final LogoutUseCase _logoutUseCase;
-  final GetCurrentUserUseCase _getCurrentUserUseCase;
-
-  /// Checks whether an active authenticated session exists on app boot.
-  Future<void> checkAuthStatus() async {
-    emit(const AuthLoading());
-    try {
-      final user = await _getCurrentUserUseCase();
-      if (user != null) {
-        emit(Authenticated(user));
-      } else {
-        emit(const Unauthenticated());
-      }
-    } catch (_) {
-      emit(const Unauthenticated());
-    }
-  }
-
-  /// Authenticates an existing Startup Founder.
   Future<void> login({
     required String email,
     required String password,
   }) async {
     emit(const AuthLoading());
     try {
-      final user = await _loginUseCase(
+      final user = await loginUser(
         email: email,
         password: password,
       );
       emit(Authenticated(user));
     } catch (e) {
-      emit(AuthError(e.toString().replaceAll('Exception: ', '')));
+      emit(AuthFailureState(_mapError(e)));
     }
   }
 
-  /// Registers a new Startup Founder account.
   Future<void> register({
+    required String name,
     required String email,
     required String password,
-    required String fullName,
+    required String role,
   }) async {
     emit(const AuthLoading());
     try {
-      final user = await _registerUseCase(
+      final user = await registerUser(
+        name: name,
         email: email,
         password: password,
-        fullName: fullName,
+        role: role,
       );
       emit(Authenticated(user));
     } catch (e) {
-      emit(AuthError(e.toString().replaceAll('Exception: ', '')));
+      emit(AuthFailureState(_mapError(e)));
     }
   }
 
-  /// Logs out current Startup Founder session.
   Future<void> logout() async {
     emit(const AuthLoading());
     try {
-      await _logoutUseCase();
+      await logoutUser();
       emit(const Unauthenticated());
     } catch (e) {
-      emit(AuthError(e.toString().replaceAll('Exception: ', '')));
+      emit(AuthFailureState(_mapError(e)));
     }
+  }
+
+  static String _mapError(dynamic e) {
+    if (e is AuthException) {
+      final msg = e.message.toLowerCase();
+      final code = e.code?.toLowerCase() ?? '';
+
+      if (e.statusCode == '429' || code.contains('rate_limit') || msg.contains('rate limit')) {
+        return 'Email rate limit exceeded. Supabase limits sign-up emails on the default mail server (3-4/hour). Please wait a few minutes, or sign in if your account is already created.';
+      }
+      if (code.contains('already_exists') || msg.contains('already registered') || msg.contains('already exists')) {
+        return 'An account with this email already exists. Please sign in instead.';
+      }
+      if (code.contains('invalid_credentials') || msg.contains('invalid login credentials')) {
+        return 'Invalid email or password. Please check your credentials.';
+      }
+      return e.message;
+    }
+
+    final raw = e.toString().replaceAll('Exception: ', '').trim();
+    if (raw.toLowerCase().contains('rate limit')) {
+      return 'Email rate limit exceeded. Supabase limits sign-up emails on the default mail server. Please wait a few minutes before trying again.';
+    }
+    return raw;
   }
 }

@@ -1,18 +1,18 @@
-/// Pure domain entity representing an authenticated Startup Founder user.
+/// Domain representation of an authenticated user.
 class UserEntity {
+  final String id;
+  final String name;
+  final String email;
+  final String role;
+
   const UserEntity({
     required this.id,
+    required this.name,
     required this.email,
-    required this.fullName,
-    this.accountType = 'startup',
-    this.createdAt,
-    this.updatedAt,
+    required this.role,
   });
 
-  final String id;
-  final String email;
-  final String fullName;
-  final String accountType;
-  final DateTime? createdAt;
-  final DateTime? updatedAt;
+  bool get isFounder => role == 'founder';
+  bool get isInvestor => role == 'investor';
+  bool get isAdmin => role == 'admin';
 }

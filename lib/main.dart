@@ -1,32 +1,44 @@
-import 'package:ethioventure/core/bloc/app_bloc_observer.dart';
-import 'package:ethioventure/core/config/app_config.dart';
-import 'package:ethioventure/core/constants/app_constants.dart';
-import 'package:ethioventure/core/di/injection_container.dart';
-import 'package:ethioventure/core/routing/app_router.dart';
-import 'package:ethioventure/core/theme/app_theme.dart';
-import 'package:ethioventure/features/auth/presentation/pages/onboarding_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'core/bloc/app_bloc_observer.dart';
+import 'core/config/app_config.dart';
+import 'core/constants/app_constants.dart';
+import 'core/di/injection_container.dart';
+import 'core/routing/app_router.dart';
+import 'core/theme/app_theme.dart';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load(fileName: '.env');
 
-  final config = AppConfig.fromEnvironment();
-  await Supabase.initialize(
-    url: config.supabaseUrl,
-    publishableKey: config.supabasePublishableKey,
-  );
-  await configureDependencies();
-  Bloc.observer = const AppBlocObserver();
+  String environment = 'development';
 
-  runApp(EthioVentureApp(environment: config.environment));
+  try {
+    await dotenv.load(fileName: '.env');
+    final config = AppConfig.fromEnvironment();
+    environment = config.environment;
+
+    await Supabase.initialize(
+      url: config.supabaseUrl,
+      publishableKey: config.supabasePublishableKey,
+    );
+
+    await configureDependencies();
+    Bloc.observer = const AppBlocObserver();
+  } catch (error, stackTrace) {
+    debugPrint('Initialization error: $error\n$stackTrace');
+  }
+
+  runApp(EthioVentureApp(environment: environment));
 }
 
 class EthioVentureApp extends StatelessWidget {
-  const EthioVentureApp({super.key, required this.environment});
+  const EthioVentureApp({
+    super.key,
+    required this.environment,
+  });
 
   final String environment;
 
@@ -34,14 +46,14 @@ class EthioVentureApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: AppConstants.appName,
-      debugShowCheckedModeBanner: false,
+      debugShowCheckedModeBanner: environment != 'production',
       navigatorKey: AppRouter.navigatorKey,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.system,
+      initialRoute: AppConstants.routeHome,
       onGenerateRoute: AppRouter.onGenerateRoute,
       onUnknownRoute: AppRouter.onUnknownRoute,
-      home: const OnboardingPage(),
     );
   }
 }

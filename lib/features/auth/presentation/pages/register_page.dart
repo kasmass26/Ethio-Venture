@@ -1,30 +1,57 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:ethioventure/core/di/injection_container.dart';
-import 'package:ethioventure/core/theme/app_colors.dart';
-import 'package:ethioventure/core/theme/app_sizes.dart';
+
+import '../../../../core/constants/app_constants.dart';
+import '../../../../core/di/injection_container.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_sizes.dart';
+import '../../../../core/utils/input_validators.dart';
 import '../cubit/auth_cubit.dart';
 import '../cubit/auth_state.dart';
+import '../widgets/auth_text_field.dart';
 
-/// Registration page for Startup Founders.
-class RegisterPage extends StatefulWidget {
-  const RegisterPage({super.key});
+/// Registration page allowing users to create an account as a founder or investor.
+class RegisterPage extends StatelessWidget {
+  const RegisterPage({super.key, this.initialRole});
 
-  static const String routeName = '/register';
+  final String? initialRole;
 
   @override
-  State<RegisterPage> createState() => _RegisterPageState();
+  Widget build(BuildContext context) {
+    return BlocProvider<AuthCubit>(
+      create: (_) => sl<AuthCubit>(),
+      child: _RegisterFormView(initialRole: initialRole),
+    );
+  }
 }
 
-class _RegisterPageState extends State<RegisterPage> {
+class _RegisterFormView extends StatefulWidget {
+  const _RegisterFormView({this.initialRole});
+
+  final String? initialRole;
+
+  @override
+  State<_RegisterFormView> createState() => _RegisterFormViewState();
+}
+
+class _RegisterFormViewState extends State<_RegisterFormView> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
+  late String _selectedRole;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedRole = widget.initialRole == AppConstants.roleInvestor
+        ? AppConstants.roleInvestor
+        : AppConstants.roleFounder;
+  }
 
   @override
   void dispose() {
@@ -35,398 +62,241 @@ class _RegisterPageState extends State<RegisterPage> {
     super.dispose();
   }
 
-  void _submitRegister(BuildContext context) {
+  void _submit() {
     if (_formKey.currentState?.validate() ?? false) {
       context.read<AuthCubit>().register(
+            name: _nameController.text.trim(),
             email: _emailController.text.trim(),
-            password: _passwordController.text.trim(),
-            fullName: _nameController.text.trim(),
+            password: _passwordController.text,
+            role: _selectedRole,
           );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider<AuthCubit>(
-      create: (context) => sl<AuthCubit>(),
-      child: Scaffold(
-        backgroundColor: AppColors.background,
-        body: SafeArea(
-          child: BlocConsumer<AuthCubit, AuthState>(
-            listener: (context, state) {
-              if (state is Authenticated) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'Account created successfully! Welcome, ${state.user.fullName}.',
-                    ),
-                    backgroundColor: AppColors.emerald,
+    final theme = Theme.of(context);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(AppConstants.appName),
+        centerTitle: true,
+      ),
+      body: BlocConsumer<AuthCubit, AuthState>(
+        listener: (context, state) {
+          if (state is AuthFailureState) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.message),
+                backgroundColor: AppColors.error,
+              ),
+            );
+          } else if (state is Authenticated) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Account created successfully for ${state.user.name}!'),
+                backgroundColor: AppColors.success,
+              ),
+            );
+            Navigator.of(context).pushReplacementNamed(AppConstants.routeHome);
+          }
+        },
+        builder: (context, state) {
+          final isLoading = state is AuthLoading;
+
+          return Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(AppSizes.xl),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 480),
+                child: Card(
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+                    side: const BorderSide(color: AppColors.border),
                   ),
-                );
-                Navigator.pushReplacementNamed(context, '/startup-profile');
-              } else if (state is AuthError) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(state.message),
-                    backgroundColor: AppColors.error,
-                  ),
-                );
-              }
-            },
-            builder: (context, state) {
-              return Center(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(AppSizes.pageHorizontal),
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(
-                      maxWidth: AppSizes.maxContentWidth,
-                    ),
-                    child: Card(
-                      elevation: 2,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppSizes.radiusLg),
-                      ),
-                      color: AppColors.surface,
-                      child: Padding(
-                        padding: const EdgeInsets.all(AppSizes.lg),
-                        child: Form(
-                          key: _formKey,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppSizes.xl),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text(
+                            'Create an Account',
+                            style: theme.textTheme.headlineMedium,
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: AppSizes.xs),
+                          Text(
+                            'Join the Ethiopian venture ecosystem',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: AppSizes.lg),
+                          Text(
+                            'I want to join as:',
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: AppSizes.xs),
+                          Row(
                             children: [
-                              // Header Branding
-                              Center(
-                                child: Column(
-                                  children: [
-                                    Container(
-                                      width: 64,
-                                      height: 64,
-                                      decoration: BoxDecoration(
-                                        color: AppColors.emeraldTint,
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: const Icon(
-                                        Icons.person_add_alt_1_outlined,
-                                        color: AppColors.emerald,
-                                        size: 36,
-                                      ),
-                                    ),
-                                    const SizedBox(height: AppSizes.sm),
-                                    Text(
-                                      'Founder Registration',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .headlineSmall
-                                          ?.copyWith(
-                                            fontWeight: FontWeight.bold,
-                                            color: AppColors.emerald,
-                                          ),
-                                    ),
-                                    const SizedBox(height: AppSizes.xs),
-                                    Text(
-                                      'Create your Ethio-Venture Founder Account',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodyMedium
-                                          ?.copyWith(
-                                            color: AppColors.slate,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: AppSizes.xl),
-
-                              // Full Name Field Label
-                              RichText(
-                                text: TextSpan(
-                                  text: 'Full Name',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .titleSmall
-                                      ?.copyWith(
-                                        fontWeight: FontWeight.bold,
-                                        color: AppColors.ink,
-                                      ),
-                                  children: const [
-                                    TextSpan(
-                                      text: ' *',
-                                      style: TextStyle(
-                                        color: AppColors.coral,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: AppSizes.xs),
-                              TextFormField(
-                                controller: _nameController,
-                                decoration: InputDecoration(
-                                  hintText: 'e.g. Abebe Bikila',
-                                  prefixIcon: const Icon(
-                                    Icons.person_outline,
-                                    color: AppColors.emerald,
+                              Expanded(
+                                child: ChoiceChip(
+                                  label: const Center(
+                                    child: Text('Startup Founder'),
                                   ),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(
-                                        AppSizes.radiusMd),
-                                  ),
-                                ),
-                                validator: (value) {
-                                  if (value == null || value.trim().isEmpty) {
-                                    return 'Please enter your full name.';
-                                  }
-                                  return null;
-                                },
-                              ),
-                              const SizedBox(height: AppSizes.md),
-
-                              // Email Field Label
-                              RichText(
-                                text: TextSpan(
-                                  text: 'Founder Email',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .titleSmall
-                                      ?.copyWith(
-                                        fontWeight: FontWeight.bold,
-                                        color: AppColors.ink,
-                                      ),
-                                  children: const [
-                                    TextSpan(
-                                      text: ' *',
-                                      style: TextStyle(
-                                        color: AppColors.coral,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: AppSizes.xs),
-                              TextFormField(
-                                controller: _emailController,
-                                keyboardType: TextInputType.emailAddress,
-                                decoration: InputDecoration(
-                                  hintText: 'e.g. founder@startup.com',
-                                  prefixIcon: const Icon(
-                                    Icons.email_outlined,
-                                    color: AppColors.emerald,
-                                  ),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(
-                                        AppSizes.radiusMd),
-                                  ),
-                                ),
-                                validator: (value) {
-                                  if (value == null || value.trim().isEmpty) {
-                                    return 'Please enter your email address.';
-                                  }
-                                  if (!value.contains('@')) {
-                                    return 'Please enter a valid email address.';
-                                  }
-                                  return null;
-                                },
-                              ),
-                              const SizedBox(height: AppSizes.md),
-
-                              // Password Field Label
-                              RichText(
-                                text: TextSpan(
-                                  text: 'Password',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .titleSmall
-                                      ?.copyWith(
-                                        fontWeight: FontWeight.bold,
-                                        color: AppColors.ink,
-                                      ),
-                                  children: const [
-                                    TextSpan(
-                                      text: ' *',
-                                      style: TextStyle(
-                                        color: AppColors.coral,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: AppSizes.xs),
-                              TextFormField(
-                                controller: _passwordController,
-                                obscureText: _obscurePassword,
-                                decoration: InputDecoration(
-                                  hintText: 'Create a password (min 6 chars)',
-                                  prefixIcon: const Icon(
-                                    Icons.lock_outline,
-                                    color: AppColors.emerald,
-                                  ),
-                                  suffixIcon: IconButton(
-                                    icon: Icon(
-                                      _obscurePassword
-                                          ? Icons.visibility_off_outlined
-                                          : Icons.visibility_outlined,
-                                      color: AppColors.slate,
-                                    ),
-                                    onPressed: () {
-                                      setState(() {
-                                        _obscurePassword = !_obscurePassword;
-                                      });
-                                    },
-                                  ),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(
-                                        AppSizes.radiusMd),
-                                  ),
-                                ),
-                                validator: (value) {
-                                  if (value == null || value.trim().isEmpty) {
-                                    return 'Please enter a password.';
-                                  }
-                                  if (value.length < 6) {
-                                    return 'Password must be at least 6 characters.';
-                                  }
-                                  return null;
-                                },
-                              ),
-                              const SizedBox(height: AppSizes.md),
-
-                              // Confirm Password Field Label
-                              RichText(
-                                text: TextSpan(
-                                  text: 'Confirm Password',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .titleSmall
-                                      ?.copyWith(
-                                        fontWeight: FontWeight.bold,
-                                        color: AppColors.ink,
-                                      ),
-                                  children: const [
-                                    TextSpan(
-                                      text: ' *',
-                                      style: TextStyle(
-                                        color: AppColors.coral,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: AppSizes.xs),
-                              TextFormField(
-                                controller: _confirmPasswordController,
-                                obscureText: _obscureConfirmPassword,
-                                decoration: InputDecoration(
-                                  hintText: 'Re-enter your password',
-                                  prefixIcon: const Icon(
-                                    Icons.lock_outline,
-                                    color: AppColors.emerald,
-                                  ),
-                                  suffixIcon: IconButton(
-                                    icon: Icon(
-                                      _obscureConfirmPassword
-                                          ? Icons.visibility_off_outlined
-                                          : Icons.visibility_outlined,
-                                      color: AppColors.slate,
-                                    ),
-                                    onPressed: () {
-                                      setState(() {
-                                        _obscureConfirmPassword =
-                                            !_obscureConfirmPassword;
-                                      });
-                                    },
-                                  ),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(
-                                        AppSizes.radiusMd),
-                                  ),
-                                ),
-                                validator: (value) {
-                                  if (value == null || value.trim().isEmpty) {
-                                    return 'Please confirm your password.';
-                                  }
-                                  if (value != _passwordController.text) {
-                                    return 'Passwords do not match.';
-                                  }
-                                  return null;
-                                },
-                              ),
-                              const SizedBox(height: AppSizes.xl),
-
-                              // Register Button
-                              SizedBox(
-                                width: double.infinity,
-                                height: 48,
-                                child: ElevatedButton(
-                                  onPressed: state is AuthLoading
+                                  selected: _selectedRole == AppConstants.roleFounder,
+                                  onSelected: isLoading
                                       ? null
-                                      : () => _submitRegister(context),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.emerald,
-                                    foregroundColor: AppColors.white,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(
-                                          AppSizes.radiusMd),
-                                    ),
-                                    elevation: 2,
-                                  ),
-                                  child: state is AuthLoading
-                                      ? const CircularProgressIndicator(
-                                          color: AppColors.white,
-                                        )
-                                      : const Text(
-                                          'Create Founder Account',
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
+                                      : (selected) {
+                                          if (selected) {
+                                            setState(() {
+                                              _selectedRole = AppConstants.roleFounder;
+                                            });
+                                          }
+                                        },
                                 ),
                               ),
-                              const SizedBox(height: AppSizes.lg),
-
-                              // Redirect to Login
-                              Center(
-                                child: TextButton(
-                                  onPressed: () {
-                                    Navigator.pushReplacementNamed(
-                                      context,
-                                      '/login',
-                                    );
-                                  },
-                                  child: RichText(
-                                    text: const TextSpan(
-                                      text: 'Already have a founder account? ',
-                                      style: TextStyle(color: AppColors.slate),
-                                      children: [
-                                        TextSpan(
-                                          text: 'Sign In',
-                                          style: TextStyle(
-                                            color: AppColors.emerald,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
+                              const SizedBox(width: AppSizes.sm),
+                              Expanded(
+                                child: ChoiceChip(
+                                  label: const Center(
+                                    child: Text('Investor'),
                                   ),
+                                  selected: _selectedRole == AppConstants.roleInvestor,
+                                  onSelected: isLoading
+                                      ? null
+                                      : (selected) {
+                                          if (selected) {
+                                            setState(() {
+                                              _selectedRole = AppConstants.roleInvestor;
+                                            });
+                                          }
+                                        },
                                 ),
                               ),
                             ],
                           ),
-                        ),
+                          const SizedBox(height: AppSizes.lg),
+                          AuthTextField(
+                            controller: _nameController,
+                            labelText: 'Full Name',
+                            hintText: 'Abebe Bikila',
+                            prefixIcon: const Icon(Icons.person_outline),
+                            textInputAction: TextInputAction.next,
+                            validator: (v) => InputValidators.notEmpty(v, field: 'Full name'),
+                            enabled: !isLoading,
+                          ),
+                          const SizedBox(height: AppSizes.md),
+                          AuthTextField(
+                            controller: _emailController,
+                            labelText: 'Email Address',
+                            hintText: 'name@example.com',
+                            prefixIcon: const Icon(Icons.email_outlined),
+                            keyboardType: TextInputType.emailAddress,
+                            textInputAction: TextInputAction.next,
+                            validator: InputValidators.email,
+                            enabled: !isLoading,
+                          ),
+                          const SizedBox(height: AppSizes.md),
+                          AuthTextField(
+                            controller: _passwordController,
+                            labelText: 'Password',
+                            prefixIcon: const Icon(Icons.lock_outline),
+                            obscureText: _obscurePassword,
+                            textInputAction: TextInputAction.next,
+                            validator: InputValidators.password,
+                            enabled: !isLoading,
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscurePassword
+                                    ? Icons.visibility_outlined
+                                    : Icons.visibility_off_outlined,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _obscurePassword = !_obscurePassword;
+                                });
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: AppSizes.md),
+                          AuthTextField(
+                            controller: _confirmPasswordController,
+                            labelText: 'Confirm Password',
+                            prefixIcon: const Icon(Icons.lock_outline),
+                            obscureText: _obscureConfirmPassword,
+                            textInputAction: TextInputAction.done,
+                            validator: (v) => InputValidators.confirmPassword(
+                              v,
+                              _passwordController.text,
+                            ),
+                            onFieldSubmitted: (_) => _submit(),
+                            enabled: !isLoading,
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscureConfirmPassword
+                                    ? Icons.visibility_outlined
+                                    : Icons.visibility_off_outlined,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _obscureConfirmPassword = !_obscureConfirmPassword;
+                                });
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: AppSizes.lg),
+                          ElevatedButton(
+                            onPressed: isLoading ? null : _submit,
+                            child: isLoading
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        AppColors.secondary,
+                                      ),
+                                    ),
+                                  )
+                                : const Text('Create Account'),
+                          ),
+                          const SizedBox(height: AppSizes.lg),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'Already have an account? ',
+                                style: theme.textTheme.bodyMedium,
+                              ),
+                              TextButton(
+                                onPressed: isLoading
+                                    ? null
+                                    : () {
+                                        Navigator.of(context).pushReplacementNamed(
+                                          AppConstants.routeLogin,
+                                        );
+                                      },
+                                child: const Text('Sign In'),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
                   ),
                 ),
-              );
-            },
-          ),
-        ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }

@@ -1,67 +1,42 @@
-import 'package:ethioventure/core/error/exceptions.dart';
-import '../../domain/entities/user_entity.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../datasources/auth_remote_data_source.dart';
+import '../models/user_model.dart';
 
-/// Concrete implementation of [AuthRepository] bridging domain use cases to remote data source.
 class AuthRepositoryImpl implements AuthRepository {
-  const AuthRepositoryImpl(this._remoteDataSource);
+  final AuthRemoteDataSource remoteDataSource;
 
-  final AuthRemoteDataSource _remoteDataSource;
+  AuthRepositoryImpl({
+    required this.remoteDataSource,
+  });
 
   @override
-  Future<UserEntity> login({
+  Future<UserModel> register({
+    required String name,
     required String email,
     required String password,
-  }) async {
-    try {
-      return await _remoteDataSource.login(
-        email: email,
-        password: password,
-      );
-    } on ServerException {
-      rethrow;
-    } catch (e) {
-      throw ServerException(message: e.toString());
-    }
+    required String role,
+  }) {
+    return remoteDataSource.register(
+      name: name,
+      email: email,
+      password: password,
+      role: role,
+    );
   }
 
   @override
-  Future<UserEntity> register({
+  Future<UserModel> login({
     required String email,
     required String password,
-    required String fullName,
-  }) async {
-    try {
-      return await _remoteDataSource.register(
-        email: email,
-        password: password,
-        fullName: fullName,
-      );
-    } on ServerException {
-      rethrow;
-    } catch (e) {
-      throw ServerException(message: e.toString());
-    }
+  }) {
+    return remoteDataSource.login(
+      email: email,
+      password: password,
+    );
   }
 
   @override
-  Future<void> logout() async {
-    try {
-      await _remoteDataSource.logout();
-    } on ServerException {
-      rethrow;
-    } catch (e) {
-      throw ServerException(message: e.toString());
-    }
-  }
-
-  @override
-  Future<UserEntity?> getCurrentUser() async {
-    try {
-      return await _remoteDataSource.getCurrentUser();
-    } catch (_) {
-      return null;
-    }
+  Future<void> logout() {
+    return remoteDataSource.logout();
   }
 }
