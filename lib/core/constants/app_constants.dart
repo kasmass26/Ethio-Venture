@@ -17,6 +17,7 @@ class AppConstants {
   static const Duration networkTimeout = Duration(seconds: 20);
 
   static const String routeHome = '/';
+  static const String routeOnboarding = '/onboarding';
   static const String routeLogin = '/login';
   static const String routeRegister = '/register';
   static const String routeRoleSelection = '/role-selection';

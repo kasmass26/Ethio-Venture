@@ -24,6 +24,47 @@ class StartupProfilePage extends StatelessWidget {
     return '\$$integerPart.${parts[1]} USD';
   }
 
+  void _confirmLogout(BuildContext context) {
+    showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Sign Out'),
+        content: const Text('Are you sure you want to sign out of your founder account?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.coral,
+              foregroundColor: AppColors.white,
+            ),
+            child: const Text('Sign Out'),
+          ),
+        ],
+      ),
+    ).then((confirmed) async {
+      if (confirmed == true && context.mounted) {
+        await sl<SupabaseClient>().auth.signOut();
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Signed out successfully.'),
+              backgroundColor: AppColors.emerald,
+            ),
+          );
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            '/onboarding',
+            (route) => false,
+          );
+        }
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentUserId = sl<SupabaseClient>().auth.currentUser?.id ?? '';
@@ -81,6 +122,11 @@ class StartupProfilePage extends StatelessWidget {
                 }
                 return const SizedBox.shrink();
               },
+            ),
+            IconButton(
+              icon: const Icon(Icons.logout_outlined),
+              tooltip: 'Sign Out',
+              onPressed: () => _confirmLogout(context),
             ),
           ],
         ),
@@ -433,81 +479,41 @@ class StartupProfilePage extends StatelessWidget {
           ),
           const SizedBox(height: AppSizes.xl),
 
-          // Action Buttons: Edit Profile & Create Another Profile
-          Column(
-            children: [
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.pushNamed(
-                      context,
-                      '/edit-startup-profile',
-                      arguments: profile,
-                    ).then((_) {
-                      if (context.mounted) {
-                        context
-                            .read<StartupProfileCubit>()
-                            .loadProfile(currentUserId);
-                      }
-                    });
-                  },
-                  icon: const Icon(Icons.edit_outlined),
-                  label: const Text(
-                    'Edit Current Profile',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.emerald,
-                    foregroundColor: AppColors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppSizes.radiusMd),
-                    ),
-                    elevation: 2,
-                  ),
+          // Clean Single Edit Button at the Bottom
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                Navigator.pushNamed(
+                  context,
+                  '/edit-startup-profile',
+                  arguments: profile,
+                ).then((_) {
+                  if (context.mounted) {
+                    context
+                        .read<StartupProfileCubit>()
+                        .loadProfile(currentUserId);
+                  }
+                });
+              },
+              icon: const Icon(Icons.edit_outlined),
+              label: const Text(
+                'Edit Current Profile',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(height: AppSizes.md),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: OutlinedButton.icon(
-                  onPressed: () {
-                    // Sign out active session so a new profile can be created cleanly
-                    sl<SupabaseClient>().auth.signOut();
-                    Navigator.pushNamed(
-                      context,
-                      '/startup-profile-setup',
-                    ).then((_) {
-                      if (context.mounted) {
-                        context
-                            .read<StartupProfileCubit>()
-                            .loadProfile('');
-                      }
-                    });
-                  },
-                  icon: const Icon(Icons.add_circle_outline),
-                  label: const Text(
-                    '+ Create Another Startup Profile',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.emerald,
-                    side: const BorderSide(color: AppColors.emerald, width: 1.5),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppSizes.radiusMd),
-                    ),
-                  ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.emerald,
+                foregroundColor: AppColors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppSizes.radiusMd),
                 ),
+                elevation: 2,
               ),
-            ],
+            ),
           ),
           const SizedBox(height: AppSizes.xl),
         ],
