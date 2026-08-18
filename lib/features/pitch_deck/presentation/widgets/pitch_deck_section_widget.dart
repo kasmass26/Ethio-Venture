@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:ethioventure/core/theme/app_colors.dart';
@@ -24,6 +25,7 @@ class PitchDeckSectionWidget extends StatelessWidget {
     final documentCubit = parentContext.read<DocumentCubit>();
     final titleController = TextEditingController();
     final fileNameController = TextEditingController(text: 'PitchDeck_EthioPay_2026.pdf');
+    String? selectedFilePath;
     bool isPrivate = false;
 
     showDialog<void>(
@@ -31,6 +33,29 @@ class PitchDeckSectionWidget extends StatelessWidget {
       builder: (dialogContext) {
         return StatefulBuilder(
           builder: (context, setState) {
+            Future<void> pickRealFile() async {
+              try {
+                final result = await FilePicker.platform.pickFiles(
+                  type: FileType.custom,
+                  allowedExtensions: ['pdf', 'doc', 'docx', 'ppt', 'pptx'],
+                );
+
+                if (result != null && result.files.isNotEmpty) {
+                  final file = result.files.first;
+                  setState(() {
+                    selectedFilePath = file.path;
+                    fileNameController.text = file.name;
+                    if (titleController.text.trim().isEmpty) {
+                      final nameWithoutExt = file.name.contains('.')
+                          ? file.name.substring(0, file.name.lastIndexOf('.'))
+                          : file.name;
+                      titleController.text = nameWithoutExt.replaceAll('_', ' ');
+                    }
+                  });
+                }
+              } catch (_) {}
+            }
+
             return AlertDialog(
               title: const Row(
                 children: [
@@ -39,53 +64,77 @@ class PitchDeckSectionWidget extends StatelessWidget {
                   Text('Upload Pitch Deck / Document'),
                 ],
               ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Document Title',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Native File Picker Trigger Button
+                    OutlinedButton.icon(
+                      onPressed: pickRealFile,
+                      icon: const Icon(Icons.folder_open, color: AppColors.emerald),
+                      label: Text(
+                        selectedFilePath != null
+                            ? 'Selected: ${fileNameController.text}'
+                            : 'Choose File from Device (PDF / DOCX / PPTX)',
+                        style: const TextStyle(
+                          color: AppColors.emerald,
                           fontWeight: FontWeight.bold,
                         ),
-                  ),
-                  const SizedBox(height: AppSizes.xs),
-                  TextField(
-                    controller: titleController,
-                    decoration: const InputDecoration(
-                      hintText: 'e.g. EthioPay Pitch Deck 2026',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: AppSizes.md),
-                  Text(
-                    'File Name',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: AppColors.emerald),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSizes.md,
+                          vertical: AppSizes.sm,
                         ),
-                  ),
-                  const SizedBox(height: AppSizes.xs),
-                  TextField(
-                    controller: fileNameController,
-                    decoration: const InputDecoration(
-                      hintText: 'e.g. pitch_deck.pdf',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.picture_as_pdf, color: AppColors.coral),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: AppSizes.md),
-                  SwitchListTile(
-                    title: const Text('Private (Matched Investors Only)'),
-                    subtitle: const Text('Restrict visibility to verified investors'),
-                    value: isPrivate,
-                    activeThumbColor: AppColors.emerald,
-                    onChanged: (val) {
-                      setState(() {
-                        isPrivate = val;
-                      });
-                    },
-                  ),
-                ],
+                    const SizedBox(height: AppSizes.md),
+                    Text(
+                      'Document Title *',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                    const SizedBox(height: AppSizes.xs),
+                    TextField(
+                      controller: titleController,
+                      decoration: const InputDecoration(
+                        hintText: 'e.g. EthioPay Investor Deck 2026',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: AppSizes.md),
+                    Text(
+                      'File Name',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                    const SizedBox(height: AppSizes.xs),
+                    TextField(
+                      controller: fileNameController,
+                      decoration: const InputDecoration(
+                        hintText: 'e.g. pitch_deck.pdf',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.picture_as_pdf, color: AppColors.coral),
+                      ),
+                    ),
+                    const SizedBox(height: AppSizes.md),
+                    SwitchListTile(
+                      title: const Text('Private (Matched Investors Only)'),
+                      subtitle: const Text('Restrict visibility to verified investors'),
+                      value: isPrivate,
+                      activeThumbColor: AppColors.emerald,
+                      onChanged: (val) {
+                        setState(() {
+                          isPrivate = val;
+                        });
+                      },
+                    ),
+                  ],
+                ),
               ),
               actions: [
                 TextButton(
@@ -96,16 +145,19 @@ class PitchDeckSectionWidget extends StatelessWidget {
                   onPressed: () {
                     final title = titleController.text.trim().isNotEmpty
                         ? titleController.text.trim()
-                        : 'EthioPay Pitch Deck 2026';
+                        : (fileNameController.text.trim().isNotEmpty
+                            ? fileNameController.text.trim()
+                            : 'EthioPay Pitch Deck 2026');
                     final fileName = fileNameController.text.trim().isNotEmpty
                         ? fileNameController.text.trim()
                         : 'PitchDeck_EthioPay_2026.pdf';
+                    final filePath = selectedFilePath ?? fileName;
 
                     Navigator.pop(dialogContext);
                     documentCubit.uploadDocument(
                       startupId: startupId,
                       title: title,
-                      filePath: fileName,
+                      filePath: filePath,
                       fileName: fileName,
                       isPrivate: isPrivate,
                     );
