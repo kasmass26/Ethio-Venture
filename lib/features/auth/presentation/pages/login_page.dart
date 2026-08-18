@@ -44,6 +44,17 @@ class _LoginPageState extends State<LoginPage> {
       create: (context) => sl<AuthCubit>(),
       child: Scaffold(
         backgroundColor: AppColors.background,
+        appBar: AppBar(
+          backgroundColor: AppColors.surface,
+          foregroundColor: AppColors.ink,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () {
+              Navigator.pushReplacementNamed(context, '/onboarding');
+            },
+          ),
+        ),
         body: SafeArea(
           child: BlocConsumer<AuthCubit, AuthState>(
             listener: (context, state) {
@@ -271,6 +282,39 @@ class _LoginPageState extends State<LoginPage> {
                                         ),
                                 ),
                               ),
+                              const SizedBox(height: AppSizes.md),
+
+                              // Quick Demo Login Button
+                              SizedBox(
+                                width: double.infinity,
+                                height: 40,
+                                child: OutlinedButton.icon(
+                                  onPressed: () {
+                                    _emailController.text =
+                                        'founder@ethioventure.com';
+                                    _passwordController.text = 'Password123!';
+                                    _submitLogin(context);
+                                  },
+                                  icon: const Icon(Icons.flash_on,
+                                      size: 18, color: AppColors.violet),
+                                  label: const Text(
+                                    'Quick Demo Sign In (founder@ethioventure.com)',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.violet,
+                                    ),
+                                  ),
+                                  style: OutlinedButton.styleFrom(
+                                    side: const BorderSide(
+                                        color: AppColors.violet, width: 1.5),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(
+                                          AppSizes.radiusMd),
+                                    ),
+                                  ),
+                                ),
+                              ),
                               const SizedBox(height: AppSizes.lg),
 
                               // Redirect to Register
@@ -285,13 +329,17 @@ class _LoginPageState extends State<LoginPage> {
                                   child: RichText(
                                     text: const TextSpan(
                                       text: "Don't have a founder account? ",
-                                      style: TextStyle(color: AppColors.slate),
+                                      style: TextStyle(
+                                          color: AppColors.slate, fontSize: 14),
                                       children: [
                                         TextSpan(
                                           text: 'Register Here',
                                           style: TextStyle(
                                             color: AppColors.emerald,
                                             fontWeight: FontWeight.bold,
+                                            fontSize: 15,
+                                            decoration:
+                                                TextDecoration.underline,
                                           ),
                                         ),
                                       ],
