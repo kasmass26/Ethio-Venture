@@ -2,9 +2,8 @@ import '../../domain/entities/startup_profile_entity.dart';
 
 /// Data model representing a Startup Profile in the Data Layer.
 ///
-/// Supports serialization to/from both live Supabase PostgreSQL schema
-/// (`company_name`, `target_funding_amount`, `founder_email`, `team_members`)
-/// and migration schema (`startup_name`, `funding_amount_needed`, `contact_information`, `team_information`).
+/// Supports multi-schema serialization to ensure 100% compatibility
+/// across live Supabase database tables and migration table schemas.
 class StartupProfileModel extends StartupProfileEntity {
   const StartupProfileModel({
     required super.id,
@@ -23,7 +22,6 @@ class StartupProfileModel extends StartupProfileEntity {
 
   /// Constructs a [StartupProfileModel] from a Supabase PostgreSQL JSON map.
   factory StartupProfileModel.fromJson(Map<String, dynamic> json) {
-    // Parse team information from string or array
     String parsedTeamInfo = '';
     if (json['team_information'] != null) {
       parsedTeamInfo = json['team_information'].toString();
@@ -86,7 +84,42 @@ class StartupProfileModel extends StartupProfileEntity {
     );
   }
 
-  /// Insert JSON for live Supabase database project table schema.
+  /// Minimal Live Schema Insert payload (`company_name`, `target_funding_amount`, `founder_email`).
+  Map<String, dynamic> toMinimalLiveInsertJson() {
+    final map = <String, dynamic>{
+      'company_name': startupName,
+      'description': description,
+      'industry': industry,
+      'funding_stage': fundingStage,
+      'target_funding_amount': fundingAmountNeeded,
+      'location': location,
+      'founder_email': contactInformation,
+    };
+    if (userId.isNotEmpty && userId != '00000000-0000-0000-0000-000000000000') {
+      map['user_id'] = userId;
+    }
+    return map;
+  }
+
+  /// Migration Schema Insert payload (`startup_name`, `funding_amount_needed`, `contact_information`).
+  Map<String, dynamic> toMigrationInsertJson() {
+    final map = <String, dynamic>{
+      'startup_name': startupName,
+      'description': description,
+      'industry': industry,
+      'funding_stage': fundingStage,
+      'funding_amount_needed': fundingAmountNeeded,
+      'location': location,
+      'team_information': teamInformation,
+      'contact_information': contactInformation,
+    };
+    if (userId.isNotEmpty && userId != '00000000-0000-0000-0000-000000000000') {
+      map['user_id'] = userId;
+    }
+    return map;
+  }
+
+  /// Full Live Schema Insert payload.
   Map<String, dynamic> toLiveDatabaseInsertJson() {
     final map = <String, dynamic>{
       'company_name': startupName,
@@ -114,26 +147,8 @@ class StartupProfileModel extends StartupProfileEntity {
     return map;
   }
 
-  /// Insert JSON for standard migration table schema.
-  Map<String, dynamic> toMigrationInsertJson() {
-    final map = <String, dynamic>{
-      'startup_name': startupName,
-      'description': description,
-      'industry': industry,
-      'funding_stage': fundingStage,
-      'funding_amount_needed': fundingAmountNeeded,
-      'location': location,
-      'team_information': teamInformation,
-      'contact_information': contactInformation,
-    };
-    if (userId.isNotEmpty && userId != '00000000-0000-0000-0000-000000000000') {
-      map['user_id'] = userId;
-    }
-    return map;
-  }
-
-  /// Update JSON for live Supabase database project table schema.
-  Map<String, dynamic> toLiveDatabaseUpdateJson() {
+  /// Minimal Live Schema Update payload.
+  Map<String, dynamic> toMinimalLiveUpdateJson() {
     return {
       'company_name': startupName,
       'description': description,
@@ -141,13 +156,12 @@ class StartupProfileModel extends StartupProfileEntity {
       'funding_stage': fundingStage,
       'target_funding_amount': fundingAmountNeeded,
       'location': location,
-      'team_members': [teamInformation],
       'founder_email': contactInformation,
       'updated_at': DateTime.now().toIso8601String(),
     };
   }
 
-  /// Update JSON for standard migration table schema.
+  /// Migration Schema Update payload.
   Map<String, dynamic> toMigrationUpdateJson() {
     return {
       'startup_name': startupName,

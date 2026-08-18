@@ -28,34 +28,53 @@ class StartupProfileRemoteDataSourceImpl
 
   @override
   Future<StartupProfileModel> createProfile(StartupProfileModel profile) async {
+    Object? lastException;
+
+    // Attempt 1: Minimal Live Schema (company_name, target_funding_amount, founder_email)
     try {
-      // First attempt: try live database schema keys (company_name, founder_email, etc.)
+      final response = await _client
+          .from(_tableName)
+          .insert(profile.toMinimalLiveInsertJson())
+          .select()
+          .single();
+      return StartupProfileModel.fromJson(response);
+    } catch (e) {
+      lastException = e;
+    }
+
+    // Attempt 2: Full Migration Schema (startup_name, funding_amount_needed, contact_information)
+    try {
+      final response = await _client
+          .from(_tableName)
+          .insert(profile.toMigrationInsertJson())
+          .select()
+          .single();
+      return StartupProfileModel.fromJson(response);
+    } catch (e) {
+      lastException = e;
+    }
+
+    // Attempt 3: Full Live Schema (with optional fields)
+    try {
       final response = await _client
           .from(_tableName)
           .insert(profile.toLiveDatabaseInsertJson())
           .select()
           .single();
-
       return StartupProfileModel.fromJson(response);
-    } on PostgrestException catch (e) {
-      if (e.message.contains('column') || e.code == 'PGRST204' || e.code == '42703') {
-        try {
-          // Fallback attempt: try migration schema keys (startup_name, contact_information, etc.)
-          final response = await _client
-              .from(_tableName)
-              .insert(profile.toMigrationInsertJson())
-              .select()
-              .single();
-          return StartupProfileModel.fromJson(response);
-        } catch (_) {}
-      }
-      throw ServerException(
-        message: e.message,
-        statusCode: int.tryParse(e.code ?? ''),
-      );
     } catch (e) {
-      throw ServerException(message: 'Failed to create startup profile: $e');
+      lastException = e;
     }
+
+    if (lastException is PostgrestException) {
+      throw ServerException(
+        message: lastException.message,
+        statusCode: int.tryParse(lastException.code ?? ''),
+      );
+    }
+    throw ServerException(
+      message: 'Failed to create startup profile: $lastException',
+    );
   }
 
   @override
@@ -83,34 +102,43 @@ class StartupProfileRemoteDataSourceImpl
 
   @override
   Future<StartupProfileModel> updateProfile(StartupProfileModel profile) async {
+    Object? lastException;
+
+    // Attempt 1: Minimal Live Schema Update
     try {
       final response = await _client
           .from(_tableName)
-          .update(profile.toLiveDatabaseUpdateJson())
+          .update(profile.toMinimalLiveUpdateJson())
           .eq('user_id', profile.userId)
           .select()
           .single();
-
       return StartupProfileModel.fromJson(response);
-    } on PostgrestException catch (e) {
-      if (e.message.contains('column') || e.code == 'PGRST204' || e.code == '42703') {
-        try {
-          final response = await _client
-              .from(_tableName)
-              .update(profile.toMigrationUpdateJson())
-              .eq('user_id', profile.userId)
-              .select()
-              .single();
-          return StartupProfileModel.fromJson(response);
-        } catch (_) {}
-      }
-      throw ServerException(
-        message: e.message,
-        statusCode: int.tryParse(e.code ?? ''),
-      );
     } catch (e) {
-      throw ServerException(message: 'Failed to update startup profile: $e');
+      lastException = e;
     }
+
+    // Attempt 2: Migration Schema Update
+    try {
+      final response = await _client
+          .from(_tableName)
+          .update(profile.toMigrationUpdateJson())
+          .eq('user_id', profile.userId)
+          .select()
+          .single();
+      return StartupProfileModel.fromJson(response);
+    } catch (e) {
+      lastException = e;
+    }
+
+    if (lastException is PostgrestException) {
+      throw ServerException(
+        message: lastException.message,
+        statusCode: int.tryParse(lastException.code ?? ''),
+      );
+    }
+    throw ServerException(
+      message: 'Failed to update startup profile: $lastException',
+    );
   }
 
   @override
