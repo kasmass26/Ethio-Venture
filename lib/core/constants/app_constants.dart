@@ -20,4 +20,6 @@ class AppConstants {
   static const String routeLogin = '/login';
   static const String routeRegister = '/register';
   static const String routeRoleSelection = '/role-selection';
+  static const String routeInvestorProfile = '/investor-profile';
 }
+

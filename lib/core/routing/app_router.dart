@@ -1,5 +1,6 @@
 import 'package:ethioventure/core/constants/app_constants.dart';
 import 'package:ethioventure/core/theme/app_sizes.dart';
+import 'package:ethioventure/features/investor_profile/presentation/pages/investor_profile_page.dart';
 import 'package:flutter/material.dart';
 
 /// Central navigation configuration. Features register a typed route here when
@@ -9,6 +10,19 @@ class AppRouter {
 
   static final GlobalKey<NavigatorState> navigatorKey =
       GlobalKey<NavigatorState>();
+
+  static Route<dynamic> onGenerateRoute(RouteSettings settings) {
+    switch (settings.name) {
+      case AppConstants.routeInvestorProfile:
+      case AppConstants.routeHome:
+        return MaterialPageRoute<void>(
+          settings: settings,
+          builder: (_) => const InvestorProfilePage(),
+        );
+      default:
+        return onUnknownRoute(settings);
+    }
+  }
 
   static Route<dynamic> onUnknownRoute(RouteSettings settings) {
     return MaterialPageRoute<void>(

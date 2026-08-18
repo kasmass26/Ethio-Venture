@@ -38,14 +38,9 @@ class EthioVentureApp extends StatelessWidget {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.system,
+      onGenerateRoute: AppRouter.onGenerateRoute,
+      initialRoute: AppConstants.routeInvestorProfile,
       onUnknownRoute: AppRouter.onUnknownRoute,
-      home: const Scaffold(
-        body: SafeArea(
-          child: Center(
-            child: Text(AppConstants.appName),
-          ),
-        ),
-      ),
     );
   }
 }
