@@ -14,6 +14,16 @@ class StartupProfilePage extends StatelessWidget {
 
   static const String routeName = '/startup-profile';
 
+  /// Helper to format currency numbers with commas for thousands (e.g. 436577.00 -> 436,577.00)
+  String _formatCurrency(double amount) {
+    final parts = amount.toStringAsFixed(2).split('.');
+    final integerPart = parts[0].replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]},',
+    );
+    return '\$$integerPart.${parts[1]} USD';
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentUserId = sl<SupabaseClient>().auth.currentUser?.id ?? '';
@@ -173,7 +183,7 @@ class StartupProfilePage extends StatelessWidget {
               }
 
               if (state is StartupProfileLoaded) {
-                return _buildProfileDetails(context, state.profile);
+                return _buildProfileDetails(context, state.profile, currentUserId);
               }
 
               return const SizedBox.shrink();
@@ -184,7 +194,11 @@ class StartupProfilePage extends StatelessWidget {
     );
   }
 
-  Widget _buildProfileDetails(BuildContext context, StartupProfileEntity profile) {
+  Widget _buildProfileDetails(
+    BuildContext context,
+    StartupProfileEntity profile,
+    String currentUserId,
+  ) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(AppSizes.pageHorizontal),
       child: Column(
@@ -238,6 +252,7 @@ class StartupProfilePage extends StatelessWidget {
                                 profile.industry,
                                 style: const TextStyle(
                                   fontSize: 12,
+                                  fontWeight: FontWeight.w600,
                                   color: AppColors.emerald,
                                 ),
                               ),
@@ -250,6 +265,7 @@ class StartupProfilePage extends StatelessWidget {
                                 profile.fundingStage,
                                 style: const TextStyle(
                                   fontSize: 12,
+                                  fontWeight: FontWeight.w600,
                                   color: AppColors.violet,
                                 ),
                               ),
@@ -284,11 +300,12 @@ class StartupProfilePage extends StatelessWidget {
                     'Funding Request',
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
                           color: AppColors.slate,
+                          fontWeight: FontWeight.w600,
                         ),
                   ),
                   const SizedBox(height: AppSizes.xs),
                   Text(
-                    '\$${profile.fundingAmountNeeded.toStringAsFixed(2)} USD',
+                    _formatCurrency(profile.fundingAmountNeeded),
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: AppColors.emerald,
@@ -305,7 +322,10 @@ class StartupProfilePage extends StatelessWidget {
                       const SizedBox(width: AppSizes.xs),
                       Text(
                         profile.location,
-                        style: const TextStyle(color: AppColors.slate),
+                        style: const TextStyle(
+                          color: AppColors.slate,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ],
                   ),
@@ -333,12 +353,105 @@ class StartupProfilePage extends StatelessWidget {
           ),
           const SizedBox(height: AppSizes.md),
 
-          // Contact Information Card
-          _buildInfoSection(
-            context,
-            title: 'Contact Details',
-            icon: Icons.contact_mail_outlined,
-            content: profile.contactInformation,
+          // Contact Information Card with Email Badge
+          Card(
+            elevation: 1,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+            ),
+            color: AppColors.surface,
+            child: Padding(
+              padding: const EdgeInsets.all(AppSizes.lg),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.contact_mail_outlined,
+                          size: 20, color: AppColors.emerald),
+                      const SizedBox(width: AppSizes.sm),
+                      Text(
+                        'Contact Details',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.ink,
+                            ),
+                      ),
+                    ],
+                  ),
+                  const Divider(height: AppSizes.lg),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSizes.md,
+                      vertical: AppSizes.sm,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.background,
+                      borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+                      border: Border.all(color: AppColors.fog),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          profile.contactInformation.contains('@')
+                              ? Icons.email_outlined
+                              : Icons.phone_outlined,
+                          size: 18,
+                          color: AppColors.emerald,
+                        ),
+                        const SizedBox(width: AppSizes.sm),
+                        SelectableText(
+                          profile.contactInformation,
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: AppColors.ink,
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSizes.xl),
+
+          // Prominent Edit Action Button at the Bottom
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                Navigator.pushNamed(
+                  context,
+                  '/edit-startup-profile',
+                  arguments: profile,
+                ).then((_) {
+                  if (context.mounted) {
+                    context
+                        .read<StartupProfileCubit>()
+                        .loadProfile(currentUserId);
+                  }
+                });
+              },
+              icon: const Icon(Icons.edit_outlined),
+              label: const Text(
+                'Edit Startup Profile',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.emerald,
+                foregroundColor: AppColors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+                ),
+                elevation: 2,
+              ),
+            ),
           ),
           const SizedBox(height: AppSizes.xl),
         ],
