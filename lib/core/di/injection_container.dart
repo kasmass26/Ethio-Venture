@@ -10,6 +10,15 @@ import 'package:ethioventure/features/auth/domain/usecases/logout_user.dart';
 import 'package:ethioventure/features/auth/domain/usecases/register_usecase.dart';
 import 'package:ethioventure/features/auth/presentation/cubit/auth_cubit.dart';
 
+import 'package:ethioventure/features/pitch_deck/data/datasources/document_remote_data_source.dart';
+import 'package:ethioventure/features/pitch_deck/data/repositories/document_repository_impl.dart';
+import 'package:ethioventure/features/pitch_deck/domain/repositories/document_repository.dart';
+import 'package:ethioventure/features/pitch_deck/domain/usecases/delete_document_use_case.dart';
+import 'package:ethioventure/features/pitch_deck/domain/usecases/get_startup_documents_use_case.dart';
+import 'package:ethioventure/features/pitch_deck/domain/usecases/toggle_document_visibility_use_case.dart';
+import 'package:ethioventure/features/pitch_deck/domain/usecases/upload_document_use_case.dart';
+import 'package:ethioventure/features/pitch_deck/presentation/cubit/document_cubit.dart';
+
 import 'package:ethioventure/features/startup_profile/data/datasources/startup_profile_remote_data_source.dart';
 import 'package:ethioventure/features/startup_profile/data/repositories/startup_profile_repository_impl.dart';
 import 'package:ethioventure/features/startup_profile/domain/repositories/startup_profile_repository.dart';
@@ -43,6 +52,9 @@ Future<void> configureDependencies() async {
     );
   }
 
+  // ---------------------------------------------------------------------------
+  // Auth Feature
+  // ---------------------------------------------------------------------------
   if (!sl.isRegistered<AuthRemoteDataSource>()) {
     sl.registerLazySingleton<AuthRemoteDataSource>(
       () => AuthRemoteDataSourceImpl(
@@ -83,6 +95,56 @@ Future<void> configureDependencies() async {
         loginUser: sl<LoginUser>(),
         registerUser: sl<RegisterUser>(),
         logoutUser: sl<LogoutUser>(),
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Pitch Deck & Document Feature
+  // ---------------------------------------------------------------------------
+  if (!sl.isRegistered<DocumentRemoteDataSource>()) {
+    sl.registerLazySingleton<DocumentRemoteDataSource>(
+      () => DocumentRemoteDataSourceImpl(sl<SupabaseClient>()),
+    );
+  }
+
+  if (!sl.isRegistered<DocumentRepository>()) {
+    sl.registerLazySingleton<DocumentRepository>(
+      () => DocumentRepositoryImpl(sl<DocumentRemoteDataSource>()),
+    );
+  }
+
+  if (!sl.isRegistered<UploadDocumentUseCase>()) {
+    sl.registerLazySingleton<UploadDocumentUseCase>(
+      () => UploadDocumentUseCase(sl<DocumentRepository>()),
+    );
+  }
+
+  if (!sl.isRegistered<GetStartupDocumentsUseCase>()) {
+    sl.registerLazySingleton<GetStartupDocumentsUseCase>(
+      () => GetStartupDocumentsUseCase(sl<DocumentRepository>()),
+    );
+  }
+
+  if (!sl.isRegistered<DeleteDocumentUseCase>()) {
+    sl.registerLazySingleton<DeleteDocumentUseCase>(
+      () => DeleteDocumentUseCase(sl<DocumentRepository>()),
+    );
+  }
+
+  if (!sl.isRegistered<ToggleDocumentVisibilityUseCase>()) {
+    sl.registerLazySingleton<ToggleDocumentVisibilityUseCase>(
+      () => ToggleDocumentVisibilityUseCase(sl<DocumentRepository>()),
+    );
+  }
+
+  if (!sl.isRegistered<DocumentCubit>()) {
+    sl.registerFactory<DocumentCubit>(
+      () => DocumentCubit(
+        uploadDocumentUseCase: sl<UploadDocumentUseCase>(),
+        getStartupDocumentsUseCase: sl<GetStartupDocumentsUseCase>(),
+        deleteDocumentUseCase: sl<DeleteDocumentUseCase>(),
+        toggleDocumentVisibilityUseCase: sl<ToggleDocumentVisibilityUseCase>(),
       ),
     );
   }

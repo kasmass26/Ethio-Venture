@@ -4,7 +4,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:ethioventure/core/di/injection_container.dart';
 import 'package:ethioventure/core/theme/app_colors.dart';
 import 'package:ethioventure/core/theme/app_sizes.dart';
-import '../../domain/entities/startup_profile_entity.dart';
+import '../../../pitch_deck/presentation/cubit/document_cubit.dart';
+import '../../../pitch_deck/presentation/widgets/pitch_deck_section_widget.dart';
 import '../cubit/startup_profile_cubit.dart';
 import '../cubit/startup_profile_state.dart';
 
@@ -29,14 +30,22 @@ class StartupProfilePage extends StatelessWidget {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Sign Out'),
-        content: const Text('Are you sure you want to sign out of your founder account?'),
+        content: const Text('Are you sure you want to sign out of Ethio Venture?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
+            onPressed: () {
+              Navigator.pop(dialogContext, true);
+              sl<SupabaseClient>().auth.signOut();
+              Navigator.pushNamedAndRemoveUntil(
+                context,
+                '/',
+                (route) => false,
+              );
+            },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.coral,
               foregroundColor: AppColors.white,
@@ -45,36 +54,17 @@ class StartupProfilePage extends StatelessWidget {
           ),
         ],
       ),
-    ).then((confirmed) async {
-      if (confirmed == true && context.mounted) {
-        await sl<SupabaseClient>().auth.signOut();
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Signed out successfully.'),
-              backgroundColor: AppColors.emerald,
-            ),
-          );
-          Navigator.pushNamedAndRemoveUntil(
-            context,
-            '/onboarding',
-            (route) => false,
-          );
-        }
-      }
-    });
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final currentUserId = sl<SupabaseClient>().auth.currentUser?.id ?? '';
+    final currentUserId =
+        sl<SupabaseClient>().auth.currentUser?.id ?? '00000000-0000-0000-0000-000000000000';
 
     return BlocProvider<StartupProfileCubit>(
-      create: (context) {
-        final cubit = sl<StartupProfileCubit>();
-        cubit.loadProfile(currentUserId);
-        return cubit;
-      },
+      create: (context) =>
+          sl<StartupProfileCubit>()..loadProfile(currentUserId),
       child: Scaffold(
         backgroundColor: AppColors.background,
         appBar: AppBar(
@@ -148,27 +138,26 @@ class StartupProfilePage extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Container(
-                          width: 80,
-                          height: 80,
-                          decoration: BoxDecoration(
+                          padding: const EdgeInsets.all(AppSizes.lg),
+                          decoration: const BoxDecoration(
                             color: AppColors.emeraldTint,
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(
-                            Icons.business_center_outlined,
-                            size: 40,
+                            Icons.business_outlined,
+                            size: 48,
                             color: AppColors.emerald,
                           ),
                         ),
-                        const SizedBox(height: AppSizes.lg),
+                        const SizedBox(height: AppSizes.md),
                         Text(
                           'No Startup Profile Found',
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                                 fontWeight: FontWeight.bold,
                                 color: AppColors.ink,
                               ),
                         ),
-                        const SizedBox(height: AppSizes.sm),
+                        const SizedBox(height: AppSizes.xs),
                         Text(
                           'Create your startup profile to showcase your product, team, and funding goals to investors.',
                           textAlign: TextAlign.center,
@@ -196,12 +185,8 @@ class StartupProfilePage extends StatelessWidget {
                             backgroundColor: AppColors.emerald,
                             foregroundColor: AppColors.white,
                             padding: const EdgeInsets.symmetric(
-                              horizontal: AppSizes.lg,
+                              horizontal: AppSizes.xl,
                               vertical: AppSizes.md,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(AppSizes.radiusMd),
                             ),
                           ),
                         ),
@@ -221,21 +206,33 @@ class StartupProfilePage extends StatelessWidget {
                         const Icon(
                           Icons.error_outline,
                           size: 48,
-                          color: AppColors.error,
+                          color: AppColors.coral,
                         ),
                         const SizedBox(height: AppSizes.md),
                         Text(
+                          'Unable to Load Profile',
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                color: AppColors.ink,
+                                fontWeight: FontWeight.bold,
+                              ),
+                        ),
+                        const SizedBox(height: AppSizes.xs),
+                        Text(
                           state.message,
                           textAlign: TextAlign.center,
-                          style: const TextStyle(color: AppColors.error),
+                          style: const TextStyle(color: AppColors.slate),
                         ),
-                        const SizedBox(height: AppSizes.md),
+                        const SizedBox(height: AppSizes.lg),
                         ElevatedButton(
                           onPressed: () {
                             context
                                 .read<StartupProfileCubit>()
                                 .loadProfile(currentUserId);
                           },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.emerald,
+                            foregroundColor: AppColors.white,
+                          ),
                           child: const Text('Retry'),
                         ),
                       ],
@@ -245,278 +242,285 @@ class StartupProfilePage extends StatelessWidget {
               }
 
               if (state is StartupProfileLoaded) {
-                return _buildProfileDetails(context, state.profile, currentUserId);
+                final profile = state.profile;
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.all(AppSizes.pageHorizontal),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Header Summary Card
+                      Card(
+                        elevation: 1,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+                        ),
+                        color: AppColors.surface,
+                        child: Padding(
+                          padding: const EdgeInsets.all(AppSizes.lg),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 56,
+                                height: 56,
+                                decoration: BoxDecoration(
+                                  color: AppColors.emeraldTint,
+                                  borderRadius:
+                                      BorderRadius.circular(AppSizes.radiusMd),
+                                ),
+                                child: const Icon(
+                                  Icons.storefront,
+                                  color: AppColors.emerald,
+                                  size: 28,
+                                ),
+                              ),
+                              const SizedBox(width: AppSizes.md),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      profile.startupName,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .headlineSmall
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColors.ink,
+                                          ),
+                                    ),
+                                    const SizedBox(height: AppSizes.xs),
+                                    Wrap(
+                                      spacing: AppSizes.xs,
+                                      children: [
+                                        Chip(
+                                          label: Text(
+                                            profile.industry,
+                                            style: const TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w600,
+                                              color: AppColors.emerald,
+                                            ),
+                                          ),
+                                          backgroundColor: AppColors.emeraldTint,
+                                          visualDensity: VisualDensity.compact,
+                                          side: BorderSide.none,
+                                        ),
+                                        Chip(
+                                          label: Text(
+                                            profile.fundingStage,
+                                            style: const TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w600,
+                                              color: AppColors.violet,
+                                            ),
+                                          ),
+                                          backgroundColor: AppColors.violetTint,
+                                          visualDensity: VisualDensity.compact,
+                                          side: BorderSide.none,
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: AppSizes.md),
+
+                      // Funding Request Card
+                      Card(
+                        elevation: 1,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+                        ),
+                        color: AppColors.surface,
+                        child: Padding(
+                          padding: const EdgeInsets.all(AppSizes.lg),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Funding Request',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleSmall
+                                    ?.copyWith(
+                                      color: AppColors.slate,
+                                    ),
+                              ),
+                              const SizedBox(height: AppSizes.xs),
+                              Text(
+                                _formatCurrency(profile.fundingAmountNeeded),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .headlineMedium
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.emerald,
+                                    ),
+                              ),
+                              const SizedBox(height: AppSizes.xs),
+                              Row(
+                                children: [
+                                  const Icon(
+                                    Icons.location_on_outlined,
+                                    size: 16,
+                                    color: AppColors.slate,
+                                  ),
+                                  const SizedBox(width: AppSizes.xs),
+                                  Text(
+                                    profile.location,
+                                    style: const TextStyle(
+                                      color: AppColors.slate,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: AppSizes.md),
+
+                      // Description Card
+                      _buildInfoSection(
+                        context,
+                        title: 'Overview & Vision',
+                        icon: Icons.description_outlined,
+                        content: profile.description,
+                      ),
+                      const SizedBox(height: AppSizes.md),
+
+                      // Team Information Card
+                      _buildInfoSection(
+                        context,
+                        title: 'Team & Founders',
+                        icon: Icons.people_outline,
+                        content: profile.teamInformation,
+                      ),
+                      const SizedBox(height: AppSizes.md),
+
+                      // Pitch Deck & Business Documents Section
+                      BlocProvider<DocumentCubit>(
+                        create: (context) => sl<DocumentCubit>()
+                          ..loadDocuments(startupId: profile.id),
+                        child: PitchDeckSectionWidget(startupId: profile.id),
+                      ),
+                      const SizedBox(height: AppSizes.md),
+
+                      // Contact Information Card with Email Badge
+                      Card(
+                        elevation: 1,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+                        ),
+                        color: AppColors.surface,
+                        child: Padding(
+                          padding: const EdgeInsets.all(AppSizes.lg),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.contact_mail_outlined,
+                                      size: 20, color: AppColors.emerald),
+                                  const SizedBox(width: AppSizes.sm),
+                                  Text(
+                                    'Contact Details',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColors.ink,
+                                        ),
+                                  ),
+                                ],
+                              ),
+                              const Divider(height: AppSizes.lg),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: AppSizes.md,
+                                  vertical: AppSizes.sm,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.background,
+                                  borderRadius:
+                                      BorderRadius.circular(AppSizes.radiusMd),
+                                  border: Border.all(color: AppColors.fog),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      profile.contactInformation.contains('@')
+                                          ? Icons.email_outlined
+                                          : Icons.phone_outlined,
+                                      size: 18,
+                                      color: AppColors.emerald,
+                                    ),
+                                    const SizedBox(width: AppSizes.sm),
+                                    SelectableText(
+                                      profile.contactInformation,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium
+                                          ?.copyWith(
+                                            color: AppColors.ink,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: AppSizes.xl),
+
+                      // Bottom Main Action Button
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.pushNamed(
+                            context,
+                            '/edit-startup-profile',
+                            arguments: profile,
+                          ).then((_) {
+                            if (context.mounted) {
+                              context
+                                  .read<StartupProfileCubit>()
+                                  .loadProfile(currentUserId);
+                            }
+                          });
+                        },
+                        icon: const Icon(Icons.edit_outlined, size: 18),
+                        label: const Text('Edit Current Profile'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.emerald,
+                          foregroundColor: AppColors.white,
+                          padding: const EdgeInsets.symmetric(
+                            vertical: AppSizes.md,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius:
+                                BorderRadius.circular(AppSizes.radiusMd),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: AppSizes.xl),
+                    ],
+                  ),
+                );
               }
 
               return const SizedBox.shrink();
             },
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildProfileDetails(
-    BuildContext context,
-    StartupProfileEntity profile,
-    String currentUserId,
-  ) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppSizes.pageHorizontal),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header Identity Card
-          Card(
-            elevation: 1,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppSizes.radiusLg),
-            ),
-            color: AppColors.surface,
-            child: Padding(
-              padding: const EdgeInsets.all(AppSizes.lg),
-              child: Row(
-                children: [
-                  Container(
-                    width: 64,
-                    height: 64,
-                    decoration: BoxDecoration(
-                      color: AppColors.emeraldTint,
-                      borderRadius: BorderRadius.circular(AppSizes.radiusMd),
-                    ),
-                    child: const Icon(
-                      Icons.storefront,
-                      color: AppColors.emerald,
-                      size: 36,
-                    ),
-                  ),
-                  const SizedBox(width: AppSizes.md),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          profile.startupName,
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleLarge
-                              ?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.ink,
-                              ),
-                        ),
-                        const SizedBox(height: AppSizes.xs),
-                        Wrap(
-                          spacing: AppSizes.xs,
-                          children: [
-                            Chip(
-                              label: Text(
-                                profile.industry,
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.emerald,
-                                ),
-                              ),
-                              backgroundColor: AppColors.emeraldTint,
-                              visualDensity: VisualDensity.compact,
-                              side: BorderSide.none,
-                            ),
-                            Chip(
-                              label: Text(
-                                profile.fundingStage,
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.violet,
-                                ),
-                              ),
-                              backgroundColor: AppColors.violetTint,
-                              visualDensity: VisualDensity.compact,
-                              side: BorderSide.none,
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: AppSizes.md),
-
-          // Funding Request Card
-          Card(
-            elevation: 1,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppSizes.radiusLg),
-            ),
-            color: AppColors.surface,
-            child: Padding(
-              padding: const EdgeInsets.all(AppSizes.lg),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Funding Request',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          color: AppColors.slate,
-                          fontWeight: FontWeight.w600,
-                        ),
-                  ),
-                  const SizedBox(height: AppSizes.xs),
-                  Text(
-                    _formatCurrency(profile.fundingAmountNeeded),
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.emerald,
-                        ),
-                  ),
-                  const SizedBox(height: AppSizes.xs),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.location_on_outlined,
-                        size: 16,
-                        color: AppColors.slate,
-                      ),
-                      const SizedBox(width: AppSizes.xs),
-                      Text(
-                        profile.location,
-                        style: const TextStyle(
-                          color: AppColors.slate,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: AppSizes.md),
-
-          // Description Card
-          _buildInfoSection(
-            context,
-            title: 'Overview & Vision',
-            icon: Icons.description_outlined,
-            content: profile.description,
-          ),
-          const SizedBox(height: AppSizes.md),
-
-          // Team Information Card
-          _buildInfoSection(
-            context,
-            title: 'Team & Founders',
-            icon: Icons.people_outline,
-            content: profile.teamInformation,
-          ),
-          const SizedBox(height: AppSizes.md),
-
-          // Contact Information Card with Email Badge
-          Card(
-            elevation: 1,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppSizes.radiusLg),
-            ),
-            color: AppColors.surface,
-            child: Padding(
-              padding: const EdgeInsets.all(AppSizes.lg),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.contact_mail_outlined,
-                          size: 20, color: AppColors.emerald),
-                      const SizedBox(width: AppSizes.sm),
-                      Text(
-                        'Contact Details',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.ink,
-                            ),
-                      ),
-                    ],
-                  ),
-                  const Divider(height: AppSizes.lg),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSizes.md,
-                      vertical: AppSizes.sm,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.background,
-                      borderRadius: BorderRadius.circular(AppSizes.radiusMd),
-                      border: Border.all(color: AppColors.fog),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          profile.contactInformation.contains('@')
-                              ? Icons.email_outlined
-                              : Icons.phone_outlined,
-                          size: 18,
-                          color: AppColors.emerald,
-                        ),
-                        const SizedBox(width: AppSizes.sm),
-                        SelectableText(
-                          profile.contactInformation,
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: AppColors.ink,
-                                fontWeight: FontWeight.w600,
-                              ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: AppSizes.xl),
-
-          // Clean Single Edit Button at the Bottom
-          SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: ElevatedButton.icon(
-              onPressed: () {
-                Navigator.pushNamed(
-                  context,
-                  '/edit-startup-profile',
-                  arguments: profile,
-                ).then((_) {
-                  if (context.mounted) {
-                    context
-                        .read<StartupProfileCubit>()
-                        .loadProfile(currentUserId);
-                  }
-                });
-              },
-              icon: const Icon(Icons.edit_outlined),
-              label: const Text(
-                'Edit Current Profile',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.emerald,
-                foregroundColor: AppColors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppSizes.radiusMd),
-                ),
-                elevation: 2,
-              ),
-            ),
-          ),
-          const SizedBox(height: AppSizes.xl),
-        ],
       ),
     );
   }
@@ -555,7 +559,7 @@ class StartupProfilePage extends StatelessWidget {
             Text(
               content,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.ink,
+                    color: AppColors.slate,
                     height: 1.5,
                   ),
             ),
