@@ -86,6 +86,10 @@ class StartupProfileModel extends StartupProfileEntity {
 
   /// Minimal Live Schema Insert payload (`company_name`, `target_funding_amount`, `founder_email`).
   Map<String, dynamic> toMinimalLiveInsertJson() {
+    final email = contactInformation.contains('@')
+        ? contactInformation
+        : 'founder@ethioventure.com';
+
     final map = <String, dynamic>{
       'company_name': startupName,
       'description': description,
@@ -93,7 +97,7 @@ class StartupProfileModel extends StartupProfileEntity {
       'funding_stage': fundingStage,
       'target_funding_amount': fundingAmountNeeded,
       'location': location,
-      'founder_email': contactInformation,
+      'founder_email': email,
     };
     if (userId.isNotEmpty && userId != '00000000-0000-0000-0000-000000000000') {
       map['user_id'] = userId;
@@ -121,6 +125,10 @@ class StartupProfileModel extends StartupProfileEntity {
 
   /// Full Live Schema Insert payload.
   Map<String, dynamic> toLiveDatabaseInsertJson() {
+    final email = contactInformation.contains('@')
+        ? contactInformation
+        : 'founder@ethioventure.com';
+
     final map = <String, dynamic>{
       'company_name': startupName,
       'description': description,
@@ -129,7 +137,7 @@ class StartupProfileModel extends StartupProfileEntity {
       'target_funding_amount': fundingAmountNeeded,
       'location': location,
       'team_members': [teamInformation],
-      'founder_email': contactInformation,
+      'founder_email': email,
       'founder_name': 'Founder',
       'founder_role': 'Founder & CEO',
       'tagline':
@@ -149,6 +157,10 @@ class StartupProfileModel extends StartupProfileEntity {
 
   /// Minimal Live Schema Update payload.
   Map<String, dynamic> toMinimalLiveUpdateJson() {
+    final email = contactInformation.contains('@')
+        ? contactInformation
+        : 'founder@ethioventure.com';
+
     return {
       'company_name': startupName,
       'description': description,
@@ -156,7 +168,7 @@ class StartupProfileModel extends StartupProfileEntity {
       'funding_stage': fundingStage,
       'target_funding_amount': fundingAmountNeeded,
       'location': location,
-      'founder_email': contactInformation,
+      'founder_email': email,
       'updated_at': DateTime.now().toIso8601String(),
     };
   }
