@@ -29,14 +29,26 @@ class StartupProfileRemoteDataSourceImpl
   @override
   Future<StartupProfileModel> createProfile(StartupProfileModel profile) async {
     try {
+      // First attempt: try live database schema keys (company_name, founder_email, etc.)
       final response = await _client
           .from(_tableName)
-          .insert(profile.toInsertJson())
+          .insert(profile.toLiveDatabaseInsertJson())
           .select()
           .single();
 
       return StartupProfileModel.fromJson(response);
     } on PostgrestException catch (e) {
+      if (e.message.contains('column') || e.code == 'PGRST204' || e.code == '42703') {
+        try {
+          // Fallback attempt: try migration schema keys (startup_name, contact_information, etc.)
+          final response = await _client
+              .from(_tableName)
+              .insert(profile.toMigrationInsertJson())
+              .select()
+              .single();
+          return StartupProfileModel.fromJson(response);
+        } catch (_) {}
+      }
       throw ServerException(
         message: e.message,
         statusCode: int.tryParse(e.code ?? ''),
@@ -74,13 +86,24 @@ class StartupProfileRemoteDataSourceImpl
     try {
       final response = await _client
           .from(_tableName)
-          .update(profile.toUpdateJson())
+          .update(profile.toLiveDatabaseUpdateJson())
           .eq('user_id', profile.userId)
           .select()
           .single();
 
       return StartupProfileModel.fromJson(response);
     } on PostgrestException catch (e) {
+      if (e.message.contains('column') || e.code == 'PGRST204' || e.code == '42703') {
+        try {
+          final response = await _client
+              .from(_tableName)
+              .update(profile.toMigrationUpdateJson())
+              .eq('user_id', profile.userId)
+              .select()
+              .single();
+          return StartupProfileModel.fromJson(response);
+        } catch (_) {}
+      }
       throw ServerException(
         message: e.message,
         statusCode: int.tryParse(e.code ?? ''),

@@ -2,8 +2,9 @@ import '../../domain/entities/startup_profile_entity.dart';
 
 /// Data model representing a Startup Profile in the Data Layer.
 ///
-/// Extends [StartupProfileEntity] and provides serialization to/from JSON
-/// matching the Supabase `startup_profiles` table schema.
+/// Supports serialization to/from both live Supabase PostgreSQL schema
+/// (`company_name`, `target_funding_amount`, `founder_email`, `team_members`)
+/// and migration schema (`startup_name`, `funding_amount_needed`, `contact_information`, `team_information`).
 class StartupProfileModel extends StartupProfileEntity {
   const StartupProfileModel({
     required super.id,
@@ -22,23 +23,47 @@ class StartupProfileModel extends StartupProfileEntity {
 
   /// Constructs a [StartupProfileModel] from a Supabase PostgreSQL JSON map.
   factory StartupProfileModel.fromJson(Map<String, dynamic> json) {
+    // Parse team information from string or array
+    String parsedTeamInfo = '';
+    if (json['team_information'] != null) {
+      parsedTeamInfo = json['team_information'].toString();
+    } else if (json['team_members'] != null) {
+      if (json['team_members'] is List) {
+        parsedTeamInfo = (json['team_members'] as List).join(', ');
+      } else {
+        parsedTeamInfo = json['team_members'].toString();
+      }
+    }
+
     return StartupProfileModel(
-      id: json['id'] as String? ?? '',
-      userId: json['user_id'] as String? ?? '',
-      startupName: json['startup_name'] as String? ?? '',
-      description: json['description'] as String? ?? '',
-      industry: json['industry'] as String? ?? '',
-      fundingStage: json['funding_stage'] as String? ?? '',
-      fundingAmountNeeded:
-          (json['funding_amount_needed'] as num?)?.toDouble() ?? 0.0,
-      location: json['location'] as String? ?? '',
-      teamInformation: json['team_information'] as String? ?? '',
-      contactInformation: json['contact_information'] as String? ?? '',
+      id: (json['id'] ?? json['profile_id'] ?? '').toString(),
+      userId: (json['user_id'] ?? json['userId'] ?? '').toString(),
+      startupName: (json['startup_name'] ??
+              json['company_name'] ??
+              json['companyName'] ??
+              '')
+          .toString(),
+      description: (json['description'] ?? '').toString(),
+      industry: (json['industry'] ?? 'Fintech').toString(),
+      fundingStage:
+          (json['funding_stage'] ?? json['fundingStage'] ?? 'MVP').toString(),
+      fundingAmountNeeded: (json['funding_amount_needed'] ??
+                  json['target_funding_amount'] ??
+                  json['targetFundingAmount'] as num?)
+              ?.toDouble() ??
+          0.0,
+      location: (json['location'] ?? 'Addis Ababa, Ethiopia').toString(),
+      teamInformation: parsedTeamInfo,
+      contactInformation: (json['contact_information'] ??
+              json['founder_email'] ??
+              json['founderEmail'] ??
+              '')
+          .toString(),
       createdAt: json['created_at'] != null
-          ? DateTime.tryParse(json['created_at'] as String)
+          ? DateTime.tryParse(json['created_at'].toString())
           : null,
       updatedAt: json['updated_at'] != null
-          ? DateTime.tryParse(json['updated_at'] as String)
+          ? DateTime.tryParse(json['updated_at'].toString())
           : null,
     );
   }
@@ -61,11 +86,37 @@ class StartupProfileModel extends StartupProfileEntity {
     );
   }
 
-  /// Converts this model into a JSON map formatted for Supabase database queries.
-  Map<String, dynamic> toJson() {
-    return {
-      if (id.isNotEmpty) 'id': id,
-      'user_id': userId,
+  /// Insert JSON for live Supabase database project table schema.
+  Map<String, dynamic> toLiveDatabaseInsertJson() {
+    final map = <String, dynamic>{
+      'company_name': startupName,
+      'description': description,
+      'industry': industry,
+      'funding_stage': fundingStage,
+      'target_funding_amount': fundingAmountNeeded,
+      'location': location,
+      'team_members': [teamInformation],
+      'founder_email': contactInformation,
+      'founder_name': 'Founder',
+      'founder_role': 'Founder & CEO',
+      'tagline':
+          description.length > 60 ? description.substring(0, 60) : description,
+      'website_url': '',
+      'logo_url': '',
+      'raised_funding_amount': 0.0,
+      'company_valuation': 0.0,
+      'monthly_burn_rate': 0.0,
+      'monthly_revenue': 0.0,
+    };
+    if (userId.isNotEmpty && userId != '00000000-0000-0000-0000-000000000000') {
+      map['user_id'] = userId;
+    }
+    return map;
+  }
+
+  /// Insert JSON for standard migration table schema.
+  Map<String, dynamic> toMigrationInsertJson() {
+    final map = <String, dynamic>{
       'startup_name': startupName,
       'description': description,
       'industry': industry,
@@ -74,28 +125,30 @@ class StartupProfileModel extends StartupProfileEntity {
       'location': location,
       'team_information': teamInformation,
       'contact_information': contactInformation,
-      if (createdAt != null) 'created_at': createdAt!.toIso8601String(),
-      if (updatedAt != null) 'updated_at': updatedAt!.toIso8601String(),
     };
+    if (userId.isNotEmpty && userId != '00000000-0000-0000-0000-000000000000') {
+      map['user_id'] = userId;
+    }
+    return map;
   }
 
-  /// Converts JSON map for Supabase insert operations (excluding auto-generated fields).
-  Map<String, dynamic> toInsertJson() {
+  /// Update JSON for live Supabase database project table schema.
+  Map<String, dynamic> toLiveDatabaseUpdateJson() {
     return {
-      'user_id': userId,
-      'startup_name': startupName,
+      'company_name': startupName,
       'description': description,
       'industry': industry,
       'funding_stage': fundingStage,
-      'funding_amount_needed': fundingAmountNeeded,
+      'target_funding_amount': fundingAmountNeeded,
       'location': location,
-      'team_information': teamInformation,
-      'contact_information': contactInformation,
+      'team_members': [teamInformation],
+      'founder_email': contactInformation,
+      'updated_at': DateTime.now().toIso8601String(),
     };
   }
 
-  /// Converts JSON map for Supabase update operations.
-  Map<String, dynamic> toUpdateJson() {
+  /// Update JSON for standard migration table schema.
+  Map<String, dynamic> toMigrationUpdateJson() {
     return {
       'startup_name': startupName,
       'description': description,
