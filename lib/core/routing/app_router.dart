@@ -1,14 +1,43 @@
 import 'package:ethioventure/core/constants/app_constants.dart';
 import 'package:ethioventure/core/theme/app_sizes.dart';
+import 'package:ethioventure/features/startup_profile/domain/entities/startup_profile_entity.dart';
+import 'package:ethioventure/features/startup_profile/presentation/pages/edit_startup_profile_page.dart';
+import 'package:ethioventure/features/startup_profile/presentation/pages/startup_profile_page.dart';
+import 'package:ethioventure/features/startup_profile/presentation/pages/startup_profile_setup_page.dart';
 import 'package:flutter/material.dart';
 
-/// Central navigation configuration. Features register a typed route here when
-/// their page is ready; route names are kept in [AppConstants].
+/// Central navigation configuration.
 class AppRouter {
   AppRouter._();
 
   static final GlobalKey<NavigatorState> navigatorKey =
       GlobalKey<NavigatorState>();
+
+  static Route<dynamic> onGenerateRoute(RouteSettings settings) {
+    switch (settings.name) {
+      case AppConstants.routeStartupProfileSetup:
+        return MaterialPageRoute<void>(
+          settings: settings,
+          builder: (_) => const StartupProfileSetupPage(),
+        );
+
+      case AppConstants.routeStartupProfile:
+        return MaterialPageRoute<void>(
+          settings: settings,
+          builder: (_) => const StartupProfilePage(),
+        );
+
+      case AppConstants.routeEditStartupProfile:
+        final profile = settings.arguments as StartupProfileEntity;
+        return MaterialPageRoute<void>(
+          settings: settings,
+          builder: (_) => EditStartupProfilePage(profile: profile),
+        );
+
+      default:
+        return onUnknownRoute(settings);
+    }
+  }
 
   static Route<dynamic> onUnknownRoute(RouteSettings settings) {
     return MaterialPageRoute<void>(
