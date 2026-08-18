@@ -1,5 +1,7 @@
 import 'package:ethioventure/core/constants/app_constants.dart';
 import 'package:ethioventure/core/theme/app_sizes.dart';
+import 'package:ethioventure/features/auth/presentation/pages/login_page.dart';
+import 'package:ethioventure/features/auth/presentation/pages/register_page.dart';
 import 'package:ethioventure/features/startup_profile/domain/entities/startup_profile_entity.dart';
 import 'package:ethioventure/features/startup_profile/presentation/pages/edit_startup_profile_page.dart';
 import 'package:ethioventure/features/startup_profile/presentation/pages/startup_profile_page.dart';
@@ -15,6 +17,18 @@ class AppRouter {
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
+      case AppConstants.routeLogin:
+        return MaterialPageRoute<void>(
+          settings: settings,
+          builder: (_) => const LoginPage(),
+        );
+
+      case AppConstants.routeRegister:
+        return MaterialPageRoute<void>(
+          settings: settings,
+          builder: (_) => const RegisterPage(),
+        );
+
       case AppConstants.routeStartupProfileSetup:
         return MaterialPageRoute<void>(
           settings: settings,

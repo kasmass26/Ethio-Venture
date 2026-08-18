@@ -4,6 +4,15 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../network/network_info.dart';
 import '../supabase/supabase_service.dart';
+import '../../features/auth/data/datasources/auth_remote_data_source.dart';
+import '../../features/auth/data/repositories/auth_repository_impl.dart';
+import '../../features/auth/domain/repositories/auth_repository.dart';
+import '../../features/auth/domain/usecases/get_current_user_use_case.dart';
+import '../../features/auth/domain/usecases/login_use_case.dart';
+import '../../features/auth/domain/usecases/logout_use_case.dart';
+import '../../features/auth/domain/usecases/register_use_case.dart';
+import '../../features/auth/presentation/cubit/auth_cubit.dart';
+
 import '../../features/startup_profile/data/datasources/startup_profile_remote_data_source.dart';
 import '../../features/startup_profile/data/repositories/startup_profile_repository_impl.dart';
 import '../../features/startup_profile/domain/repositories/startup_profile_repository.dart';
@@ -25,20 +34,49 @@ Future<void> configureDependencies() async {
     ..registerLazySingleton<NetworkInfo>(() => NetworkInfoImpl(sl()));
 
   // ---------------------------------------------------------------------------
+  // Auth Feature
+  // ---------------------------------------------------------------------------
+  sl.registerLazySingleton<AuthRemoteDataSource>(
+    () => AuthRemoteDataSourceImpl(sl<SupabaseClient>()),
+  );
+
+  sl.registerLazySingleton<AuthRepository>(
+    () => AuthRepositoryImpl(sl<AuthRemoteDataSource>()),
+  );
+
+  sl.registerLazySingleton<LoginUseCase>(
+    () => LoginUseCase(sl<AuthRepository>()),
+  );
+  sl.registerLazySingleton<RegisterUseCase>(
+    () => RegisterUseCase(sl<AuthRepository>()),
+  );
+  sl.registerLazySingleton<LogoutUseCase>(
+    () => LogoutUseCase(sl<AuthRepository>()),
+  );
+  sl.registerLazySingleton<GetCurrentUserUseCase>(
+    () => GetCurrentUserUseCase(sl<AuthRepository>()),
+  );
+
+  sl.registerFactory<AuthCubit>(
+    () => AuthCubit(
+      loginUseCase: sl<LoginUseCase>(),
+      registerUseCase: sl<RegisterUseCase>(),
+      logoutUseCase: sl<LogoutUseCase>(),
+      getCurrentUserUseCase: sl<GetCurrentUserUseCase>(),
+    ),
+  );
+
+  // ---------------------------------------------------------------------------
   // Startup Profile Feature
   // ---------------------------------------------------------------------------
-
-  // Data Sources
   sl.registerLazySingleton<StartupProfileRemoteDataSource>(
     () => StartupProfileRemoteDataSourceImpl(sl<SupabaseClient>()),
   );
 
-  // Repositories
   sl.registerLazySingleton<StartupProfileRepository>(
     () => StartupProfileRepositoryImpl(sl<StartupProfileRemoteDataSource>()),
   );
 
-  // Use Cases
   sl.registerLazySingleton<CreateStartupProfileUseCase>(
     () => CreateStartupProfileUseCase(sl<StartupProfileRepository>()),
   );
@@ -49,7 +87,6 @@ Future<void> configureDependencies() async {
     () => UpdateStartupProfileUseCase(sl<StartupProfileRepository>()),
   );
 
-  // Cubit
   sl.registerFactory<StartupProfileCubit>(
     () => StartupProfileCubit(
       createStartupProfileUseCase: sl<CreateStartupProfileUseCase>(),
