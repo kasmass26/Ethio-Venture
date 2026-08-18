@@ -16,8 +16,30 @@ class InputValidators {
     return null;
   }
 
+  static String? confirmPassword(String? value, String password) {
+    if (value == null || value.isEmpty) return 'Please confirm your password';
+    if (value != password) return 'Passwords do not match';
+    return null;
+  }
+
   static String? notEmpty(String? value, {String field = 'This field'}) {
     if (value == null || value.trim().isEmpty) return '$field is required';
+    return null;
+  }
+
+  static String? website(String? value) {
+    if (value == null || value.trim().isEmpty) return null;
+    final uri = Uri.tryParse(value.trim());
+    if (uri == null || !uri.hasScheme || uri.host.isEmpty) {
+      return 'Enter a valid website URL';
+    }
+    return null;
+  }
+
+  static String? positiveAmount(String? value, {String field = 'Amount'}) {
+    if (value == null || value.trim().isEmpty) return '$field is required';
+    final amount = double.tryParse(value.replaceAll(',', '').trim());
+    if (amount == null || amount <= 0) return 'Enter a valid $field';
     return null;
   }
 }

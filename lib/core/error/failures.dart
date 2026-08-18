@@ -1,9 +1,8 @@
-/// Base class for all failures returned to the presentation layer.
-/// Repositories catch exceptions from datasources and convert them
-/// into one of these via `Either<Failure, T>` (fpdart / dartz).
-abstract class Failure {
-  final String message;
+/// Typed failures returned by repositories to presentation state management.
+sealed class Failure {
   const Failure(this.message);
+
+  final String message;
 }
 
 class ServerFailure extends Failure {
@@ -24,4 +23,8 @@ class AuthFailure extends Failure {
 
 class ValidationFailure extends Failure {
   const ValidationFailure(super.message);
+}
+
+class PermissionFailure extends Failure {
+  const PermissionFailure([super.message = 'You do not have permission for this action']);
 }

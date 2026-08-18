@@ -4,6 +4,7 @@ class AppConstants {
   AppConstants._();
 
   static const String appName = 'Ethio Venture';
+  static const String appTagline = 'Where ventures meet opportunity.';
 
   // User roles — mirrors the three actors from the system design:
   // Startup Founder, Investor, Administrator.
@@ -12,4 +13,11 @@ class AppConstants {
   static const String roleAdmin = 'admin';
 
   static const int defaultPageSize = 20;
+  static const int maxPageSize = 50;
+  static const Duration networkTimeout = Duration(seconds: 20);
+
+  static const String routeHome = '/';
+  static const String routeLogin = '/login';
+  static const String routeRegister = '/register';
+  static const String routeRoleSelection = '/role-selection';
 }
