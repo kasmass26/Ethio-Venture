@@ -1,5 +1,8 @@
 import 'package:ethioventure/core/constants/app_constants.dart';
 import 'package:ethioventure/core/theme/app_sizes.dart';
+import 'package:ethioventure/features/founder/presentation/pages/founder_dashboard_page.dart';
+import 'package:ethioventure/features/investor/presentation/pages/investor_dashboard_page.dart';
+import 'package:ethioventure/features/onboarding/presentation/pages/role_selection_page.dart';
 import 'package:flutter/material.dart';
 
 /// Central navigation configuration. Features register a typed route here when
@@ -15,6 +18,17 @@ class AppRouter {
       settings: settings,
       builder: (_) => _UnknownRoutePage(routeName: settings.name),
     );
+  }
+
+  static Route<dynamic> onGenerateRoute(RouteSettings settings) {
+    final Widget page = switch (settings.name) {
+      AppConstants.routeRoleSelection => const RoleSelectionPage(),
+      AppConstants.routeFounderDashboard => const FounderDashboardPage(),
+      AppConstants.routeInvestorDashboard => const InvestorDashboardPage(),
+      _ => _UnknownRoutePage(routeName: settings.name),
+    };
+
+    return MaterialPageRoute<void>(settings: settings, builder: (_) => page);
   }
 }
 

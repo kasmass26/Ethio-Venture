@@ -33,19 +33,14 @@ class EthioVentureApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: AppConstants.appName,
-      debugShowCheckedModeBanner: environment != 'production',
+      debugShowCheckedModeBanner: false,
       navigatorKey: AppRouter.navigatorKey,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.system,
+      initialRoute: AppConstants.routeRoleSelection,
+      onGenerateRoute: AppRouter.onGenerateRoute,
       onUnknownRoute: AppRouter.onUnknownRoute,
-      home: const Scaffold(
-        body: SafeArea(
-          child: Center(
-            child: Text(AppConstants.appName),
-          ),
-        ),
-      ),
     );
   }
 }
