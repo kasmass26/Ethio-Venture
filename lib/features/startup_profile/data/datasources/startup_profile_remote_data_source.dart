@@ -26,20 +26,34 @@ class StartupProfileRemoteDataSourceImpl
 
   static const String _tableName = 'startup_profiles';
 
-  /// Ensures an active authenticated Supabase session exists so Row-Level Security (RLS) policies allow inserts.
+  /// Ensures an active authenticated Supabase session exists and its user row
+  /// is populated in `public.users` to satisfy foreign key constraints.
   Future<void> _ensureAuthSession() async {
     if (_client.auth.currentUser == null) {
       try {
-        await _client.auth.signInAnonymously();
-      } catch (_) {
-        try {
-          final timestamp = DateTime.now().millisecondsSinceEpoch;
-          await _client.auth.signUp(
-            email: 'founder_$timestamp@ethioventure.com',
-            password: 'Password123!',
-          );
-        } catch (_) {}
-      }
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        final res = await _client.auth.signUp(
+          email: 'founder_$timestamp@ethioventure.com',
+          password: 'Password123!',
+        );
+        if (res.user != null) {
+          try {
+            await _client.from('users').upsert({
+              'id': res.user!.id,
+              'email': res.user!.email,
+              'role': 'founder',
+            });
+          } catch (_) {}
+        }
+      } catch (_) {}
+    } else {
+      try {
+        await _client.from('users').upsert({
+          'id': _client.auth.currentUser!.id,
+          'email': _client.auth.currentUser!.email ?? 'founder@ethioventure.com',
+          'role': 'founder',
+        });
+      } catch (_) {}
     }
   }
 
