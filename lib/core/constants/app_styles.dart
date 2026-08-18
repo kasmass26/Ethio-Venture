@@ -122,4 +122,103 @@ class AppTextStyles {
     fontWeight: FontWeight.w700,
     fontFamily: _mono,
   );
+
+  // --- Investor dashboard ---------------------------------------------------
+
+  static const TextStyle statLabelCaps = TextStyle(
+    fontSize: 11.5,
+    fontWeight: FontWeight.w700,
+    color: AppColors.textSecondary,
+    fontFamily: _mono,
+    letterSpacing: 0.6,
+  );
+
+  static const TextStyle deltaNeutral = TextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.w700,
+    color: AppColors.textSecondary,
+    fontFamily: _mono,
+  );
+
+  static const TextStyle deltaWarning = TextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.w700,
+    color: AppColors.error,
+    fontFamily: _mono,
+  );
+
+  static const TextStyle linkAction = TextStyle(
+    fontSize: 13.5,
+    fontWeight: FontWeight.w700,
+    color: AppColors.primaryDark,
+    fontFamily: _mono,
+  );
+
+  static const TextStyle matchScore = TextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.w800,
+    color: AppColors.secondary,
+    fontFamily: _mono,
+  );
+
+  static const TextStyle startupName = TextStyle(
+    fontSize: 17,
+    fontWeight: FontWeight.w800,
+    color: AppColors.secondary,
+    letterSpacing: -0.2,
+  );
+
+  static const TextStyle startupTagline = TextStyle(
+    fontSize: 13,
+    fontWeight: FontWeight.w400,
+    color: AppColors.textSecondary,
+    height: 1.4,
+  );
+
+  static const TextStyle activityBody = TextStyle(
+    fontSize: 13.5,
+    fontWeight: FontWeight.w400,
+    color: AppColors.textPrimary,
+    height: 1.4,
+  );
+
+  static const TextStyle activityActor = TextStyle(
+    fontWeight: FontWeight.w700,
+    color: AppColors.secondary,
+  );
+
+  static const TextStyle activityTimestamp = TextStyle(
+    fontSize: 11.5,
+    fontWeight: FontWeight.w500,
+    color: AppColors.textSecondary,
+    fontFamily: _mono,
+  );
+
+  static const TextStyle trackedStartupName = TextStyle(
+    fontSize: 14.5,
+    fontWeight: FontWeight.w700,
+    color: AppColors.secondary,
+  );
+
+  static const TextStyle trackedStartupGoal = TextStyle(
+    fontSize: 12.5,
+    fontWeight: FontWeight.w400,
+    color: AppColors.textSecondary,
+  );
+
+  static const TextStyle progressLabel = TextStyle(
+    fontSize: 11.5,
+    fontWeight: FontWeight.w600,
+    color: AppColors.textSecondary,
+    fontFamily: _mono,
+  );
+
+  static const TextStyle progressPercent = TextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.w800,
+    color: AppColors.secondary,
+    fontFamily: _mono,
+  );
 }
+
+
