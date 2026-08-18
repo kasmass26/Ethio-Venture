@@ -34,7 +34,7 @@ class EthioVentureApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: AppConstants.appName,
-      debugShowCheckedModeBanner: environment != 'production',
+      debugShowCheckedModeBanner: false,
       navigatorKey: AppRouter.navigatorKey,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,

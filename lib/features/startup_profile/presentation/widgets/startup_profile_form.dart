@@ -6,7 +6,8 @@ import '../../domain/entities/startup_profile_entity.dart';
 
 /// Reusable Startup Profile Form widget.
 ///
-/// Used for both creating a new profile and editing an existing one.
+/// Styled according to the Ethio Venture Design System tokens.
+/// Supports both Light and Dark themes with full high-contrast readability.
 class StartupProfileForm extends StatefulWidget {
   const StartupProfileForm({
     super.key,
@@ -69,7 +70,9 @@ class _StartupProfileFormState extends State<StartupProfileForm> {
     _fundingAmountController = TextEditingController(
       text: p != null ? p.fundingAmountNeeded.toStringAsFixed(2) : '',
     );
-    _locationController = TextEditingController(text: p?.location ?? 'Addis Ababa, Ethiopia');
+    _locationController = TextEditingController(
+      text: p?.location ?? 'Addis Ababa, Ethiopia',
+    );
     _teamController = TextEditingController(text: p?.teamInformation ?? '');
     _contactController = TextEditingController(text: p?.contactInformation ?? '');
 
@@ -118,192 +121,210 @@ class _StartupProfileFormState extends State<StartupProfileForm> {
     }
   }
 
+  InputDecoration _buildInputDecoration({
+    required BuildContext context,
+    required String hintText,
+    String? prefixText,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final fillColor = isDark ? AppColors.surfaceDark : AppColors.fog;
+    final borderColor = isDark ? AppColors.borderDark : AppColors.hairline;
+
+    return InputDecoration(
+      hintText: hintText,
+      prefixText: prefixText,
+      prefixStyle: TextStyle(
+        color: isDark ? AppColors.textPrimaryDark : AppColors.ink,
+        fontWeight: FontWeight.w600,
+      ),
+      filled: true,
+      fillColor: fillColor,
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: AppSizes.md,
+        vertical: AppSizes.md,
+      ),
+      hintStyle: TextStyle(
+        color: isDark ? AppColors.textSecondaryDark : AppColors.slate,
+        fontSize: 14,
+      ),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+        borderSide: BorderSide(color: borderColor),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+        borderSide: BorderSide(color: borderColor),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+        borderSide: const BorderSide(color: AppColors.emerald, width: 1.5),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+        borderSide: const BorderSide(color: AppColors.error),
+      ),
+    );
+  }
+
+  Widget _buildFieldLabel(BuildContext context, String label) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Text(
+      label,
+      style: TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w700,
+        color: isDark ? AppColors.textPrimaryDark : AppColors.ink,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDark ? AppColors.textPrimaryDark : AppColors.ink;
+    final dropdownBgColor = isDark ? AppColors.surfaceDark : AppColors.white;
+
     return Form(
       key: _formKey,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Startup Name
-          Text(
-            'Startup Name *',
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.ink,
-                ),
-          ),
+          _buildFieldLabel(context, 'Startup Name *'),
           const SizedBox(height: AppSizes.xs),
           TextFormField(
             controller: _nameController,
+            style: TextStyle(color: textColor, fontSize: 15),
             validator: (v) => InputValidators.notEmpty(v, field: 'Startup name'),
-            decoration: InputDecoration(
+            decoration: _buildInputDecoration(
+              context: context,
               hintText: 'e.g. EthioPay Solutions',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppSizes.radiusMd),
-              ),
             ),
           ),
           const SizedBox(height: AppSizes.md),
 
-          // Description
-          Text(
-            'Startup Description *',
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.ink,
-                ),
-          ),
+          // Startup Description
+          _buildFieldLabel(context, 'Startup Description *'),
           const SizedBox(height: AppSizes.xs),
           TextFormField(
             controller: _descriptionController,
             maxLines: 4,
+            style: TextStyle(color: textColor, fontSize: 15),
             validator: (v) => InputValidators.notEmpty(v, field: 'Description'),
-            decoration: InputDecoration(
+            decoration: _buildInputDecoration(
+              context: context,
               hintText: 'Describe your vision, product, and target market...',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppSizes.radiusMd),
-              ),
             ),
           ),
           const SizedBox(height: AppSizes.md),
 
-          // Industry Dropdown
-          Text(
-            'Industry Sector *',
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.ink,
-                ),
-          ),
+          // Industry Sector Dropdown
+          _buildFieldLabel(context, 'Industry Sector *'),
           const SizedBox(height: AppSizes.xs),
           DropdownButtonFormField<String>(
             initialValue: _selectedIndustry,
+            dropdownColor: dropdownBgColor,
+            style: TextStyle(color: textColor, fontSize: 15),
             items: _industries
-                .map((ind) => DropdownMenuItem(value: ind, child: Text(ind)))
+                .map((ind) => DropdownMenuItem(
+                      value: ind,
+                      child: Text(ind, style: TextStyle(color: textColor)),
+                    ))
                 .toList(),
             onChanged: (val) {
               if (val != null) setState(() => _selectedIndustry = val);
             },
-            decoration: InputDecoration(
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppSizes.radiusMd),
-              ),
+            decoration: _buildInputDecoration(
+              context: context,
+              hintText: 'Select industry',
             ),
           ),
           const SizedBox(height: AppSizes.md),
 
           // Funding Stage Dropdown
-          Text(
-            'Funding Stage *',
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.ink,
-                ),
-          ),
+          _buildFieldLabel(context, 'Funding Stage *'),
           const SizedBox(height: AppSizes.xs),
           DropdownButtonFormField<String>(
             initialValue: _selectedFundingStage,
+            dropdownColor: dropdownBgColor,
+            style: TextStyle(color: textColor, fontSize: 15),
             items: _fundingStages
-                .map((stage) => DropdownMenuItem(value: stage, child: Text(stage)))
+                .map((stage) => DropdownMenuItem(
+                      value: stage,
+                      child: Text(stage, style: TextStyle(color: textColor)),
+                    ))
                 .toList(),
             onChanged: (val) {
               if (val != null) setState(() => _selectedFundingStage = val);
             },
-            decoration: InputDecoration(
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppSizes.radiusMd),
-              ),
+            decoration: _buildInputDecoration(
+              context: context,
+              hintText: 'Select funding stage',
             ),
           ),
           const SizedBox(height: AppSizes.md),
 
           // Funding Amount Needed
-          Text(
-            'Funding Amount Needed (USD) *',
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.ink,
-                ),
-          ),
+          _buildFieldLabel(context, 'Funding Amount Needed (USD) *'),
           const SizedBox(height: AppSizes.xs),
           TextFormField(
             controller: _fundingAmountController,
             keyboardType: TextInputType.number,
-            validator: (v) => InputValidators.positiveAmount(v, field: 'Funding amount'),
-            decoration: InputDecoration(
+            style: TextStyle(color: textColor, fontSize: 15),
+            validator: (v) =>
+                InputValidators.positiveAmount(v, field: 'Funding amount'),
+            decoration: _buildInputDecoration(
+              context: context,
+              hintText: '50000.00',
               prefixText: '\$ ',
-              hintText: 'e.g. 50000.00',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppSizes.radiusMd),
-              ),
             ),
           ),
           const SizedBox(height: AppSizes.md),
 
           // Location
-          Text(
-            'Location *',
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.ink,
-                ),
-          ),
+          _buildFieldLabel(context, 'Location *'),
           const SizedBox(height: AppSizes.xs),
           TextFormField(
             controller: _locationController,
+            style: TextStyle(color: textColor, fontSize: 15),
             validator: (v) => InputValidators.notEmpty(v, field: 'Location'),
-            decoration: InputDecoration(
+            decoration: _buildInputDecoration(
+              context: context,
               hintText: 'e.g. Addis Ababa, Ethiopia',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppSizes.radiusMd),
-              ),
             ),
           ),
           const SizedBox(height: AppSizes.md),
 
           // Team Information
-          Text(
-            'Team Information *',
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.ink,
-                ),
-          ),
+          _buildFieldLabel(context, 'Team Information *'),
           const SizedBox(height: AppSizes.xs),
           TextFormField(
             controller: _teamController,
             maxLines: 3,
-            validator: (v) => InputValidators.notEmpty(v, field: 'Team information'),
-            decoration: InputDecoration(
+            style: TextStyle(color: textColor, fontSize: 15),
+            validator: (v) =>
+                InputValidators.notEmpty(v, field: 'Team information'),
+            decoration: _buildInputDecoration(
+              context: context,
               hintText: 'Overview of founders, key roles, and skills...',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppSizes.radiusMd),
-              ),
             ),
           ),
           const SizedBox(height: AppSizes.md),
 
           // Contact Information
-          Text(
-            'Contact Information *',
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.ink,
-                ),
-          ),
+          _buildFieldLabel(context, 'Contact Information *'),
           const SizedBox(height: AppSizes.xs),
           TextFormField(
             controller: _contactController,
-            validator: (v) => InputValidators.notEmpty(v, field: 'Contact information'),
-            decoration: InputDecoration(
+            style: TextStyle(color: textColor, fontSize: 15),
+            validator: (v) =>
+                InputValidators.notEmpty(v, field: 'Contact information'),
+            decoration: _buildInputDecoration(
+              context: context,
               hintText: 'e.g. founder@startup.com / +251 91 234 5678',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppSizes.radiusMd),
-              ),
             ),
           ),
-          const SizedBox(height: AppSizes.lg),
+          const SizedBox(height: AppSizes.xl),
 
           // Submit Button
           ElevatedButton(
@@ -311,17 +332,17 @@ class _StartupProfileFormState extends State<StartupProfileForm> {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.emerald,
               foregroundColor: AppColors.white,
-              padding: const EdgeInsets.symmetric(vertical: AppSizes.md),
+              minimumSize: const Size.fromHeight(52),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(AppSizes.radiusMd),
               ),
             ),
             child: widget.isSubmitting
                 ? const SizedBox(
-                    height: 20,
-                    width: 20,
+                    height: 22,
+                    width: 22,
                     child: CircularProgressIndicator(
-                      strokeWidth: 2,
+                      strokeWidth: 2.5,
                       color: AppColors.white,
                     ),
                   )
@@ -329,7 +350,7 @@ class _StartupProfileFormState extends State<StartupProfileForm> {
                     widget.buttonText,
                     style: const TextStyle(
                       fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
           ),
