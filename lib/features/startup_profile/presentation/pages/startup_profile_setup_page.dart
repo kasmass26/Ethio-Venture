@@ -17,7 +17,7 @@ class StartupProfileSetupPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final currentUserId =
-        sl<SupabaseClient>().auth.currentUser?.id ?? 'guest-user';
+        sl<SupabaseClient>().auth.currentUser?.id ?? '00000000-0000-0000-0000-000000000000';
 
     return BlocProvider<StartupProfileCubit>(
       create: (context) => sl<StartupProfileCubit>(),
