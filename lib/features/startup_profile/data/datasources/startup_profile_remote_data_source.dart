@@ -29,20 +29,20 @@ class StartupProfileRemoteDataSourceImpl
   @override
   Future<StartupProfileModel> createProfile(StartupProfileModel profile) async {
     try {
-      // Primary Attempt: Minimal Live Schema (company_name, target_funding_amount, founder_email)
+      // Primary Attempt: Official migration schema keys (startup_name, contact_information, etc.)
       final response = await _client
           .from(_tableName)
-          .insert(profile.toMinimalLiveInsertJson())
+          .insert(profile.toInsertJson())
           .select()
           .single();
       return StartupProfileModel.fromJson(response);
     } on PostgrestException catch (e1) {
-      // If error indicates column mismatch for company_name, try migration schema:
-      if (e1.message.contains('company_name') || e1.message.contains('target_funding_amount') || e1.message.contains('founder_email')) {
+      // Fallback Attempt: Alternative table schema keys (company_name, founder_email, etc.)
+      if (e1.message.contains('column') || e1.code == 'PGRST204' || e1.code == '42703') {
         try {
           final response = await _client
               .from(_tableName)
-              .insert(profile.toMigrationInsertJson())
+              .insert(profile.toAlternativeInsertJson())
               .select()
               .single();
           return StartupProfileModel.fromJson(response);
@@ -85,17 +85,17 @@ class StartupProfileRemoteDataSourceImpl
     try {
       final response = await _client
           .from(_tableName)
-          .update(profile.toMinimalLiveUpdateJson())
+          .update(profile.toUpdateJson())
           .eq('user_id', profile.userId)
           .select()
           .single();
       return StartupProfileModel.fromJson(response);
     } on PostgrestException catch (e1) {
-      if (e1.message.contains('company_name') || e1.message.contains('target_funding_amount') || e1.message.contains('founder_email')) {
+      if (e1.message.contains('column') || e1.code == 'PGRST204' || e1.code == '42703') {
         try {
           final response = await _client
               .from(_tableName)
-              .update(profile.toMigrationUpdateJson())
+              .update(profile.toAlternativeUpdateJson())
               .eq('user_id', profile.userId)
               .select()
               .single();

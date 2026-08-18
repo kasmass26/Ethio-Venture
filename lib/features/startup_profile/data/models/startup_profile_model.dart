@@ -1,9 +1,10 @@
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/entities/startup_profile_entity.dart';
 
 /// Data model representing a Startup Profile in the Data Layer.
 ///
-/// Supports multi-schema serialization to ensure 100% compatibility
-/// across live Supabase database tables and migration table schemas.
+/// Matches the official `20260817185651_create_startup_profiles.sql` table schema
+/// (`startup_name`, `funding_amount_needed`, `team_information`, `contact_information`).
 class StartupProfileModel extends StartupProfileEntity {
   const StartupProfileModel({
     required super.id,
@@ -84,29 +85,10 @@ class StartupProfileModel extends StartupProfileEntity {
     );
   }
 
-  /// Minimal Live Schema Insert payload (`company_name`, `target_funding_amount`, `founder_email`).
-  Map<String, dynamic> toMinimalLiveInsertJson() {
-    final email = contactInformation.contains('@')
-        ? contactInformation
-        : 'founder@ethioventure.com';
+  /// Standard Insert payload matching `20260817185651_create_startup_profiles.sql`.
+  Map<String, dynamic> toInsertJson() {
+    final currentAuthUserId = Supabase.instance.client.auth.currentUser?.id;
 
-    final map = <String, dynamic>{
-      'company_name': startupName,
-      'description': description,
-      'industry': industry,
-      'funding_stage': fundingStage,
-      'target_funding_amount': fundingAmountNeeded,
-      'location': location,
-      'founder_email': email,
-    };
-    if (userId.isNotEmpty && userId != '00000000-0000-0000-0000-000000000000') {
-      map['user_id'] = userId;
-    }
-    return map;
-  }
-
-  /// Migration Schema Insert payload (`startup_name`, `funding_amount_needed`, `contact_information`).
-  Map<String, dynamic> toMigrationInsertJson() {
     final map = <String, dynamic>{
       'startup_name': startupName,
       'description': description,
@@ -117,17 +99,34 @@ class StartupProfileModel extends StartupProfileEntity {
       'team_information': teamInformation,
       'contact_information': contactInformation,
     };
-    if (userId.isNotEmpty && userId != '00000000-0000-0000-0000-000000000000') {
+
+    if (currentAuthUserId != null && currentAuthUserId.isNotEmpty) {
+      map['user_id'] = currentAuthUserId;
+    } else if (userId.isNotEmpty && userId != '00000000-0000-0000-0000-000000000000') {
       map['user_id'] = userId;
     }
+
     return map;
   }
 
-  /// Full Live Schema Insert payload.
-  Map<String, dynamic> toLiveDatabaseInsertJson() {
-    final email = contactInformation.contains('@')
-        ? contactInformation
-        : 'founder@ethioventure.com';
+  /// Standard Update payload matching `20260817185651_create_startup_profiles.sql`.
+  Map<String, dynamic> toUpdateJson() {
+    return {
+      'startup_name': startupName,
+      'description': description,
+      'industry': industry,
+      'funding_stage': fundingStage,
+      'funding_amount_needed': fundingAmountNeeded,
+      'location': location,
+      'team_information': teamInformation,
+      'contact_information': contactInformation,
+      'updated_at': DateTime.now().toIso8601String(),
+    };
+  }
+
+  /// Fallback Insert payload for alternative database schemas.
+  Map<String, dynamic> toAlternativeInsertJson() {
+    final currentAuthUserId = Supabase.instance.client.auth.currentUser?.id;
 
     final map = <String, dynamic>{
       'company_name': startupName,
@@ -137,30 +136,22 @@ class StartupProfileModel extends StartupProfileEntity {
       'target_funding_amount': fundingAmountNeeded,
       'location': location,
       'team_members': [teamInformation],
-      'founder_email': email,
-      'founder_name': 'Founder',
-      'founder_role': 'Founder & CEO',
-      'tagline':
-          description.length > 60 ? description.substring(0, 60) : description,
-      'website_url': '',
-      'logo_url': '',
-      'raised_funding_amount': 0.0,
-      'company_valuation': 0.0,
-      'monthly_burn_rate': 0.0,
-      'monthly_revenue': 0.0,
+      'founder_email': contactInformation.contains('@')
+          ? contactInformation
+          : 'founder@ethioventure.com',
     };
-    if (userId.isNotEmpty && userId != '00000000-0000-0000-0000-000000000000') {
+
+    if (currentAuthUserId != null && currentAuthUserId.isNotEmpty) {
+      map['user_id'] = currentAuthUserId;
+    } else if (userId.isNotEmpty && userId != '00000000-0000-0000-0000-000000000000') {
       map['user_id'] = userId;
     }
+
     return map;
   }
 
-  /// Minimal Live Schema Update payload.
-  Map<String, dynamic> toMinimalLiveUpdateJson() {
-    final email = contactInformation.contains('@')
-        ? contactInformation
-        : 'founder@ethioventure.com';
-
+  /// Fallback Update payload for alternative database schemas.
+  Map<String, dynamic> toAlternativeUpdateJson() {
     return {
       'company_name': startupName,
       'description': description,
@@ -168,22 +159,10 @@ class StartupProfileModel extends StartupProfileEntity {
       'funding_stage': fundingStage,
       'target_funding_amount': fundingAmountNeeded,
       'location': location,
-      'founder_email': email,
-      'updated_at': DateTime.now().toIso8601String(),
-    };
-  }
-
-  /// Migration Schema Update payload.
-  Map<String, dynamic> toMigrationUpdateJson() {
-    return {
-      'startup_name': startupName,
-      'description': description,
-      'industry': industry,
-      'funding_stage': fundingStage,
-      'funding_amount_needed': fundingAmountNeeded,
-      'location': location,
-      'team_information': teamInformation,
-      'contact_information': contactInformation,
+      'team_members': [teamInformation],
+      'founder_email': contactInformation.contains('@')
+          ? contactInformation
+          : 'founder@ethioventure.com',
       'updated_at': DateTime.now().toIso8601String(),
     };
   }
