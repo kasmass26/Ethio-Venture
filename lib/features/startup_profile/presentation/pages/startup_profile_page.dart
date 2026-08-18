@@ -42,12 +42,28 @@ class StartupProfilePage extends StatelessWidget {
           foregroundColor: AppColors.ink,
           elevation: 0,
           actions: [
+            IconButton(
+              icon: const Icon(Icons.add_circle_outline),
+              tooltip: 'Create New Profile',
+              onPressed: () {
+                Navigator.pushNamed(
+                  context,
+                  '/startup-profile-setup',
+                ).then((_) {
+                  if (context.mounted) {
+                    context
+                        .read<StartupProfileCubit>()
+                        .loadProfile(currentUserId);
+                  }
+                });
+              },
+            ),
             BlocBuilder<StartupProfileCubit, StartupProfileState>(
               builder: (context, state) {
                 if (state is StartupProfileLoaded) {
                   return IconButton(
                     icon: const Icon(Icons.edit_outlined),
-                    tooltip: 'Edit Profile',
+                    tooltip: 'Edit Current Profile',
                     onPressed: () {
                       Navigator.pushNamed(
                         context,
@@ -417,41 +433,81 @@ class StartupProfilePage extends StatelessWidget {
           ),
           const SizedBox(height: AppSizes.xl),
 
-          // Prominent Edit Action Button at the Bottom
-          SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: ElevatedButton.icon(
-              onPressed: () {
-                Navigator.pushNamed(
-                  context,
-                  '/edit-startup-profile',
-                  arguments: profile,
-                ).then((_) {
-                  if (context.mounted) {
-                    context
-                        .read<StartupProfileCubit>()
-                        .loadProfile(currentUserId);
-                  }
-                });
-              },
-              icon: const Icon(Icons.edit_outlined),
-              label: const Text(
-                'Edit Startup Profile',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
+          // Action Buttons: Edit Profile & Create Another Profile
+          Column(
+            children: [
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.pushNamed(
+                      context,
+                      '/edit-startup-profile',
+                      arguments: profile,
+                    ).then((_) {
+                      if (context.mounted) {
+                        context
+                            .read<StartupProfileCubit>()
+                            .loadProfile(currentUserId);
+                      }
+                    });
+                  },
+                  icon: const Icon(Icons.edit_outlined),
+                  label: const Text(
+                    'Edit Current Profile',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.emerald,
+                    foregroundColor: AppColors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+                    ),
+                    elevation: 2,
+                  ),
                 ),
               ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.emerald,
-                foregroundColor: AppColors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+              const SizedBox(height: AppSizes.md),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    // Sign out active session so a new profile can be created cleanly
+                    sl<SupabaseClient>().auth.signOut();
+                    Navigator.pushNamed(
+                      context,
+                      '/startup-profile-setup',
+                    ).then((_) {
+                      if (context.mounted) {
+                        context
+                            .read<StartupProfileCubit>()
+                            .loadProfile('');
+                      }
+                    });
+                  },
+                  icon: const Icon(Icons.add_circle_outline),
+                  label: const Text(
+                    '+ Create Another Startup Profile',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.emerald,
+                    side: const BorderSide(color: AppColors.emerald, width: 1.5),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+                    ),
+                  ),
                 ),
-                elevation: 2,
               ),
-            ),
+            ],
           ),
           const SizedBox(height: AppSizes.xl),
         ],
