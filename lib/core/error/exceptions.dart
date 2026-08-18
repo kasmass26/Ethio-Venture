@@ -30,5 +30,5 @@ class NetworkException extends AppException {
 }
 
 class ValidationException extends AppException {
-  const ValidationException(String message) : super(message);
+  const ValidationException(super.message);
 }

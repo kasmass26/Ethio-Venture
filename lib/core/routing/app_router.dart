@@ -1,5 +1,8 @@
 import 'package:ethioventure/core/constants/app_constants.dart';
+import 'package:ethioventure/core/di/injection_container.dart';
 import 'package:ethioventure/core/theme/app_sizes.dart';
+import 'package:ethioventure/features/messaging/presentation/cubit/conversation_list_cubit.dart';
+import 'package:ethioventure/features/messaging/presentation/pages/conversations_page.dart';
 import 'package:flutter/material.dart';
 
 /// Central navigation configuration. Features register a typed route here when
@@ -9,6 +12,20 @@ class AppRouter {
 
   static final GlobalKey<NavigatorState> navigatorKey =
       GlobalKey<NavigatorState>();
+
+  static Route<dynamic> onGenerateRoute(RouteSettings settings) {
+    switch (settings.name) {
+      case AppConstants.routeConversations:
+        return MaterialPageRoute<void>(
+          settings: settings,
+          builder: (_) => ConversationsPage(
+            cubit: sl<ConversationListCubit>(),
+          ),
+        );
+      default:
+        return onUnknownRoute(settings);
+    }
+  }
 
   static Route<dynamic> onUnknownRoute(RouteSettings settings) {
     return MaterialPageRoute<void>(
