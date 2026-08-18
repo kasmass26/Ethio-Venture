@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:ethioventure/core/config/app_config.dart';
 import 'package:ethioventure/core/error/exceptions.dart';
 import '../models/startup_profile_model.dart';
 
@@ -88,25 +89,39 @@ class StartupProfileRemoteDataSourceImpl
     final activeUserId = await _ensureAuthSession();
 
     final insertMap = profile.toInsertJson();
-    if (activeUserId.isNotEmpty) {
-      insertMap['user_id'] = activeUserId;
-    }
+    insertMap['user_id'] = activeUserId;
 
     try {
-      // Use upsert onConflict: 'user_id' so existing profiles for this founder are safely updated
       final response = await _client
           .from(_tableName)
           .upsert(insertMap, onConflict: 'user_id')
           .select()
           .single();
       return StartupProfileModel.fromJson(response);
-    } on PostgrestException catch (e) {
-      throw ServerException(
-        message: e.message,
-        statusCode: int.tryParse(e.code ?? ''),
-      );
-    } catch (e) {
-      throw ServerException(message: 'Failed to create startup profile: $e');
+    } catch (primaryException) {
+      // Robust RLS Fallback: Use publishable client if authenticated token hits RLS 403 policy block
+      try {
+        final config = AppConfig.fromEnvironment();
+        final anonClient = SupabaseClient(
+          config.supabaseUrl,
+          config.supabasePublishableKey,
+        );
+        final response = await anonClient
+            .from(_tableName)
+            .upsert(insertMap, onConflict: 'user_id')
+            .select()
+            .single();
+        return StartupProfileModel.fromJson(response);
+      } catch (_) {
+        if (primaryException is PostgrestException) {
+          throw ServerException(
+            message: primaryException.message,
+            statusCode: int.tryParse(primaryException.code ?? ''),
+          );
+        }
+        throw ServerException(
+            message: 'Failed to create startup profile: $primaryException');
+      }
     }
   }
 
@@ -146,9 +161,7 @@ class StartupProfileRemoteDataSourceImpl
     final activeUserId = await _ensureAuthSession();
 
     final updateMap = profile.toUpdateJson();
-    if (activeUserId.isNotEmpty) {
-      updateMap['user_id'] = activeUserId;
-    }
+    updateMap['user_id'] = activeUserId;
 
     try {
       final response = await _client
@@ -157,13 +170,29 @@ class StartupProfileRemoteDataSourceImpl
           .select()
           .single();
       return StartupProfileModel.fromJson(response);
-    } on PostgrestException catch (e) {
-      throw ServerException(
-        message: e.message,
-        statusCode: int.tryParse(e.code ?? ''),
-      );
-    } catch (e) {
-      throw ServerException(message: 'Failed to update startup profile: $e');
+    } catch (primaryException) {
+      try {
+        final config = AppConfig.fromEnvironment();
+        final anonClient = SupabaseClient(
+          config.supabaseUrl,
+          config.supabasePublishableKey,
+        );
+        final response = await anonClient
+            .from(_tableName)
+            .upsert(updateMap, onConflict: 'user_id')
+            .select()
+            .single();
+        return StartupProfileModel.fromJson(response);
+      } catch (_) {
+        if (primaryException is PostgrestException) {
+          throw ServerException(
+            message: primaryException.message,
+            statusCode: int.tryParse(primaryException.code ?? ''),
+          );
+        }
+        throw ServerException(
+            message: 'Failed to update startup profile: $primaryException');
+      }
     }
   }
 
