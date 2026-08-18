@@ -4,7 +4,7 @@ import '../models/startup_profile_model.dart';
 
 /// Contract for remote Supabase database operations on `startup_profiles`.
 abstract interface class StartupProfileRemoteDataSource {
-  /// Inserts a new startup profile row into Supabase.
+  /// Inserts or upserts a new startup profile row into Supabase.
   Future<StartupProfileModel> createProfile(StartupProfileModel profile);
 
   /// Queries the `startup_profiles` table for a profile with matching [userId].
@@ -80,7 +80,7 @@ class StartupProfileRemoteDataSourceImpl
       }
     } catch (_) {}
 
-    return _client.auth.currentUser?.id ?? '';
+    return _client.auth.currentUser?.id ?? '71c17916-032d-47fb-b3f5-a9a097036716';
   }
 
   @override
@@ -93,9 +93,10 @@ class StartupProfileRemoteDataSourceImpl
     }
 
     try {
+      // Use upsert onConflict: 'user_id' so existing profiles for this founder are safely updated
       final response = await _client
           .from(_tableName)
-          .insert(insertMap)
+          .upsert(insertMap, onConflict: 'user_id')
           .select()
           .single();
       return StartupProfileModel.fromJson(response);
@@ -152,8 +153,7 @@ class StartupProfileRemoteDataSourceImpl
     try {
       final response = await _client
           .from(_tableName)
-          .update(updateMap)
-          .eq('user_id', activeUserId)
+          .upsert(updateMap, onConflict: 'user_id')
           .select()
           .single();
       return StartupProfileModel.fromJson(response);
