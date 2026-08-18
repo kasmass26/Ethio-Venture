@@ -98,7 +98,12 @@ class _RegisterFormViewState extends State<_RegisterFormView> {
                 backgroundColor: AppColors.success,
               ),
             );
-            Navigator.of(context).pushReplacementNamed(AppConstants.routeHome);
+            // Navigate directly to Startup Profile workspace for founders
+            Navigator.of(context).pushReplacementNamed(
+              state.user.role == AppConstants.roleInvestor
+                  ? AppConstants.routeHome
+                  : AppConstants.routeStartupProfile,
+            );
           }
         },
         builder: (context, state) {
