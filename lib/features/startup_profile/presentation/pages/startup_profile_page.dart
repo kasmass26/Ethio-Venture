@@ -16,14 +16,12 @@ class StartupProfilePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final currentUserId = sl<SupabaseClient>().auth.currentUser?.id;
+    final currentUserId = sl<SupabaseClient>().auth.currentUser?.id ?? '';
 
     return BlocProvider<StartupProfileCubit>(
       create: (context) {
         final cubit = sl<StartupProfileCubit>();
-        if (currentUserId != null && currentUserId.isNotEmpty) {
-          cubit.loadProfile(currentUserId);
-        }
+        cubit.loadProfile(currentUserId);
         return cubit;
       },
       child: Scaffold(
@@ -46,7 +44,7 @@ class StartupProfilePage extends StatelessWidget {
                         '/edit-startup-profile',
                         arguments: state.profile,
                       ).then((_) {
-                        if (context.mounted && currentUserId != null) {
+                        if (context.mounted) {
                           context
                               .read<StartupProfileCubit>()
                               .loadProfile(currentUserId);
@@ -112,7 +110,13 @@ class StartupProfilePage extends StatelessWidget {
                             Navigator.pushNamed(
                               context,
                               '/startup-profile-setup',
-                            );
+                            ).then((_) {
+                              if (context.mounted) {
+                                context
+                                    .read<StartupProfileCubit>()
+                                    .loadProfile(currentUserId);
+                              }
+                            });
                           },
                           icon: const Icon(Icons.add),
                           label: const Text('Setup Profile Now'),
@@ -156,11 +160,9 @@ class StartupProfilePage extends StatelessWidget {
                         const SizedBox(height: AppSizes.md),
                         ElevatedButton(
                           onPressed: () {
-                            if (currentUserId != null) {
-                              context
-                                  .read<StartupProfileCubit>()
-                                  .loadProfile(currentUserId);
-                            }
+                            context
+                                .read<StartupProfileCubit>()
+                                .loadProfile(currentUserId);
                           },
                           child: const Text('Retry'),
                         ),

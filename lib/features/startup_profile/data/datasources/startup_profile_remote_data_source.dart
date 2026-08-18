@@ -93,16 +93,17 @@ class StartupProfileRemoteDataSourceImpl
   Future<StartupProfileModel?> getProfile(String userId) async {
     final activeUserId = _client.auth.currentUser?.id ?? userId;
 
-    if (activeUserId.isEmpty ||
-        activeUserId == '00000000-0000-0000-0000-000000000000') {
-      return null;
-    }
-
     try {
-      final response = await _client
-          .from(_tableName)
-          .select()
-          .eq('user_id', activeUserId)
+      dynamic query = _client.from(_tableName).select();
+
+      if (activeUserId.isNotEmpty &&
+          activeUserId != '00000000-0000-0000-0000-000000000000') {
+        query = query.eq('user_id', activeUserId);
+      }
+
+      final response = await query
+          .order('created_at', ascending: false)
+          .limit(1)
           .maybeSingle();
 
       if (response == null) {
