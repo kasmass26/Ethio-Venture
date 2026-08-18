@@ -47,46 +47,14 @@ class StartupProfileRemoteDataSourceImpl
   Future<StartupProfileModel> createProfile(StartupProfileModel profile) async {
     await _ensureAuthSession();
 
-    final activeUserId = _client.auth.currentUser?.id ?? profile.userId;
-
-    final insertData = <String, dynamic>{
-      'startup_name': profile.startupName,
-      'description': profile.description,
-      'industry': profile.industry,
-      'funding_stage': profile.fundingStage,
-      'funding_amount_needed': profile.fundingAmountNeeded,
-      'location': profile.location,
-      'team_information': profile.teamInformation,
-      'contact_information': profile.contactInformation,
-    };
-
-    if (activeUserId.isNotEmpty &&
-        activeUserId != '00000000-0000-0000-0000-000000000000') {
-      insertData['user_id'] = activeUserId;
-    }
-
     try {
       final response = await _client
           .from(_tableName)
-          .insert(insertData)
+          .insert(profile.toInsertJson())
           .select()
           .single();
       return StartupProfileModel.fromJson(response);
     } on PostgrestException catch (e) {
-      // Fallback attempt for alternative database table column names if live schema differs
-      if (e.message.contains('column') ||
-          e.code == 'PGRST204' ||
-          e.code == '42703') {
-        try {
-          final altResponse = await _client
-              .from(_tableName)
-              .insert(profile.toAlternativeInsertJson())
-              .select()
-              .single();
-          return StartupProfileModel.fromJson(altResponse);
-        } catch (_) {}
-      }
-
       if (e.code == '42501' || e.message.contains('row-level security')) {
         throw const ServerException(
           message:
@@ -94,7 +62,6 @@ class StartupProfileRemoteDataSourceImpl
           statusCode: 401,
         );
       }
-
       throw ServerException(
         message: e.message,
         statusCode: int.tryParse(e.code ?? ''),
@@ -140,41 +107,15 @@ class StartupProfileRemoteDataSourceImpl
 
     final activeUserId = _client.auth.currentUser?.id ?? profile.userId;
 
-    final updateData = <String, dynamic>{
-      'startup_name': profile.startupName,
-      'description': profile.description,
-      'industry': profile.industry,
-      'funding_stage': profile.fundingStage,
-      'funding_amount_needed': profile.fundingAmountNeeded,
-      'location': profile.location,
-      'team_information': profile.teamInformation,
-      'contact_information': profile.contactInformation,
-      'updated_at': DateTime.now().toIso8601String(),
-    };
-
     try {
       final response = await _client
           .from(_tableName)
-          .update(updateData)
+          .update(profile.toUpdateJson())
           .eq('user_id', activeUserId)
           .select()
           .single();
       return StartupProfileModel.fromJson(response);
     } on PostgrestException catch (e) {
-      if (e.message.contains('column') ||
-          e.code == 'PGRST204' ||
-          e.code == '42703') {
-        try {
-          final altResponse = await _client
-              .from(_tableName)
-              .update(profile.toAlternativeUpdateJson())
-              .eq('user_id', activeUserId)
-              .select()
-              .single();
-          return StartupProfileModel.fromJson(altResponse);
-        } catch (_) {}
-      }
-
       throw ServerException(
         message: e.message,
         statusCode: int.tryParse(e.code ?? ''),

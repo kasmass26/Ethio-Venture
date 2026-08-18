@@ -3,8 +3,7 @@ import '../../domain/entities/startup_profile_entity.dart';
 
 /// Data model representing a Startup Profile in the Data Layer.
 ///
-/// Matches the official `20260817185651_create_startup_profiles.sql` table schema
-/// (`startup_name`, `funding_amount_needed`, `team_information`, `contact_information`).
+/// Matches the `startup_profiles` table schema in Supabase.
 class StartupProfileModel extends StartupProfileEntity {
   const StartupProfileModel({
     required super.id,
@@ -38,8 +37,8 @@ class StartupProfileModel extends StartupProfileEntity {
       id: (json['id'] ?? json['profile_id'] ?? '').toString(),
       userId: (json['user_id'] ?? json['userId'] ?? '').toString(),
       startupName: (json['startup_name'] ??
+              json['business_name'] ??
               json['company_name'] ??
-              json['companyName'] ??
               '')
           .toString(),
       description: (json['description'] ?? '').toString(),
@@ -47,8 +46,8 @@ class StartupProfileModel extends StartupProfileEntity {
       fundingStage:
           (json['funding_stage'] ?? json['fundingStage'] ?? 'MVP').toString(),
       fundingAmountNeeded: (json['funding_amount_needed'] ??
-                  json['target_funding_amount'] ??
-                  json['targetFundingAmount'] as num?)
+                  json['funding_amount_sought'] ??
+                  json['target_funding_amount'] as num?)
               ?.toDouble() ??
           0.0,
       location: (json['location'] ?? 'Addis Ababa, Ethiopia').toString(),
@@ -85,7 +84,7 @@ class StartupProfileModel extends StartupProfileEntity {
     );
   }
 
-  /// Standard Insert payload matching `20260817185651_create_startup_profiles.sql`.
+  /// Standard Insert payload.
   Map<String, dynamic> toInsertJson() {
     final currentAuthUserId = Supabase.instance.client.auth.currentUser?.id;
 
@@ -109,7 +108,7 @@ class StartupProfileModel extends StartupProfileEntity {
     return map;
   }
 
-  /// Standard Update payload matching `20260817185651_create_startup_profiles.sql`.
+  /// Standard Update payload.
   Map<String, dynamic> toUpdateJson() {
     return {
       'startup_name': startupName,
@@ -120,49 +119,6 @@ class StartupProfileModel extends StartupProfileEntity {
       'location': location,
       'team_information': teamInformation,
       'contact_information': contactInformation,
-      'updated_at': DateTime.now().toIso8601String(),
-    };
-  }
-
-  /// Fallback Insert payload for alternative database schemas.
-  Map<String, dynamic> toAlternativeInsertJson() {
-    final currentAuthUserId = Supabase.instance.client.auth.currentUser?.id;
-
-    final map = <String, dynamic>{
-      'company_name': startupName,
-      'description': description,
-      'industry': industry,
-      'funding_stage': fundingStage,
-      'target_funding_amount': fundingAmountNeeded,
-      'location': location,
-      'team_members': [teamInformation],
-      'founder_email': contactInformation.contains('@')
-          ? contactInformation
-          : 'founder@ethioventure.com',
-    };
-
-    if (currentAuthUserId != null && currentAuthUserId.isNotEmpty) {
-      map['user_id'] = currentAuthUserId;
-    } else if (userId.isNotEmpty && userId != '00000000-0000-0000-0000-000000000000') {
-      map['user_id'] = userId;
-    }
-
-    return map;
-  }
-
-  /// Fallback Update payload for alternative database schemas.
-  Map<String, dynamic> toAlternativeUpdateJson() {
-    return {
-      'company_name': startupName,
-      'description': description,
-      'industry': industry,
-      'funding_stage': fundingStage,
-      'target_funding_amount': fundingAmountNeeded,
-      'location': location,
-      'team_members': [teamInformation],
-      'founder_email': contactInformation.contains('@')
-          ? contactInformation
-          : 'founder@ethioventure.com',
       'updated_at': DateTime.now().toIso8601String(),
     };
   }
