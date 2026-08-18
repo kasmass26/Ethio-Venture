@@ -20,13 +20,14 @@ class PitchDeckSectionWidget extends StatelessWidget {
     return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
   }
 
-  void _showUploadDialog(BuildContext context) {
+  void _showUploadDialog(BuildContext parentContext) {
+    final documentCubit = parentContext.read<DocumentCubit>();
     final titleController = TextEditingController();
     final fileNameController = TextEditingController(text: 'PitchDeck_EthioPay_2026.pdf');
     bool isPrivate = false;
 
     showDialog<void>(
-      context: context,
+      context: parentContext,
       builder: (dialogContext) {
         return StatefulBuilder(
           builder: (context, setState) {
@@ -43,7 +44,7 @@ class PitchDeckSectionWidget extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Document Title *',
+                    'Document Title',
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
@@ -93,17 +94,21 @@ class PitchDeckSectionWidget extends StatelessWidget {
                 ),
                 ElevatedButton.icon(
                   onPressed: () {
-                    final title = titleController.text.trim();
-                    if (title.isNotEmpty) {
-                      Navigator.pop(dialogContext);
-                      context.read<DocumentCubit>().uploadDocument(
-                            startupId: startupId,
-                            title: title,
-                            filePath: fileNameController.text.trim(),
-                            fileName: fileNameController.text.trim(),
-                            isPrivate: isPrivate,
-                          );
-                    }
+                    final title = titleController.text.trim().isNotEmpty
+                        ? titleController.text.trim()
+                        : 'EthioPay Pitch Deck 2026';
+                    final fileName = fileNameController.text.trim().isNotEmpty
+                        ? fileNameController.text.trim()
+                        : 'PitchDeck_EthioPay_2026.pdf';
+
+                    Navigator.pop(dialogContext);
+                    documentCubit.uploadDocument(
+                      startupId: startupId,
+                      title: title,
+                      filePath: fileName,
+                      fileName: fileName,
+                      isPrivate: isPrivate,
+                    );
                   },
                   icon: const Icon(Icons.cloud_upload),
                   label: const Text('Upload Document'),
