@@ -4,6 +4,7 @@ import 'package:ethioventure/core/constants/app_constants.dart';
 import 'package:ethioventure/core/di/injection_container.dart';
 import 'package:ethioventure/core/routing/app_router.dart';
 import 'package:ethioventure/core/theme/app_theme.dart';
+import 'package:ethioventure/features/startup_profile/presentation/pages/startup_profile_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -38,14 +39,9 @@ class EthioVentureApp extends StatelessWidget {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.system,
+      onGenerateRoute: AppRouter.onGenerateRoute,
       onUnknownRoute: AppRouter.onUnknownRoute,
-      home: const Scaffold(
-        body: SafeArea(
-          child: Center(
-            child: Text(AppConstants.appName),
-          ),
-        ),
-      ),
+      home: const StartupProfilePage(),
     );
   }
 }
