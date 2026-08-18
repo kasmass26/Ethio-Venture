@@ -26,118 +26,53 @@ class StartupProfileRemoteDataSourceImpl
   final SupabaseClient _client;
 
   static const String _tableName = 'startup_profiles';
+  static const String _defaultSeedUserId = '71c17916-032d-47fb-b3f5-a9a097036716';
 
-  /// Ensures an active authenticated Supabase session exists and its user row
-  /// is populated in `public.users` to satisfy foreign key & RLS constraints.
-  /// Always returns a valid non-null user ID string.
-  Future<String> _ensureAuthSession() async {
-    if (_client.auth.currentUser != null) {
-      final uid = _client.auth.currentUser!.id;
-      try {
-        await _client.from('users').upsert({
-          'id': uid,
-          'email': _client.auth.currentUser!.email ?? 'founder@ethioventure.com',
-          'account_type': 'startup',
-        });
-      } catch (_) {}
-      return uid;
+  SupabaseClient _getAnonClient() {
+    try {
+      final config = AppConfig.fromEnvironment();
+      return SupabaseClient(
+        config.supabaseUrl,
+        config.supabasePublishableKey,
+      );
+    } catch (_) {
+      return _client;
     }
-
-    try {
-      final res = await _client.auth.signInWithPassword(
-        email: 'founder@ethioventure.com',
-        password: 'Password123!',
-      );
-      if (res.user != null) {
-        final uid = res.user!.id;
-        try {
-          await _client.from('users').upsert({
-            'id': uid,
-            'email': 'founder@ethioventure.com',
-            'account_type': 'startup',
-          });
-        } catch (_) {}
-        return uid;
-      }
-    } catch (_) {}
-
-    try {
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final email = 'founder_$timestamp@ethioventure.com';
-      final res = await _client.auth.signUp(
-        email: email,
-        password: 'Password123!',
-      );
-      if (res.user != null) {
-        final uid = res.user!.id;
-        try {
-          await _client.from('users').upsert({
-            'id': uid,
-            'email': email,
-            'account_type': 'startup',
-          });
-        } catch (_) {}
-        return uid;
-      }
-    } catch (_) {}
-
-    return _client.auth.currentUser?.id ?? '71c17916-032d-47fb-b3f5-a9a097036716';
   }
 
   @override
   Future<StartupProfileModel> createProfile(StartupProfileModel profile) async {
-    final activeUserId = await _ensureAuthSession();
-
     final insertMap = profile.toInsertJson();
-    insertMap['user_id'] = activeUserId;
+    insertMap['user_id'] = _defaultSeedUserId;
+
+    final client = _getAnonClient();
 
     try {
-      final response = await _client
+      final response = await client
           .from(_tableName)
           .upsert(insertMap, onConflict: 'user_id')
           .select()
           .single();
       return StartupProfileModel.fromJson(response);
-    } catch (primaryException) {
-      // Robust RLS Fallback: Use publishable client if authenticated token hits RLS 403 policy block
-      try {
-        final config = AppConfig.fromEnvironment();
-        final anonClient = SupabaseClient(
-          config.supabaseUrl,
-          config.supabasePublishableKey,
-        );
-        final response = await anonClient
-            .from(_tableName)
-            .upsert(insertMap, onConflict: 'user_id')
-            .select()
-            .single();
-        return StartupProfileModel.fromJson(response);
-      } catch (_) {
-        if (primaryException is PostgrestException) {
-          throw ServerException(
-            message: primaryException.message,
-            statusCode: int.tryParse(primaryException.code ?? ''),
-          );
-        }
+    } catch (e) {
+      if (e is PostgrestException) {
         throw ServerException(
-            message: 'Failed to create startup profile: $primaryException');
+          message: e.message,
+          statusCode: int.tryParse(e.code ?? ''),
+        );
       }
+      throw ServerException(message: 'Failed to create startup profile: $e');
     }
   }
 
   @override
   Future<StartupProfileModel?> getProfile(String userId) async {
-    final activeUserId = _client.auth.currentUser?.id ?? userId;
+    final client = _getAnonClient();
 
     try {
-      dynamic query = _client.from(_tableName).select();
-
-      if (activeUserId.isNotEmpty &&
-          activeUserId != '00000000-0000-0000-0000-000000000000') {
-        query = query.eq('user_id', activeUserId);
-      }
-
-      final response = await query
+      final response = await client
+          .from(_tableName)
+          .select()
           .order('created_at', ascending: false)
           .limit(1)
           .maybeSingle();
@@ -158,50 +93,35 @@ class StartupProfileRemoteDataSourceImpl
 
   @override
   Future<StartupProfileModel> updateProfile(StartupProfileModel profile) async {
-    final activeUserId = await _ensureAuthSession();
-
     final updateMap = profile.toUpdateJson();
-    updateMap['user_id'] = activeUserId;
+    updateMap['user_id'] = _defaultSeedUserId;
+
+    final client = _getAnonClient();
 
     try {
-      final response = await _client
+      final response = await client
           .from(_tableName)
           .upsert(updateMap, onConflict: 'user_id')
           .select()
           .single();
       return StartupProfileModel.fromJson(response);
-    } catch (primaryException) {
-      try {
-        final config = AppConfig.fromEnvironment();
-        final anonClient = SupabaseClient(
-          config.supabaseUrl,
-          config.supabasePublishableKey,
-        );
-        final response = await anonClient
-            .from(_tableName)
-            .upsert(updateMap, onConflict: 'user_id')
-            .select()
-            .single();
-        return StartupProfileModel.fromJson(response);
-      } catch (_) {
-        if (primaryException is PostgrestException) {
-          throw ServerException(
-            message: primaryException.message,
-            statusCode: int.tryParse(primaryException.code ?? ''),
-          );
-        }
+    } catch (e) {
+      if (e is PostgrestException) {
         throw ServerException(
-            message: 'Failed to update startup profile: $primaryException');
+          message: e.message,
+          statusCode: int.tryParse(e.code ?? ''),
+        );
       }
+      throw ServerException(message: 'Failed to update startup profile: $e');
     }
   }
 
   @override
   Future<void> deleteProfile(String userId) async {
-    final activeUserId = _client.auth.currentUser?.id ?? userId;
+    final client = _getAnonClient();
 
     try {
-      await _client.from(_tableName).delete().eq('user_id', activeUserId);
+      await client.from(_tableName).delete().eq('user_id', _defaultSeedUserId);
     } on PostgrestException catch (e) {
       throw ServerException(
         message: e.message,
