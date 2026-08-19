@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../auth/presentation/cubit/auth_cubit.dart';
-import '../../../auth/presentation/cubit/auth_state.dart';
 import '../widgets/dashboard_app_bar.dart';
 import '../widgets/dashboard_bottom_nav.dart';
 import '../widgets/metric_section.dart';
@@ -80,22 +77,13 @@ class FounderDashboardPage extends StatelessWidget {
   Widget build(BuildContext context) {
     String displayName = 'Founder';
 
-    final authState = context.watch<AuthCubit>().state;
-    if (authState is Authenticated) {
-      if (authState.user.name.trim().isNotEmpty) {
-        displayName = authState.user.name.trim();
-      } else if (authState.user.email.contains('@')) {
-        displayName = authState.user.email.split('@').first;
-      }
-    } else {
-      final currentUser = Supabase.instance.client.auth.currentUser;
-      if (currentUser != null) {
-        final metaName = currentUser.userMetadata?['name'] as String?;
-        if (metaName != null && metaName.trim().isNotEmpty) {
-          displayName = metaName.trim();
-        } else if (currentUser.email != null) {
-          displayName = currentUser.email!.split('@').first;
-        }
+    final currentUser = Supabase.instance.client.auth.currentUser;
+    if (currentUser != null) {
+      final metaName = currentUser.userMetadata?['name'] as String?;
+      if (metaName != null && metaName.trim().isNotEmpty) {
+        displayName = metaName.trim();
+      } else if (currentUser.email != null && currentUser.email!.contains('@')) {
+        displayName = currentUser.email!.split('@').first;
       }
     }
 
