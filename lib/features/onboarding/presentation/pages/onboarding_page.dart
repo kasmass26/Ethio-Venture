@@ -65,7 +65,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
     );
   }
 
-  Future<void> _completeOnboarding() async {
+  Future<void> _completeAndNavigate(String routeName, {Object? arguments}) async {
     try {
       final storageService = await StorageService.init();
       await storageService.setOnboardingCompleted();
@@ -75,20 +75,16 @@ class _OnboardingPageState extends State<OnboardingPage> {
     }
 
     if (mounted) {
-      // Navigate to login page after onboarding
-      Navigator.of(context).pushReplacementNamed(AppConstants.routeLogin);
+      Navigator.of(context).pushReplacementNamed(routeName, arguments: arguments);
     }
   }
 
-  void _registerAs(String role) async {
-    await _completeOnboarding();
-    if (mounted) {
-      Navigator.of(context).pushNamed(AppConstants.routeRegister, arguments: role);
-    }
+  void _registerAs(String role) {
+    _completeAndNavigate(AppConstants.routeRegister, arguments: role);
   }
 
-  void _signIn() async {
-    await _completeOnboarding();
+  void _signIn() {
+    _completeAndNavigate(AppConstants.routeLogin);
   }
 
   @override

@@ -117,7 +117,7 @@ class _StartupProfileFormState extends State<StartupProfileForm> {
         location: _locationController.text.trim(),
         teamInformation: _teamController.text.trim(),
         contactInformation: _contactController.text.trim(),
-        createdAt: widget.initialProfile?.createdAt,
+        createdAt: widget.initialProfile?.createdAt ?? DateTime.now(),
         updatedAt: DateTime.now(),
       );
 

@@ -48,8 +48,8 @@ class StartupRemoteDataSourceImpl implements StartupRemoteDataSource {
   /// Column list for the discovery view.  Enumerating avoids fetching
   /// columns added by future features (e.g. document metadata).
   static const _listColumns =
-      'id, profile_id, name, summary, industry, stage, '
-      'location, funding_target, status, created_at, updated_at';
+      'id, user_id, startup_name, description, industry, funding_stage, '
+      'location, funding_amount_needed, approval_status, created_at, updated_at';
 
   // ── searchStartups ──────────────────────────────────────────────────────
 
@@ -59,18 +59,18 @@ class StartupRemoteDataSourceImpl implements StartupRemoteDataSource {
   ) async {
     try {
       // ── WHERE phase (PostgrestFilterBuilder) ─────────────────────────────
-      // Start with the base filter: only published profiles are visible
+      // Start with the base filter: only approved profiles are visible
       // to investors.  Every subsequent .eq / .ilike / .gte / .lte call
       // narrows this with AND logic.
       PostgrestFilterBuilder<PostgrestList> filterQuery = _client
           .from(_table)
           .select(_listColumns)
-          .eq('status', 'published');
+          .eq('approval_status', 'approved');
 
-      // Free-text search: OR across name and summary (case-insensitive).
+      // Free-text search: OR across startup_name and description (case-insensitive).
       final q = filter.query?.trim();
       if (q != null && q.isNotEmpty) {
-        filterQuery = filterQuery.or('name.ilike.%$q%,summary.ilike.%$q%');
+        filterQuery = filterQuery.or('startup_name.ilike.%$q%,description.ilike.%$q%');
       }
 
       // Exact-match filters for controlled-vocabulary columns.
@@ -78,7 +78,7 @@ class StartupRemoteDataSourceImpl implements StartupRemoteDataSource {
         filterQuery = filterQuery.eq('industry', filter.industry!);
       }
       if (filter.stage != null) {
-        filterQuery = filterQuery.eq('stage', filter.stage!);
+        filterQuery = filterQuery.eq('funding_stage', filter.stage!);
       }
 
       // Case-insensitive location substring match.
@@ -86,14 +86,14 @@ class StartupRemoteDataSourceImpl implements StartupRemoteDataSource {
         filterQuery = filterQuery.ilike('location', '%${filter.location!}%');
       }
 
-      // Funding-target range bounds (inclusive).
+      // Funding-amount-needed range bounds (inclusive).
       if (filter.minFundingTarget != null) {
         filterQuery =
-            filterQuery.gte('funding_target', filter.minFundingTarget!);
+            filterQuery.gte('funding_amount_needed', filter.minFundingTarget!);
       }
       if (filter.maxFundingTarget != null) {
         filterQuery =
-            filterQuery.lte('funding_target', filter.maxFundingTarget!);
+            filterQuery.lte('funding_amount_needed', filter.maxFundingTarget!);
       }
 
       // ── TRANSFORM phase (PostgrestTransformBuilder) ──────────────────────
@@ -132,7 +132,7 @@ class StartupRemoteDataSourceImpl implements StartupRemoteDataSource {
           .from(_table)
           .select(_listColumns)
           .eq('id', id)
-          .eq('status', 'published') // investors only see published profiles
+          .eq('approval_status', 'approved') // investors only see approved profiles
           .maybeSingle();
 
       if (data == null) return null;

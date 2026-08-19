@@ -1,4 +1,3 @@
-import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -38,31 +37,16 @@ Future<void> main() async {
   }
 
   // Step 2: Register GetIt dependencies.
-  // Pass the live client so no registration touches Supabase.instance
-  // before it is ready. If supabaseClient is null, feature cubits will
-  // not be registered and the error screen is shown instead.
   try {
-    await configureDependencies(supabaseClient: supabaseClient);
-    Bloc.observer = const AppBlocObserver();
+    if (supabaseClient != null) {
+      await configureDependencies(supabaseClient: supabaseClient);
+      Bloc.observer = const AppBlocObserver();
+    } else {
+      initError ??= 'Supabase client is not initialized. Please check your .env configuration.';
+    }
   } catch (error, stackTrace) {
+    initError = error.toString();
     debugPrint('Dependency injection error: $error\n$stackTrace');
-    developer.log(
-      'Supabase initialized. host=${Uri.parse(config.supabaseUrl).host}, '
-      'environment=${config.environment}',
-      name: 'EthioVenture.App',
-    );
-
-    await configureDependencies();
-    Bloc.observer = const AppBlocObserver();
-  } catch (error, stackTrace) {
-    developer.log(
-      'Application initialization failed.',
-      name: 'EthioVenture.App',
-      error: error,
-      stackTrace: stackTrace,
-      level: 1000,
-    );
-    debugPrint('Initialization error: $error\n$stackTrace');
   }
 
   runApp(
@@ -74,7 +58,7 @@ Future<void> main() async {
 }
 
 class EthioVentureApp extends StatelessWidget {
-  const EthioVentureApp({super.key, required this.environment});
+  const EthioVentureApp({super.key, required this.environment, this.initError});
 
   final String environment;
   /// Non-null when Supabase failed to initialise; shown to the developer.
@@ -101,6 +85,7 @@ class EthioVentureApp extends StatelessWidget {
       navigatorKey: AppRouter.navigatorKey,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.lightTheme,
+      initialRoute: AppConstants.routeSplash,
       onGenerateRoute: AppRouter.onGenerateRoute,
       onUnknownRoute: AppRouter.onUnknownRoute,
     );

@@ -66,6 +66,19 @@ final GetIt sl = GetIt.instance;
 /// registrations are skipped — the app will show the config-error screen
 /// instead of crashing inside a cubit.
 Future<void> configureDependencies({SupabaseClient? supabaseClient}) async {
+  SupabaseClient? client = supabaseClient;
+  if (client == null) {
+    try {
+      client = Supabase.instance.client;
+    } catch (_) {
+      client = null;
+    }
+  }
+
+  if (client != null && !sl.isRegistered<SupabaseClient>()) {
+    sl.registerSingleton<SupabaseClient>(client);
+  }
+
   // Shared infrastructure
   if (!sl.isRegistered<Connectivity>()) {
     sl.registerLazySingleton<Connectivity>(Connectivity.new);
@@ -75,6 +88,10 @@ Future<void> configureDependencies({SupabaseClient? supabaseClient}) async {
     sl.registerLazySingleton<NetworkInfo>(
       () => NetworkInfoImpl(sl<Connectivity>()),
     );
+  }
+
+  if (!sl.isRegistered<SupabaseClient>()) {
+    return;
   }
 
   // ---------------------------------------------------------------------------

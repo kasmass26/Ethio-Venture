@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 // Import only the Supabase types we need. We do NOT import AuthException from
 // supabase_flutter because our own AuthException in core/error/exceptions.dart
 // takes precedence and keeps the architecture consistent.
@@ -13,8 +12,6 @@ import 'package:supabase_flutter/supabase_flutter.dart'
 
 import '../../../../core/error/exceptions.dart';
 import 'dart:developer' as developer;
-
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/user_model.dart';
 import 'auth_remote_data_source.dart';
@@ -33,6 +30,11 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required String password,
     required String role,
   }) async {
+    developer.log(
+      'Starting sign-up. email=$email, role=$role',
+      name: 'EthioVenture.Auth',
+    );
+
     // 1. Create the Supabase Auth user.
     final AuthResponse response;
     try {
@@ -43,21 +45,6 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       );
     } on sb.AuthException catch (e) {
       throw AuthException(message: e.message);
-    } catch (e) {
-      throw AuthException(message: 'Sign-up failed: $e');
-    }
-    developer.log(
-      'Starting sign-up. email=$email, role=$role',
-      name: 'EthioVenture.Auth',
-    );
-
-    late final AuthResponse response;
-    try {
-      response = await supabaseClient.auth.signUp(
-        email: email,
-        password: password,
-        data: {'full_name': name, 'role': role},
-      );
     } catch (error, stackTrace) {
       developer.log(
         'Sign-up request failed. email=$email, role=$role',
@@ -66,7 +53,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         stackTrace: stackTrace,
         level: 1000,
       );
-      rethrow;
+      throw AuthException(message: 'Sign-up failed: $error');
     }
 
     final user = response.user;
@@ -204,7 +191,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     try {
       await supabaseClient.auth.signOut();
     } on sb.AuthException catch (e) {
-      throw AuthException(message: e.message);
+      throw Exception(e.message);
     }
   }
 

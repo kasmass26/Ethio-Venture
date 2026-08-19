@@ -16,13 +16,12 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
           .select('''
             id,
             user_id,
-            business_name,
+            business_name:startup_name,
             description,
             industry,
             funding_stage,
-            funding_amount_sought,
+            funding_amount_sought:funding_amount_needed,
             location,
-            logo_url,
             created_at,
             approval_status,
             users!inner(full_name, email, account_type)
@@ -176,13 +175,12 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
           .select('''
             id,
             user_id,
-            business_name,
+            business_name:startup_name,
             description,
             industry,
             funding_stage,
-            funding_amount_sought,
+            funding_amount_sought:funding_amount_needed,
             location,
-            logo_url,
             created_at,
             approval_status,
             users!inner(full_name, email, account_type)
@@ -273,13 +271,12 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
           .select('''
             id,
             user_id,
-            business_name,
+            business_name:startup_name,
             description,
             industry,
             funding_stage,
-            funding_amount_sought,
+            funding_amount_sought:funding_amount_needed,
             location,
-            logo_url,
             created_at,
             approval_status,
             users!inner(full_name, email, account_type)
