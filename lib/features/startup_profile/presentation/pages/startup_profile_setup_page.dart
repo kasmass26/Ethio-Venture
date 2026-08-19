@@ -17,7 +17,8 @@ class StartupProfileSetupPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final currentUserId =
-        sl<SupabaseClient>().auth.currentUser?.id ?? '00000000-0000-0000-0000-000000000000';
+        sl<SupabaseClient>().auth.currentUser?.id ??
+        '00000000-0000-0000-0000-000000000000';
 
     return BlocProvider<StartupProfileCubit>(
       create: (context) => sl<StartupProfileCubit>(),
@@ -41,10 +42,7 @@ class StartupProfileSetupPage extends StatelessWidget {
                       backgroundColor: AppColors.success,
                     ),
                   );
-                  Navigator.pushReplacementNamed(
-                    context,
-                    '/startup-profile',
-                  );
+                  Navigator.pushReplacementNamed(context, '/startup-profile');
                 } else if (state is StartupProfileError) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
@@ -62,17 +60,18 @@ class StartupProfileSetupPage extends StatelessWidget {
                   children: [
                     Text(
                       'Tell Investors About Your Venture',
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(
                             fontWeight: FontWeight.bold,
-                            color: AppColors.emerald,
+                            color: AppColors.primary,
                           ),
                     ),
                     const SizedBox(height: AppSizes.xs),
                     Text(
                       'Provide comprehensive information to connect with potential investors on Ethio Venture.',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppColors.slate,
-                          ),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodyMedium?.copyWith(color: AppColors.slate),
                     ),
                     const SizedBox(height: AppSizes.lg),
                     Card(
@@ -88,9 +87,9 @@ class StartupProfileSetupPage extends StatelessWidget {
                           isSubmitting: isSubmitting,
                           buttonText: 'Create Profile',
                           onSubmit: (profile) {
-                            context
-                                .read<StartupProfileCubit>()
-                                .createProfile(profile);
+                            context.read<StartupProfileCubit>().createProfile(
+                              profile,
+                            );
                           },
                         ),
                       ),

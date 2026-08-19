@@ -14,9 +14,9 @@ class DashboardBottomNav extends StatelessWidget {
 
   static const _items = [
     (icon: Icons.grid_view_rounded, label: 'Dashboard'),
-    (icon: Icons.person_outline_rounded, label: 'Profile'),
     (icon: Icons.people_alt_outlined, label: 'Investors'),
     (icon: Icons.chat_bubble_outline_rounded, label: 'Messages'),
+    (icon: Icons.person_outline_rounded, label: 'Profile'),
   ];
 
   @override

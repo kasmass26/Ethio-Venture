@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:ethioventure/core/constants/app_constants.dart';
 import 'package:ethioventure/core/di/injection_container.dart';
 import 'package:ethioventure/core/theme/app_colors.dart';
 import 'package:ethioventure/core/theme/app_sizes.dart';
+import '../../../founder/presentation/widgets/dashboard_bottom_nav.dart';
 import '../../../pitch_deck/presentation/cubit/document_cubit.dart';
 import '../../../pitch_deck/presentation/widgets/pitch_deck_section_widget.dart';
 import '../cubit/startup_profile_cubit.dart';
@@ -30,7 +32,9 @@ class StartupProfilePage extends StatelessWidget {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Sign Out'),
-        content: const Text('Are you sure you want to sign out of Ethio Venture?'),
+        content: const Text(
+          'Are you sure you want to sign out of Ethio Venture?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
@@ -40,11 +44,7 @@ class StartupProfilePage extends StatelessWidget {
             onPressed: () {
               Navigator.pop(dialogContext, true);
               sl<SupabaseClient>().auth.signOut();
-              Navigator.pushNamedAndRemoveUntil(
-                context,
-                '/',
-                (route) => false,
-              );
+              Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.coral,
@@ -60,13 +60,24 @@ class StartupProfilePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final currentUserId =
-        sl<SupabaseClient>().auth.currentUser?.id ?? '00000000-0000-0000-0000-000000000000';
+        sl<SupabaseClient>().auth.currentUser?.id ??
+        '00000000-0000-0000-0000-000000000000';
 
     return BlocProvider<StartupProfileCubit>(
       create: (context) =>
           sl<StartupProfileCubit>()..loadProfile(currentUserId),
       child: Scaffold(
         backgroundColor: AppColors.background,
+        bottomNavigationBar: DashboardBottomNav(
+          currentIndex: 3,
+          onTap: (index) {
+            if (index == 0) {
+              Navigator.of(
+                context,
+              ).pushReplacementNamed(AppConstants.routeFounderDashboard);
+            }
+          },
+        ),
         appBar: AppBar(
           title: const Text('Startup Profile'),
           backgroundColor: AppColors.surface,
@@ -77,14 +88,13 @@ class StartupProfilePage extends StatelessWidget {
               icon: const Icon(Icons.add_circle_outline),
               tooltip: 'Create New Profile',
               onPressed: () {
-                Navigator.pushNamed(
-                  context,
-                  '/startup-profile-setup',
-                ).then((_) {
+                Navigator.pushNamed(context, '/startup-profile-setup').then((
+                  _,
+                ) {
                   if (context.mounted) {
-                    context
-                        .read<StartupProfileCubit>()
-                        .loadProfile(currentUserId);
+                    context.read<StartupProfileCubit>().loadProfile(
+                      currentUserId,
+                    );
                   }
                 });
               },
@@ -102,9 +112,9 @@ class StartupProfilePage extends StatelessWidget {
                         arguments: state.profile,
                       ).then((_) {
                         if (context.mounted) {
-                          context
-                              .read<StartupProfileCubit>()
-                              .loadProfile(currentUserId);
+                          context.read<StartupProfileCubit>().loadProfile(
+                            currentUserId,
+                          );
                         }
                       });
                     },
@@ -125,7 +135,7 @@ class StartupProfilePage extends StatelessWidget {
             builder: (context, state) {
               if (state is StartupProfileLoading) {
                 return const Center(
-                  child: CircularProgressIndicator(color: AppColors.emerald),
+                  child: CircularProgressIndicator(color: AppColors.primary),
                 );
               }
 
@@ -140,19 +150,20 @@ class StartupProfilePage extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.all(AppSizes.lg),
                           decoration: const BoxDecoration(
-                            color: AppColors.emeraldTint,
+                            color: AppColors.primaryTint,
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(
                             Icons.business_outlined,
                             size: 48,
-                            color: AppColors.emerald,
+                            color: AppColors.primary,
                           ),
                         ),
                         const SizedBox(height: AppSizes.md),
                         Text(
                           'No Startup Profile Found',
-                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          style: Theme.of(context).textTheme.headlineSmall
+                              ?.copyWith(
                                 fontWeight: FontWeight.bold,
                                 color: AppColors.ink,
                               ),
@@ -161,9 +172,8 @@ class StartupProfilePage extends StatelessWidget {
                         Text(
                           'Create your startup profile to showcase your product, team, and funding goals to investors.',
                           textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: AppColors.slate,
-                              ),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: AppColors.slate),
                         ),
                         const SizedBox(height: AppSizes.xl),
                         ElevatedButton.icon(
@@ -173,16 +183,16 @@ class StartupProfilePage extends StatelessWidget {
                               '/startup-profile-setup',
                             ).then((_) {
                               if (context.mounted) {
-                                context
-                                    .read<StartupProfileCubit>()
-                                    .loadProfile(currentUserId);
+                                context.read<StartupProfileCubit>().loadProfile(
+                                  currentUserId,
+                                );
                               }
                             });
                           },
                           icon: const Icon(Icons.add),
                           label: const Text('Setup Profile Now'),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.emerald,
+                            backgroundColor: AppColors.primary,
                             foregroundColor: AppColors.white,
                             padding: const EdgeInsets.symmetric(
                               horizontal: AppSizes.xl,
@@ -211,7 +221,8 @@ class StartupProfilePage extends StatelessWidget {
                         const SizedBox(height: AppSizes.md),
                         Text(
                           'Unable to Load Profile',
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(
                                 color: AppColors.ink,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -225,12 +236,12 @@ class StartupProfilePage extends StatelessWidget {
                         const SizedBox(height: AppSizes.lg),
                         ElevatedButton(
                           onPressed: () {
-                            context
-                                .read<StartupProfileCubit>()
-                                .loadProfile(currentUserId);
+                            context.read<StartupProfileCubit>().loadProfile(
+                              currentUserId,
+                            );
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.emerald,
+                            backgroundColor: AppColors.primary,
                             foregroundColor: AppColors.white,
                           ),
                           child: const Text('Retry'),
@@ -252,7 +263,9 @@ class StartupProfilePage extends StatelessWidget {
                       Card(
                         elevation: 1,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+                          borderRadius: BorderRadius.circular(
+                            AppSizes.radiusLg,
+                          ),
                         ),
                         color: AppColors.surface,
                         child: Padding(
@@ -263,13 +276,14 @@ class StartupProfilePage extends StatelessWidget {
                                 width: 56,
                                 height: 56,
                                 decoration: BoxDecoration(
-                                  color: AppColors.emeraldTint,
-                                  borderRadius:
-                                      BorderRadius.circular(AppSizes.radiusMd),
+                                  color: AppColors.primaryTint,
+                                  borderRadius: BorderRadius.circular(
+                                    AppSizes.radiusMd,
+                                  ),
                                 ),
                                 child: const Icon(
                                   Icons.storefront,
-                                  color: AppColors.emerald,
+                                  color: AppColors.primary,
                                   size: 28,
                                 ),
                               ),
@@ -298,10 +312,11 @@ class StartupProfilePage extends StatelessWidget {
                                             style: const TextStyle(
                                               fontSize: 11,
                                               fontWeight: FontWeight.w600,
-                                              color: AppColors.emerald,
+                                              color: AppColors.primary,
                                             ),
                                           ),
-                                          backgroundColor: AppColors.emeraldTint,
+                                          backgroundColor:
+                                              AppColors.primaryTint,
                                           visualDensity: VisualDensity.compact,
                                           side: BorderSide.none,
                                         ),
@@ -333,7 +348,9 @@ class StartupProfilePage extends StatelessWidget {
                       Card(
                         elevation: 1,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+                          borderRadius: BorderRadius.circular(
+                            AppSizes.radiusLg,
+                          ),
                         ),
                         color: AppColors.surface,
                         child: Padding(
@@ -343,12 +360,8 @@ class StartupProfilePage extends StatelessWidget {
                             children: [
                               Text(
                                 'Funding Request',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .titleSmall
-                                    ?.copyWith(
-                                      color: AppColors.slate,
-                                    ),
+                                style: Theme.of(context).textTheme.titleSmall
+                                    ?.copyWith(color: AppColors.slate),
                               ),
                               const SizedBox(height: AppSizes.xs),
                               Text(
@@ -358,7 +371,7 @@ class StartupProfilePage extends StatelessWidget {
                                     .headlineMedium
                                     ?.copyWith(
                                       fontWeight: FontWeight.bold,
-                                      color: AppColors.emerald,
+                                      color: AppColors.primary,
                                     ),
                               ),
                               const SizedBox(height: AppSizes.xs),
@@ -405,8 +418,9 @@ class StartupProfilePage extends StatelessWidget {
 
                       // Pitch Deck & Business Documents Section
                       BlocProvider<DocumentCubit>(
-                        create: (context) => sl<DocumentCubit>()
-                          ..loadDocuments(startupId: profile.id),
+                        create: (context) =>
+                            sl<DocumentCubit>()
+                              ..loadDocuments(startupId: profile.id),
                         child: PitchDeckSectionWidget(startupId: profile.id),
                       ),
                       const SizedBox(height: AppSizes.md),
@@ -415,7 +429,9 @@ class StartupProfilePage extends StatelessWidget {
                       Card(
                         elevation: 1,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+                          borderRadius: BorderRadius.circular(
+                            AppSizes.radiusLg,
+                          ),
                         ),
                         color: AppColors.surface,
                         child: Padding(
@@ -425,8 +441,11 @@ class StartupProfilePage extends StatelessWidget {
                             children: [
                               Row(
                                 children: [
-                                  const Icon(Icons.contact_mail_outlined,
-                                      size: 20, color: AppColors.emerald),
+                                  const Icon(
+                                    Icons.contact_mail_outlined,
+                                    size: 20,
+                                    color: AppColors.primary,
+                                  ),
                                   const SizedBox(width: AppSizes.sm),
                                   Text(
                                     'Contact Details',
@@ -448,8 +467,9 @@ class StartupProfilePage extends StatelessWidget {
                                 ),
                                 decoration: BoxDecoration(
                                   color: AppColors.background,
-                                  borderRadius:
-                                      BorderRadius.circular(AppSizes.radiusMd),
+                                  borderRadius: BorderRadius.circular(
+                                    AppSizes.radiusMd,
+                                  ),
                                   border: Border.all(color: AppColors.fog),
                                 ),
                                 child: Row(
@@ -460,7 +480,7 @@ class StartupProfilePage extends StatelessWidget {
                                           ? Icons.email_outlined
                                           : Icons.phone_outlined,
                                       size: 18,
-                                      color: AppColors.emerald,
+                                      color: AppColors.primary,
                                     ),
                                     const SizedBox(width: AppSizes.sm),
                                     SelectableText(
@@ -491,23 +511,24 @@ class StartupProfilePage extends StatelessWidget {
                             arguments: profile,
                           ).then((_) {
                             if (context.mounted) {
-                              context
-                                  .read<StartupProfileCubit>()
-                                  .loadProfile(currentUserId);
+                              context.read<StartupProfileCubit>().loadProfile(
+                                currentUserId,
+                              );
                             }
                           });
                         },
                         icon: const Icon(Icons.edit_outlined, size: 18),
                         label: const Text('Edit Current Profile'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.emerald,
+                          backgroundColor: AppColors.primary,
                           foregroundColor: AppColors.white,
                           padding: const EdgeInsets.symmetric(
                             vertical: AppSizes.md,
                           ),
                           shape: RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.circular(AppSizes.radiusMd),
+                            borderRadius: BorderRadius.circular(
+                              AppSizes.radiusMd,
+                            ),
                           ),
                         ),
                       ),
@@ -544,14 +565,14 @@ class StartupProfilePage extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(icon, size: 20, color: AppColors.emerald),
+                Icon(icon, size: 20, color: AppColors.primary),
                 const SizedBox(width: AppSizes.sm),
                 Text(
                   title,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.ink,
-                      ),
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.ink,
+                  ),
                 ),
               ],
             ),
@@ -559,9 +580,9 @@ class StartupProfilePage extends StatelessWidget {
             Text(
               content,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.slate,
-                    height: 1.5,
-                  ),
+                color: AppColors.slate,
+                height: 1.5,
+              ),
             ),
           ],
         ),

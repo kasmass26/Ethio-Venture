@@ -75,7 +75,9 @@ class _StartupProfileFormState extends State<StartupProfileForm> {
       text: p?.location ?? 'Addis Ababa, Ethiopia',
     );
     _teamController = TextEditingController(text: p?.teamInformation ?? '');
-    _contactController = TextEditingController(text: p?.contactInformation ?? '');
+    _contactController = TextEditingController(
+      text: p?.contactInformation ?? '',
+    );
 
     if (p != null && _industries.contains(p.industry)) {
       _selectedIndustry = p.industry;
@@ -98,7 +100,8 @@ class _StartupProfileFormState extends State<StartupProfileForm> {
 
   void _submitForm() {
     if (_formKey.currentState?.validate() ?? false) {
-      final amount = double.tryParse(
+      final amount =
+          double.tryParse(
             _fundingAmountController.text.replaceAll(',', '').trim(),
           ) ??
           0.0;
@@ -140,10 +143,7 @@ class _StartupProfileFormState extends State<StartupProfileForm> {
         horizontal: AppSizes.md,
         vertical: AppSizes.md,
       ),
-      hintStyle: const TextStyle(
-        color: AppColors.slate,
-        fontSize: 14,
-      ),
+      hintStyle: const TextStyle(color: AppColors.slate, fontSize: 14),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppSizes.radiusMd),
         borderSide: const BorderSide(color: AppColors.hairline),
@@ -154,7 +154,7 @@ class _StartupProfileFormState extends State<StartupProfileForm> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppSizes.radiusMd),
-        borderSide: const BorderSide(color: AppColors.emerald, width: 1.5),
+        borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppSizes.radiusMd),
@@ -205,7 +205,8 @@ class _StartupProfileFormState extends State<StartupProfileForm> {
           TextFormField(
             controller: _nameController,
             style: const TextStyle(color: AppColors.ink, fontSize: 15),
-            validator: (v) => InputValidators.notEmpty(v, field: 'Startup name'),
+            validator: (v) =>
+                InputValidators.notEmpty(v, field: 'Startup name'),
             decoration: _buildInputDecoration(
               hintText: 'e.g. EthioPay Solutions',
             ),
@@ -230,23 +231,23 @@ class _StartupProfileFormState extends State<StartupProfileForm> {
           DropdownButtonFormField<String>(
             initialValue: _selectedIndustry,
             dropdownColor: AppColors.white,
-            iconEnabledColor: AppColors.emerald,
+            iconEnabledColor: AppColors.primary,
             style: const TextStyle(color: AppColors.ink, fontSize: 15),
             items: _industries
-                .map((ind) => DropdownMenuItem(
-                      value: ind,
-                      child: Text(
-                        ind,
-                        style: const TextStyle(color: AppColors.ink),
-                      ),
-                    ))
+                .map(
+                  (ind) => DropdownMenuItem(
+                    value: ind,
+                    child: Text(
+                      ind,
+                      style: const TextStyle(color: AppColors.ink),
+                    ),
+                  ),
+                )
                 .toList(),
             onChanged: (val) {
               if (val != null) setState(() => _selectedIndustry = val);
             },
-            decoration: _buildInputDecoration(
-              hintText: 'Select industry',
-            ),
+            decoration: _buildInputDecoration(hintText: 'Select industry'),
           ),
           const SizedBox(height: AppSizes.md),
 
@@ -255,23 +256,23 @@ class _StartupProfileFormState extends State<StartupProfileForm> {
           DropdownButtonFormField<String>(
             initialValue: _selectedFundingStage,
             dropdownColor: AppColors.white,
-            iconEnabledColor: AppColors.emerald,
+            iconEnabledColor: AppColors.primary,
             style: const TextStyle(color: AppColors.ink, fontSize: 15),
             items: _fundingStages
-                .map((stage) => DropdownMenuItem(
-                      value: stage,
-                      child: Text(
-                        stage,
-                        style: const TextStyle(color: AppColors.ink),
-                      ),
-                    ))
+                .map(
+                  (stage) => DropdownMenuItem(
+                    value: stage,
+                    child: Text(
+                      stage,
+                      style: const TextStyle(color: AppColors.ink),
+                    ),
+                  ),
+                )
                 .toList(),
             onChanged: (val) {
               if (val != null) setState(() => _selectedFundingStage = val);
             },
-            decoration: _buildInputDecoration(
-              hintText: 'Select funding stage',
-            ),
+            decoration: _buildInputDecoration(hintText: 'Select funding stage'),
           ),
           const SizedBox(height: AppSizes.md),
 
@@ -333,7 +334,7 @@ class _StartupProfileFormState extends State<StartupProfileForm> {
           ElevatedButton(
             onPressed: widget.isSubmitting ? null : _submitForm,
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.emerald,
+              backgroundColor: AppColors.primary,
               foregroundColor: AppColors.white,
               minimumSize: const Size.fromHeight(52),
               shape: RoundedRectangleBorder(
