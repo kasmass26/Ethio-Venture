@@ -32,30 +32,8 @@ class DocumentRemoteDataSourceImpl implements DocumentRemoteDataSource {
 
   static const String _tableName = 'startup_documents';
 
-  static final List<DocumentModel> _sampleDocuments = [
-    DocumentModel(
-      id: 'doc-101',
-      startupId: '4cfeca7d-e2fb-4a85-8985-7b0cc8a0f99d',
-      title: 'EthioPay Official Investor Pitch Deck 2026',
-      fileUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-      fileName: 'EthioPay_PitchDeck_2026.pdf',
-      fileType: 'pdf',
-      fileSizeBytes: 2450000,
-      isPrivate: false,
-      uploadedAt: DateTime.now().subtract(const Duration(days: 2)),
-    ),
-    DocumentModel(
-      id: 'doc-102',
-      startupId: '4cfeca7d-e2fb-4a85-8985-7b0cc8a0f99d',
-      title: 'EthioPay Executive Business Plan & Financial Model',
-      fileUrl: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-      fileName: 'EthioPay_BusinessPlan.pdf',
-      fileType: 'pdf',
-      fileSizeBytes: 3820000,
-      isPrivate: true,
-      uploadedAt: DateTime.now().subtract(const Duration(days: 1)),
-    ),
-  ];
+  // Sample documents list for fallback - starts empty
+  static final List<DocumentModel> _sampleDocuments = [];
 
   SupabaseClient _getAnonClient() {
     try {
@@ -111,6 +89,7 @@ class DocumentRemoteDataSourceImpl implements DocumentRemoteDataSource {
       final response = await client
           .from(_tableName)
           .select()
+          .eq('startup_id', startupId)
           .order('created_at', ascending: false);
 
       if (response.isNotEmpty) {
@@ -120,7 +99,8 @@ class DocumentRemoteDataSourceImpl implements DocumentRemoteDataSource {
       }
     } catch (_) {}
 
-    return List.from(_sampleDocuments);
+    // Return only sample documents that match the current startup
+    return _sampleDocuments.where((doc) => doc.startupId == startupId).toList();
   }
 
   @override

@@ -43,7 +43,7 @@ class StartupProfileRemoteDataSourceImpl
   @override
   Future<StartupProfileModel> createProfile(StartupProfileModel profile) async {
     final insertMap = profile.toInsertJson();
-    insertMap['user_id'] = _defaultSeedUserId;
+    // Do not override user_id - it's already set in toInsertJson() from the current authenticated user
 
     final client = _getAnonClient();
 
@@ -73,8 +73,7 @@ class StartupProfileRemoteDataSourceImpl
       final response = await client
           .from(_tableName)
           .select()
-          .order('created_at', ascending: false)
-          .limit(1)
+          .eq('user_id', userId)
           .maybeSingle();
 
       if (response == null) {
@@ -94,7 +93,9 @@ class StartupProfileRemoteDataSourceImpl
   @override
   Future<StartupProfileModel> updateProfile(StartupProfileModel profile) async {
     final updateMap = profile.toUpdateJson();
-    updateMap['user_id'] = _defaultSeedUserId;
+    // Add user_id for the where clause in upsert
+    final currentAuthUserId = _client.auth.currentUser?.id ?? profile.userId;
+    updateMap['user_id'] = currentAuthUserId;
 
     final client = _getAnonClient();
 
@@ -121,7 +122,7 @@ class StartupProfileRemoteDataSourceImpl
     final client = _getAnonClient();
 
     try {
-      await client.from(_tableName).delete().eq('user_id', _defaultSeedUserId);
+      await client.from(_tableName).delete().eq('user_id', userId);
     } on PostgrestException catch (e) {
       throw ServerException(
         message: e.message,
