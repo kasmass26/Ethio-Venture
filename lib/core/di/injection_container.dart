@@ -21,6 +21,7 @@ import 'package:ethioventure/features/startup_profile/data/repositories/startup_
 import 'package:ethioventure/features/startup_profile/domain/repositories/startup_repository.dart';
 import 'package:ethioventure/features/startup_profile/domain/usecases/get_startup_by_id.dart';
 import 'package:ethioventure/features/startup_profile/domain/usecases/search_startups.dart';
+import 'package:ethioventure/features/investor/presentation/cubit/recommended_startups_cubit.dart';
 import 'package:ethioventure/features/startup_profile/presentation/cubit/startup_search_cubit.dart';
 
 import 'package:ethioventure/features/pitch_deck/data/datasources/document_remote_data_source.dart';
@@ -224,6 +225,12 @@ Future<void> configureDependencies({SupabaseClient? supabaseClient}) async {
   if (!sl.isRegistered<StartupSearchCubit>()) {
     sl.registerFactory<StartupSearchCubit>(
       () => StartupSearchCubit(searchStartups: sl<SearchStartups>()),
+    );
+  }
+
+  if (!sl.isRegistered<RecommendedStartupsCubit>()) {
+    sl.registerFactory<RecommendedStartupsCubit>(
+      () => RecommendedStartupsCubit(searchStartups: sl<SearchStartups>()),
     );
   }
 

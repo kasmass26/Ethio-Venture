@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/services/user_service.dart';
 import '../../../../core/theme/app_colors.dart';
+import 'package:ethioventure/features/investor/presentation/cubit/recommended_startups_cubit.dart';
+import 'package:ethioventure/features/investor/presentation/cubit/recommended_startups_state.dart';
 import 'package:ethioventure/features/investor/presentation/widgets/app_bottom_nav.dart';
+import 'package:ethioventure/features/investor_profile/presentation/cubit/investor_profile_cubit.dart';
+import 'package:ethioventure/features/investor_profile/presentation/cubit/investor_profile_state.dart';
 
 /// ============================================================================
 /// INVESTOR DASHBOARD — REDESIGN
@@ -103,29 +108,8 @@ class _InvestorDashboardPageState extends State<InvestorDashboardPage> {
     ),
   ];
 
-  static const _recommended = [
-    StartupRecommendation(
-      id: 'su-1',
-      name: 'PayStream',
-      tagline: 'Cross-border payment infrastructure for East African SMEs.',
-      tags: ['Fintech', 'Seed'],
-      matchScore: 94,
-    ),
-    StartupRecommendation(
-      id: 'su-2',
-      name: 'FarmLedger',
-      tagline: 'Supply chain traceability for smallholder agriculture.',
-      tags: ['Agritech', 'Pre-seed'],
-      matchScore: 88,
-    ),
-    StartupRecommendation(
-      id: 'su-3',
-      name: 'CareLink',
-      tagline: 'Tele-health scheduling and records for rural clinics.',
-      tags: ['Healthtech', 'Seed'],
-      matchScore: 81,
-    ),
-  ];
+
+  // _recommended is now loaded dynamically via RecommendedStartupsCubit.
 
   static const _activity = [
     ActivityItem(
@@ -184,11 +168,63 @@ class _InvestorDashboardPageState extends State<InvestorDashboardPage> {
       );
     }
 
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<InvestorProfileCubit>(
+          create: (_) => sl<InvestorProfileCubit>()..loadProfile(),
+        ),
+        BlocProvider<RecommendedStartupsCubit>(
+          create: (_) => sl<RecommendedStartupsCubit>(),
+        ),
+      ],
+      child: BlocListener<InvestorProfileCubit, InvestorProfileState>(
+        listener: (context, profileState) {
+          // Once the investor profile resolves (loaded or empty), trigger
+          // the recommendations fetch so it can use the profile preferences.
+          if (profileState is InvestorProfileLoaded) {
+            context
+                .read<RecommendedStartupsCubit>()
+                .load(profileState.profile);
+          } else if (profileState is InvestorProfileEmpty ||
+              profileState is InvestorProfileError) {
+            // No profile yet — fetch recent startups with a neutral score.
+            context.read<RecommendedStartupsCubit>().load();
+          }
+        },
+        child: _DashboardScaffold(
+          userName: _userName,
+          metrics: _metrics,
+          activity: _activity,
+          tracked: _tracked,
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Scaffold widget — extracted so MultiBlocProvider at the top can provide
+// cubits that _DashboardScaffold and its children read from context.
+// ─────────────────────────────────────────────────────────────────────────────
+class _DashboardScaffold extends StatelessWidget {
+  const _DashboardScaffold({
+    required this.userName,
+    required this.metrics,
+    required this.activity,
+    required this.tracked,
+  });
+
+  final String userName;
+  final List<InvestorMetric> metrics;
+  final List<ActivityItem> activity;
+  final List<TrackedStartup> tracked;
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: AppColors.surface,
-
         title: const Text(
           'Investor Dashboard',
           style: TextStyle(
@@ -233,22 +269,30 @@ class _InvestorDashboardPageState extends State<InvestorDashboardPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _PortfolioPulseStrip(activeDeals: '12', userName: _userName),
+                  _PortfolioPulseStrip(
+                    activeDeals: '12',
+                    userName: userName,
+                  ),
                   const SizedBox(height: 20),
                   const _SectionHeading(title: 'Your Overview'),
                   const SizedBox(height: 12),
-                  _MetricsGrid(metrics: _metrics),
+                  _MetricsGrid(metrics: metrics),
                 ],
               ),
             ),
             const SizedBox(height: 24),
-            _RecommendedStartupsRail(
-              startups: _recommended,
-              onViewAll: () {
-                // TODO: navigate to full recommendations list.
-              },
-              onViewProfile: (startup) {
-                // TODO: navigate to startup profile detail page.
+            // ── Dynamic recommendations driven by RecommendedStartupsCubit ──
+            BlocBuilder<RecommendedStartupsCubit, RecommendedStartupsState>(
+              builder: (context, state) {
+                return _RecommendedStartupsSection(
+                  state: state,
+                  onViewAll: () {
+                    // TODO: navigate to full recommendations list.
+                  },
+                  onViewProfile: (startup) {
+                    // TODO: navigate to startup profile detail page.
+                  },
+                );
               },
             ),
             const SizedBox(height: 24),
@@ -257,14 +301,14 @@ class _InvestorDashboardPageState extends State<InvestorDashboardPage> {
               child: Column(
                 children: [
                   _RecentActivityCard(
-                    items: _activity,
+                    items: activity,
                     onViewAll: () {
                       // TODO: navigate to full activity feed.
                     },
                   ),
                   const SizedBox(height: 16),
                   _TrackedStartupsSection(
-                    startups: _tracked,
+                    startups: tracked,
                     onManage: () {
                       // TODO: navigate to tracked startups management.
                     },
@@ -581,18 +625,19 @@ class _MetricCard extends StatelessWidget {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Recommended startups — horizontal rail with match-score badge
-// ---------------------------------------------------------------------------
-class _RecommendedStartupsRail extends StatelessWidget {
-  final List<StartupRecommendation> startups;
-  final VoidCallback onViewAll;
-  final ValueChanged<StartupRecommendation> onViewProfile;
-  const _RecommendedStartupsRail({
-    required this.startups,
+// ─────────────────────────────────────────────────────────────────────────────
+// Recommended startups section — state-aware wrapper
+// ─────────────────────────────────────────────────────────────────────────────
+class _RecommendedStartupsSection extends StatelessWidget {
+  const _RecommendedStartupsSection({
+    required this.state,
     required this.onViewAll,
     required this.onViewProfile,
   });
+
+  final RecommendedStartupsState state;
+  final VoidCallback onViewAll;
+  final ValueChanged<RecommendedStartupItem> onViewProfile;
 
   @override
   Widget build(BuildContext context) {
@@ -603,33 +648,140 @@ class _RecommendedStartupsRail extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: _SectionHeading(
             title: 'Recommended For You',
-            onAction: onViewAll,
+            onAction: state is RecommendedStartupsLoaded ? onViewAll : null,
           ),
         ),
         const SizedBox(height: 12),
-        SizedBox(
-          height: 196,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            itemCount: startups.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 12),
-            itemBuilder: (context, i) {
-              final startup = startups[i];
-              return _StartupCard(
-                startup: startup,
-                onTap: () => onViewProfile(startup),
-              );
-            },
-          ),
-        ),
+        switch (state) {
+          RecommendedStartupsLoading() ||
+          RecommendedStartupsInitial() =>
+            const _RecommendedShimmer(),
+          RecommendedStartupsLoaded(:final startups) when startups.isEmpty =>
+            const _RecommendedEmpty(),
+          RecommendedStartupsLoaded(:final startups) =>
+            _RecommendedRail(
+              startups: startups,
+              onViewProfile: onViewProfile,
+            ),
+          RecommendedStartupsError(:final message) =>
+            _RecommendedError(message: message),
+        },
       ],
     );
   }
 }
 
+/// Horizontal scrolling rail of real startup cards.
+class _RecommendedRail extends StatelessWidget {
+  const _RecommendedRail({
+    required this.startups,
+    required this.onViewProfile,
+  });
+
+  final List<RecommendedStartupItem> startups;
+  final ValueChanged<RecommendedStartupItem> onViewProfile;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 196,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        itemCount: startups.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        itemBuilder: (context, i) {
+          final startup = startups[i];
+          return _StartupCard(
+            startup: startup,
+            onTap: () => onViewProfile(startup),
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// Three animated shimmer placeholder cards shown while loading.
+class _RecommendedShimmer extends StatelessWidget {
+  const _RecommendedShimmer();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 196,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        itemCount: 3,
+        separatorBuilder: (context, index) => const SizedBox(width: 12),
+        itemBuilder: (context, index) => Container(
+          width: 240,
+          decoration: BoxDecoration(
+            color: AppColors.surfaceVariant,
+            borderRadius: BorderRadius.circular(20),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Shown when the fetch returned an empty list.
+class _RecommendedEmpty extends StatelessWidget {
+  const _RecommendedEmpty();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.symmetric(horizontal: 20),
+      child: Text(
+        'No matching startups found. Update your investor profile to get personalised recommendations.',
+        style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+      ),
+    );
+  }
+}
+
+/// Shown on network or Supabase error.
+class _RecommendedError extends StatelessWidget {
+  const _RecommendedError({required this.message});
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppColors.warningSoft,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.warning_amber_rounded,
+                color: AppColors.warning, size: 18),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Could not load recommendations. Please check your connection.',
+                style: const TextStyle(
+                  color: AppColors.warning,
+                  fontSize: 12.5,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _StartupCard extends StatelessWidget {
-  final StartupRecommendation startup;
+  final RecommendedStartupItem startup;
   final VoidCallback onTap;
   const _StartupCard({required this.startup, required this.onTap});
 
@@ -693,10 +845,14 @@ class _StartupCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
+          // Industry + stage tags
           Wrap(
             spacing: 6,
             runSpacing: 6,
-            children: startup.tags
+            children: [
+              startup.industry,
+              startup.fundingStage,
+            ]
                 .map(
                   (tag) => Container(
                     padding: const EdgeInsets.symmetric(
