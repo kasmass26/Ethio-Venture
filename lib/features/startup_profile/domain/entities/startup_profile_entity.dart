@@ -1,87 +1,96 @@
-/// Pure domain entity representing a Startup Profile in Ethio Venture.
+import 'package:flutter/foundation.dart';
+
+/// Domain representation of a row in [public.startup_profiles].
 ///
-/// This entity lives in the Domain Layer and has zero dependencies on
-/// external frameworks (Supabase, Flutter UI, etc.).
+/// [profileId] references [public.profiles.id] (= [auth.users.id]) and is
+/// unique per startup — one founder owns one startup profile.
+///
+/// Fields map directly to the schema defined in docs/database-design.md:
+///   id, profile_id, name, summary, industry, stage, location,
+///   funding_target, status, created_at, updated_at.
+@immutable
 class StartupProfileEntity {
   const StartupProfileEntity({
     required this.id,
-    required this.userId,
-    required this.startupName,
-    required this.description,
+    required this.profileId,
+    required this.name,
+    this.summary,
     required this.industry,
-    required this.fundingStage,
-    required this.fundingAmountNeeded,
-    required this.location,
-    required this.teamInformation,
-    required this.contactInformation,
-    this.createdAt,
-    this.updatedAt,
+    required this.stage,
+    this.location,
+    this.fundingTarget,
+    this.status = StartupStatus.draft,
+    required this.createdAt,
+    required this.updatedAt,
   });
 
-  /// Unique UUID of the startup profile database row.
+  /// Primary key of the startup_profiles row.
   final String id;
 
-  /// Supabase authenticated user ID (`auth.users.id`) of the founder owner.
-  final String userId;
+  /// Foreign key → public.profiles.id (= auth.users.id of the founder).
+  final String profileId;
 
-  /// Name of the startup venture.
-  final String startupName;
+  /// Public name of the startup.
+  final String name;
 
-  /// Comprehensive description/pitch of the startup.
-  final String description;
+  /// Short pitch / summary shown on the listing card.
+  final String? summary;
 
-  /// Industry sector (e.g., Fintech, AgriTech, HealthTech, EduTech).
+  /// Primary industry vertical (e.g. 'Fintech', 'Agri-Tech', 'Health').
   final String industry;
 
-  /// Current funding stage (e.g., Idea, MVP, Seed, Series A).
-  final String fundingStage;
+  /// Funding stage the startup is currently seeking
+  /// (e.g. 'Pre-Seed', 'Seed', 'Series A').
+  final String stage;
 
-  /// Amount of funding requested (must be > 0).
-  final double fundingAmountNeeded;
+  /// City / region the startup is based in (e.g. 'Addis Ababa').
+  final String? location;
 
-  /// Physical or primary operating location (e.g., Addis Ababa, Ethiopia).
-  final String location;
+  /// Capital sought in USD. Maps to [funding_target] in the DB.
+  final double? fundingTarget;
 
-  /// Overview of co-founders, key team members, and qualifications.
-  final String teamInformation;
+  /// Publication status — only [StartupStatus.published] profiles are
+  /// visible to investors.
+  final StartupStatus status;
 
-  /// Primary contact details (email, phone, or website).
-  final String contactInformation;
+  final DateTime createdAt;
+  final DateTime updatedAt;
 
-  /// Audit timestamp when profile was created.
-  final DateTime? createdAt;
-
-  /// Audit timestamp when profile was last updated.
-  final DateTime? updatedAt;
-
-  /// Creates a copy of this entity with updated fields.
-  StartupProfileEntity copyWith({
-    String? id,
-    String? userId,
-    String? startupName,
-    String? description,
-    String? industry,
-    String? fundingStage,
-    double? fundingAmountNeeded,
-    String? location,
-    String? teamInformation,
-    String? contactInformation,
-    DateTime? createdAt,
-    DateTime? updatedAt,
-  }) {
-    return StartupProfileEntity(
-      id: id ?? this.id,
-      userId: userId ?? this.userId,
-      startupName: startupName ?? this.startupName,
-      description: description ?? this.description,
-      industry: industry ?? this.industry,
-      fundingStage: fundingStage ?? this.fundingStage,
-      fundingAmountNeeded: fundingAmountNeeded ?? this.fundingAmountNeeded,
-      location: location ?? this.location,
-      teamInformation: teamInformation ?? this.teamInformation,
-      contactInformation: contactInformation ?? this.contactInformation,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
-    );
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        other is StartupProfileEntity &&
+            id == other.id &&
+            profileId == other.profileId &&
+            name == other.name &&
+            summary == other.summary &&
+            industry == other.industry &&
+            stage == other.stage &&
+            location == other.location &&
+            fundingTarget == other.fundingTarget &&
+            status == other.status &&
+            createdAt == other.createdAt &&
+            updatedAt == other.updatedAt;
   }
+
+  @override
+  int get hashCode => Object.hash(
+        id,
+        profileId,
+        name,
+        summary,
+        industry,
+        stage,
+        location,
+        fundingTarget,
+        status,
+        createdAt,
+        updatedAt,
+      );
+}
+
+/// Mirrors the [status] check constraint defined in the database schema.
+enum StartupStatus {
+  draft,
+  published,
 }

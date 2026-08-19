@@ -1,131 +1,82 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../domain/entities/startup_profile_entity.dart';
+import 'package:ethioventure/features/startup_profile/domain/entities/startup_profile_entity.dart';
 
-/// Data model representing a Startup Profile in the Data Layer.
+/// Data-layer representation of a row in [public.startup_profiles].
 ///
-/// Fully maps all database column variants (`startup_name` & `business_name`,
-/// `funding_amount_needed` & `funding_amount_sought`, `contact_information`, `team_information`).
+/// Extends [StartupProfileEntity] so it can be returned anywhere the domain
+/// type is expected (same pattern as [InvestorProfileModel]).
+///
+/// Column mapping (DB → Dart):
+///   id              → id
+///   profile_id      → profileId
+///   name            → name
+///   summary         → summary
+///   industry        → industry
+///   stage           → stage
+///   location        → location
+///   funding_target  → fundingTarget
+///   status          → status
+///   created_at      → createdAt
+///   updated_at      → updatedAt
 class StartupProfileModel extends StartupProfileEntity {
   const StartupProfileModel({
     required super.id,
-    required super.userId,
-    required super.startupName,
-    required super.description,
+    required super.profileId,
+    required super.name,
+    super.summary,
     required super.industry,
-    required super.fundingStage,
-    required super.fundingAmountNeeded,
-    required super.location,
-    required super.teamInformation,
-    required super.contactInformation,
-    super.createdAt,
-    super.updatedAt,
+    required super.stage,
+    super.location,
+    super.fundingTarget,
+    super.status,
+    required super.createdAt,
+    required super.updatedAt,
   });
 
-  /// Constructs a [StartupProfileModel] from a Supabase PostgreSQL JSON map.
   factory StartupProfileModel.fromJson(Map<String, dynamic> json) {
-    String parsedTeamInfo = '';
-    if (json['team_information'] != null) {
-      parsedTeamInfo = json['team_information'].toString();
-    } else if (json['team_members'] != null) {
-      if (json['team_members'] is List) {
-        parsedTeamInfo = (json['team_members'] as List).join(', ');
-      } else {
-        parsedTeamInfo = json['team_members'].toString();
-      }
-    }
-
     return StartupProfileModel(
-      id: (json['id'] ?? json['profile_id'] ?? '').toString(),
-      userId: (json['user_id'] ?? json['userId'] ?? '').toString(),
-      startupName: (json['startup_name'] ??
-              json['business_name'] ??
-              json['company_name'] ??
-              json['companyName'] ??
-              '')
-          .toString(),
-      description: (json['description'] ?? '').toString(),
-      industry: (json['industry'] ?? 'Fintech').toString(),
-      fundingStage:
-          (json['funding_stage'] ?? json['fundingStage'] ?? 'MVP').toString(),
-      fundingAmountNeeded: (json['funding_amount_needed'] ??
-                  json['funding_amount_sought'] ??
-                  json['target_funding_amount'] as num?)
-              ?.toDouble() ??
-          0.0,
-      location: (json['location'] ?? 'Addis Ababa, Ethiopia').toString(),
-      teamInformation: parsedTeamInfo,
-      contactInformation: (json['contact_information'] ??
-              json['founder_email'] ??
-              json['founderEmail'] ??
-              '')
-          .toString(),
-      createdAt: json['created_at'] != null
-          ? DateTime.tryParse(json['created_at'].toString())
-          : null,
-      updatedAt: json['updated_at'] != null
-          ? DateTime.tryParse(json['updated_at'].toString())
-          : null,
+      id: json['id'] as String,
+      profileId: json['profile_id'] as String,
+      name: json['name'] as String,
+      summary: json['summary'] as String?,
+      industry: json['industry'] as String,
+      stage: json['stage'] as String,
+      location: json['location'] as String?,
+      fundingTarget: _parseDouble(json['funding_target']),
+      status: _parseStatus(json['status']),
+      createdAt: DateTime.parse(json['created_at'] as String),
+      updatedAt: DateTime.parse(json['updated_at'] as String),
     );
   }
 
-  /// Converts a [StartupProfileEntity] domain instance into a [StartupProfileModel].
-  factory StartupProfileModel.fromEntity(StartupProfileEntity entity) {
-    return StartupProfileModel(
-      id: entity.id,
-      userId: entity.userId,
-      startupName: entity.startupName,
-      description: entity.description,
-      industry: entity.industry,
-      fundingStage: entity.fundingStage,
-      fundingAmountNeeded: entity.fundingAmountNeeded,
-      location: entity.location,
-      teamInformation: entity.teamInformation,
-      contactInformation: entity.contactInformation,
-      createdAt: entity.createdAt,
-      updatedAt: entity.updatedAt,
-    );
-  }
-
-  /// Complete Insert payload satisfying all database column variants.
-  Map<String, dynamic> toInsertJson() {
-    final currentAuthUserId = Supabase.instance.client.auth.currentUser?.id;
-
-    final map = <String, dynamic>{
-      'startup_name': startupName,
-      'business_name': startupName,
-      'description': description,
-      'industry': industry,
-      'funding_stage': fundingStage,
-      'funding_amount_needed': fundingAmountNeeded,
-      'funding_amount_sought': fundingAmountNeeded,
-      'location': location,
-      'team_information': teamInformation,
-      'contact_information': contactInformation,
-    };
-
-    if (currentAuthUserId != null && currentAuthUserId.isNotEmpty) {
-      map['user_id'] = currentAuthUserId;
-    } else if (userId.isNotEmpty && userId != '00000000-0000-0000-0000-000000000000') {
-      map['user_id'] = userId;
-    }
-
-    return map;
-  }
-
-  /// Complete Update payload satisfying all database column variants.
-  Map<String, dynamic> toUpdateJson() {
+  Map<String, dynamic> toJson() {
     return {
-      'startup_name': startupName,
-      'business_name': startupName,
-      'description': description,
+      'id': id,
+      'profile_id': profileId,
+      'name': name,
+      'summary': summary,
       'industry': industry,
-      'funding_stage': fundingStage,
-      'funding_amount_needed': fundingAmountNeeded,
-      'funding_amount_sought': fundingAmountNeeded,
+      'stage': stage,
       'location': location,
-      'team_information': teamInformation,
-      'contact_information': contactInformation,
-      'updated_at': DateTime.now().toIso8601String(),
+      'funding_target': fundingTarget,
+      'status': status.name,        // 'draft' | 'published'
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
     };
+  }
+
+  // ── Private helpers ────────────────────────────────────────────────────────
+
+  static double? _parseDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
+  }
+
+  static StartupStatus _parseStatus(dynamic value) {
+    if (value == null) return StartupStatus.draft;
+    final raw = value.toString().toLowerCase();
+    return raw == 'published' ? StartupStatus.published : StartupStatus.draft;
   }
 }

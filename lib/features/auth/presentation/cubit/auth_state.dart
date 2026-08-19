@@ -33,3 +33,14 @@ class AuthFailureState extends AuthState {
 
   const AuthFailureState(this.message);
 }
+
+/// Emitted after signUp() when Supabase requires the user to confirm their
+/// email address before a live session is granted.  The account exists in
+/// auth.users but currentUser / currentSession will be null until the user
+/// clicks the confirmation link and signs in.
+class EmailConfirmationRequired extends AuthState {
+  /// Email address the confirmation was sent to.
+  final String email;
+
+  const EmailConfirmationRequired({required this.email});
+}

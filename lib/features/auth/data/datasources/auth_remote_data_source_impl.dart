@@ -1,3 +1,17 @@
+import 'package:flutter/foundation.dart';
+// Import only the Supabase types we need. We do NOT import AuthException from
+// supabase_flutter because our own AuthException in core/error/exceptions.dart
+// takes precedence and keeps the architecture consistent.
+import 'package:supabase_flutter/supabase_flutter.dart'
+    show
+        AuthResponse,
+        PostgrestException,
+        SupabaseClient,
+        User;
+import 'package:supabase_flutter/supabase_flutter.dart'
+    as sb show AuthException;
+
+import '../../../../core/error/exceptions.dart';
 import 'dart:developer' as developer;
 
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -6,9 +20,11 @@ import '../models/user_model.dart';
 import 'auth_remote_data_source.dart';
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
+  AuthRemoteDataSourceImpl({required this.supabaseClient});
+
   final SupabaseClient supabaseClient;
 
-  AuthRemoteDataSourceImpl({required this.supabaseClient});
+  // ── Register ─────────────────────────────────────────────────────────────
 
   @override
   Future<UserModel> register({
@@ -17,6 +33,19 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required String password,
     required String role,
   }) async {
+    // 1. Create the Supabase Auth user.
+    final AuthResponse response;
+    try {
+      response = await supabaseClient.auth.signUp(
+        email: email,
+        password: password,
+        data: {'full_name': name, 'role': role},
+      );
+    } on sb.AuthException catch (e) {
+      throw AuthException(message: e.message);
+    } catch (e) {
+      throw AuthException(message: 'Sign-up failed: $e');
+    }
     developer.log(
       'Starting sign-up. email=$email, role=$role',
       name: 'EthioVenture.Auth',
@@ -49,7 +78,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     );
 
     if (user == null) {
-      throw Exception('Registration failed.');
+      throw const AuthException(
+        message: 'Registration failed: no user was returned by Supabase.',
+      );
     }
 
     // `auth.users` is managed by Supabase. Store the application-facing user
@@ -106,6 +137,8 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     );
   }
 
+  // ── Login ─────────────────────────────────────────────────────────────────
+
   @override
   Future<UserModel> login({
     required String email,
@@ -119,32 +152,21 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         email: email,
         password: password,
       );
-    } catch (error, stackTrace) {
-      developer.log(
-        'Sign-in request failed. email=$email',
-        name: 'EthioVenture.Auth',
-        error: error,
-        stackTrace: stackTrace,
-        level: 1000,
-      );
-      rethrow;
+    } on sb.AuthException catch (e) {
+      throw AuthException(message: e.message);
+    } catch (e) {
+      throw AuthException(message: 'Sign-in failed: $e');
     }
 
     final user = response.user;
-
-    developer.log(
-      'Sign-in response received. userId=${user?.id}, '
-      'hasSession=${response.session != null}',
-      name: 'EthioVenture.Auth',
-    );
-
     if (user == null) {
-      throw Exception('Login failed.');
+      throw const AuthException(message: 'Login failed: no user returned.');
     }
 
-    String fullName = nameFromUser(user);
-    String userRole = roleFromUser(user);
+    String fullName = _nameFromUser(user);
+    String userRole = _roleFromUser(user);
 
+    // Enrich with the profiles table; fall back to auth metadata on error.
     try {
       final profile = await supabaseClient
           .from('users')
@@ -175,19 +197,26 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     );
   }
 
+  // ── Logout ────────────────────────────────────────────────────────────────
+
   @override
   Future<void> logout() async {
-    await supabaseClient.auth.signOut();
+    try {
+      await supabaseClient.auth.signOut();
+    } on sb.AuthException catch (e) {
+      throw AuthException(message: e.message);
+    }
   }
 
-  static String nameFromUser(User user) {
+  // ── Helpers ───────────────────────────────────────────────────────────────
+
+  static String _nameFromUser(User user) {
     final meta = user.userMetadata;
     return meta?['full_name']?.toString() ?? meta?['name']?.toString() ?? '';
   }
 
-  static String roleFromUser(User user) {
-    final meta = user.userMetadata;
-    return meta?['role']?.toString() ?? '';
+  static String _roleFromUser(User user) {
+    return user.userMetadata?['role']?.toString() ?? '';
   }
 
   static String _appRoleFromAccountType(String? accountType) {

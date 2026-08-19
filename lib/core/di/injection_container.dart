@@ -1,6 +1,5 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:ethioventure/core/network/network_info.dart';
-import 'package:ethioventure/core/supabase/supabase_service.dart';
 import 'package:ethioventure/features/auth/data/datasources/auth_remote_data_source.dart';
 import 'package:ethioventure/features/auth/data/datasources/auth_remote_data_source_impl.dart';
 import 'package:ethioventure/features/auth/data/repositories/auth_repository_impl.dart';
@@ -9,6 +8,20 @@ import 'package:ethioventure/features/auth/domain/usecases/login_usecase.dart';
 import 'package:ethioventure/features/auth/domain/usecases/logout_user.dart';
 import 'package:ethioventure/features/auth/domain/usecases/register_usecase.dart';
 import 'package:ethioventure/features/auth/presentation/cubit/auth_cubit.dart';
+import 'package:ethioventure/features/investor_profile/data/datasources/investor_profile_remote_data_source.dart';
+import 'package:ethioventure/features/investor_profile/data/repositories/investor_profile_repository_impl.dart';
+import 'package:ethioventure/features/investor_profile/domain/repositories/investor_profile_repository.dart';
+import 'package:ethioventure/features/investor_profile/domain/usecases/create_investor_profile.dart';
+import 'package:ethioventure/features/investor_profile/domain/usecases/delete_investor_profile.dart';
+import 'package:ethioventure/features/investor_profile/domain/usecases/get_investor_profile.dart';
+import 'package:ethioventure/features/investor_profile/domain/usecases/update_investor_profile.dart';
+import 'package:ethioventure/features/investor_profile/presentation/cubit/investor_profile_cubit.dart';
+import 'package:ethioventure/features/startup_profile/data/datasources/startup_remote_data_source.dart';
+import 'package:ethioventure/features/startup_profile/data/repositories/startup_repository_impl.dart';
+import 'package:ethioventure/features/startup_profile/domain/repositories/startup_repository.dart';
+import 'package:ethioventure/features/startup_profile/domain/usecases/get_startup_by_id.dart';
+import 'package:ethioventure/features/startup_profile/domain/usecases/search_startups.dart';
+import 'package:ethioventure/features/startup_profile/presentation/cubit/startup_search_cubit.dart';
 
 import 'package:ethioventure/features/pitch_deck/data/datasources/document_remote_data_source.dart';
 import 'package:ethioventure/features/pitch_deck/data/repositories/document_repository_impl.dart';
@@ -33,17 +46,16 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 final GetIt sl = GetIt.instance;
 
 /// Registers shared infrastructure and feature dependencies.
-Future<void> configureDependencies() async {
-  if (!sl.isRegistered<SupabaseClient>()) {
-    sl.registerLazySingleton<SupabaseClient>(
-      () => SupabaseService.client,
-    );
-  }
-
+///
+/// [supabaseClient] must be the already-initialised [SupabaseClient] returned
+/// by [Supabase.instance.client] after a successful [Supabase.initialize]
+/// call. When it is null (Supabase failed to initialise) the Supabase-dependent
+/// registrations are skipped — the app will show the config-error screen
+/// instead of crashing inside a cubit.
+Future<void> configureDependencies({SupabaseClient? supabaseClient}) async {
+  // Shared infrastructure
   if (!sl.isRegistered<Connectivity>()) {
-    sl.registerLazySingleton<Connectivity>(
-      Connectivity.new,
-    );
+    sl.registerLazySingleton<Connectivity>(Connectivity.new);
   }
 
   if (!sl.isRegistered<NetworkInfo>()) {
@@ -51,6 +63,15 @@ Future<void> configureDependencies() async {
       () => NetworkInfoImpl(sl<Connectivity>()),
     );
   }
+
+  // All Supabase-dependent registrations require a live client.
+  if (supabaseClient == null) return;
+
+  if (!sl.isRegistered<SupabaseClient>()) {
+    sl.registerSingleton<SupabaseClient>(supabaseClient);
+  }
+
+  // ── Auth Feature ─────────────────────────────────────────────────────────
 
   // ---------------------------------------------------------------------------
   // Auth Feature
@@ -99,6 +120,92 @@ Future<void> configureDependencies() async {
     );
   }
 
+  // ── Investor Profile Feature ──────────────────────────────────────────────
+
+  if (!sl.isRegistered<InvestorProfileRemoteDataSource>()) {
+    sl.registerLazySingleton<InvestorProfileRemoteDataSource>(
+      () => InvestorProfileRemoteDataSourceImpl(sl<SupabaseClient>()),
+    );
+  }
+
+  if (!sl.isRegistered<InvestorProfileRepository>()) {
+    sl.registerLazySingleton<InvestorProfileRepository>(
+      () => InvestorProfileRepositoryImpl(
+        remoteDataSource: sl<InvestorProfileRemoteDataSource>(),
+        supabaseClient: sl<SupabaseClient>(),
+      ),
+    );
+  }
+
+  if (!sl.isRegistered<GetInvestorProfile>()) {
+    sl.registerLazySingleton<GetInvestorProfile>(
+      () => GetInvestorProfile(sl<InvestorProfileRepository>()),
+    );
+  }
+
+  if (!sl.isRegistered<CreateInvestorProfile>()) {
+    sl.registerLazySingleton<CreateInvestorProfile>(
+      () => CreateInvestorProfile(sl<InvestorProfileRepository>()),
+    );
+  }
+
+  if (!sl.isRegistered<UpdateInvestorProfile>()) {
+    sl.registerLazySingleton<UpdateInvestorProfile>(
+      () => UpdateInvestorProfile(sl<InvestorProfileRepository>()),
+    );
+  }
+
+  if (!sl.isRegistered<DeleteInvestorProfile>()) {
+    sl.registerLazySingleton<DeleteInvestorProfile>(
+      () => DeleteInvestorProfile(sl<InvestorProfileRepository>()),
+    );
+  }
+
+  if (!sl.isRegistered<InvestorProfileCubit>()) {
+    sl.registerFactory<InvestorProfileCubit>(
+      () => InvestorProfileCubit(
+        getInvestorProfile: sl<GetInvestorProfile>(),
+        createInvestorProfile: sl<CreateInvestorProfile>(),
+        updateInvestorProfile: sl<UpdateInvestorProfile>(),
+        deleteInvestorProfile: sl<DeleteInvestorProfile>(),
+      ),
+    );
+  }
+
+  // ── Startup Discovery Feature (Issue #8) ─────────────────────────────────
+
+  if (!sl.isRegistered<StartupRemoteDataSource>()) {
+    sl.registerLazySingleton<StartupRemoteDataSource>(
+      () => StartupRemoteDataSourceImpl(sl<SupabaseClient>()),
+    );
+  }
+
+  if (!sl.isRegistered<StartupRepository>()) {
+    sl.registerLazySingleton<StartupRepository>(
+      () => StartupRepositoryImpl(
+        remoteDataSource: sl<StartupRemoteDataSource>(),
+      ),
+    );
+  }
+
+  if (!sl.isRegistered<SearchStartups>()) {
+    sl.registerLazySingleton<SearchStartups>(
+      () => SearchStartups(sl<StartupRepository>()),
+    );
+  }
+
+  if (!sl.isRegistered<GetStartupById>()) {
+    sl.registerLazySingleton<GetStartupById>(
+      () => GetStartupById(sl<StartupRepository>()),
+    );
+  }
+
+  if (!sl.isRegistered<StartupSearchCubit>()) {
+    sl.registerFactory<StartupSearchCubit>(
+      () => StartupSearchCubit(searchStartups: sl<SearchStartups>()),
+    );
+  }
+}
   // ---------------------------------------------------------------------------
   // Pitch Deck & Document Feature
   // ---------------------------------------------------------------------------

@@ -32,3 +32,14 @@ class NetworkException extends AppException {
 class ValidationException extends AppException {
   const ValidationException(super.message);
 }
+
+/// Thrown by the auth data source when Supabase creates the auth.users record
+/// but returns no session because email confirmation is required.
+/// The account exists — the user must confirm their email before signing in.
+class EmailConfirmationRequiredException extends AppException {
+  /// Email address the confirmation was sent to.
+  final String email;
+
+  const EmailConfirmationRequiredException({required this.email})
+      : super('Please check your email to confirm your account.');
+}
