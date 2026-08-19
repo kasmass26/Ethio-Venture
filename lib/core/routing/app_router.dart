@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/register_page.dart';
 import '../../features/founder/presentation/pages/founder_dashboard_page.dart';
+import '../../features/founder/presentation/pages/investors_page.dart';
 import '../../features/investor/presentation/pages/investor_dashboard_page.dart';
 import '../../features/onboarding/presentation/pages/onboarding_page.dart';
+import '../../features/splash/splash_page.dart';
 import '../../features/startup_profile/domain/entities/startup_profile_entity.dart';
 import '../../features/startup_profile/presentation/pages/edit_startup_profile_page.dart';
 import '../../features/startup_profile/presentation/pages/startup_profile_page.dart';
@@ -20,7 +22,8 @@ class AppRouter {
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     final Widget page = switch (settings.name) {
-      AppConstants.routeHome => const OnboardingPage(),
+      AppConstants.routeHome => const SplashPage(),
+      AppConstants.routeSplash => const SplashPage(),
       AppConstants.routeOnboarding => const OnboardingPage(),
       AppConstants.routeLogin => const LoginPage(),
       AppConstants.routeRegister => RegisterPage(
@@ -30,6 +33,7 @@ class AppRouter {
         ),
       AppConstants.routeRoleSelection => const OnboardingPage(),
       AppConstants.routeFounderDashboard => const FounderDashboardPage(),
+      AppConstants.routeFounderInvestors => const InvestorsPage(),
       AppConstants.routeInvestorDashboard => const InvestorDashboardPage(),
       AppConstants.routeStartupProfileSetup => const StartupProfileSetupPage(),
       AppConstants.routeStartupProfile => const StartupProfilePage(),

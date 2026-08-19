@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_sizes.dart';
+import '../../../../core/utils/storage_service.dart';
 
 /// A short, focused intro flow: what Ethio Venture is, what founders get,
 /// what investors get — then a clear fork into role-based registration.
@@ -64,13 +65,30 @@ class _OnboardingPageState extends State<OnboardingPage> {
     );
   }
 
-  void _registerAs(String role) {
-    Navigator.of(context)
-        .pushNamed(AppConstants.routeRegister, arguments: role);
+  Future<void> _completeOnboarding() async {
+    try {
+      final storageService = await StorageService.init();
+      await storageService.setOnboardingCompleted();
+    } catch (e) {
+      // If storage fails, continue anyway
+      debugPrint('Failed to save onboarding state: $e');
+    }
+
+    if (mounted) {
+      // Navigate to login page after onboarding
+      Navigator.of(context).pushReplacementNamed(AppConstants.routeLogin);
+    }
   }
 
-  void _signIn() {
-    Navigator.of(context).pushNamed(AppConstants.routeLogin);
+  void _registerAs(String role) async {
+    await _completeOnboarding();
+    if (mounted) {
+      Navigator.of(context).pushNamed(AppConstants.routeRegister, arguments: role);
+    }
+  }
+
+  void _signIn() async {
+    await _completeOnboarding();
   }
 
   @override

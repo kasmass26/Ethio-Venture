@@ -77,7 +77,11 @@ class FounderDashboardPage extends StatelessWidget {
       bottomNavigationBar: DashboardBottomNav(
         currentIndex: 0,
         onTap: (index) {
-          if (index == 3) {
+          if (index == 1) {
+            Navigator.of(context).pushReplacementNamed(
+              AppConstants.routeFounderInvestors,
+            );
+          } else if (index == 3) {
             Navigator.of(context).pushReplacementNamed(
               AppConstants.routeStartupProfile,
             );

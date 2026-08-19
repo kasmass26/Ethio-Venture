@@ -61,8 +61,7 @@ class EthioVentureApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       navigatorKey: AppRouter.navigatorKey,
       theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.system,
+      darkTheme: AppTheme.lightTheme,
       onGenerateRoute: AppRouter.onGenerateRoute,
       onUnknownRoute: AppRouter.onUnknownRoute,
     );

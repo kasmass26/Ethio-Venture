@@ -64,19 +64,10 @@ class _LoginFormViewState extends State<_LoginFormView> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final backgroundColor = isDark
-        ? AppColors.backgroundDark
-        : AppColors.background;
-    final surface = isDark ? AppColors.surfaceDark : AppColors.surface;
-    final borderColor = isDark ? AppColors.borderDark : AppColors.border;
-    final titleColor = isDark ? AppColors.textPrimaryDark : AppColors.secondary;
-    final subtitleColor = isDark
-        ? AppColors.textSecondaryDark
-        : AppColors.textSecondary;
+  
 
     return Scaffold(
-      backgroundColor: backgroundColor,
+      backgroundColor: AppColors.white,
       body: BlocConsumer<AuthCubit, AuthState>(
         listener: (context, state) {
           if (state is AuthFailureState) {
@@ -134,7 +125,7 @@ class _LoginFormViewState extends State<_LoginFormView> {
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.headlineMedium
                           ?.copyWith(
-                            color: titleColor,
+                          
                             fontWeight: FontWeight.w700,
                           ),
                     ),
@@ -144,15 +135,15 @@ class _LoginFormViewState extends State<_LoginFormView> {
                       textAlign: TextAlign.center,
                       style: Theme.of(
                         context,
-                      ).textTheme.bodyMedium?.copyWith(color: subtitleColor),
+                      ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
                     ),
                     const SizedBox(height: AppSizes.xl),
                     Container(
                       padding: const EdgeInsets.all(AppSizes.xl),
                       decoration: BoxDecoration(
-                        color: surface,
+                        color: AppColors.surface,
                         borderRadius: BorderRadius.circular(AppSizes.radiusLg),
-                        border: Border.all(color: borderColor),
+                        border: Border.all(color: AppColors.border),
                       ),
                       child: Form(
                         key: _formKey,
@@ -266,7 +257,7 @@ class _LoginFormViewState extends State<_LoginFormView> {
                       children: [
                         Text(
                           "Don't have an account? ",
-                          style: TextStyle(color: subtitleColor, fontSize: 14),
+                          style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
                         ),
                         TextButton(
                           onPressed: isLoading
