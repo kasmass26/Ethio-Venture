@@ -4,6 +4,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart'
     show AuthException, Supabase;
 
+import '../../../../core/error/exceptions.dart'
+    show EmailConfirmationRequiredException;
 import '../../domain/usecases/login_usecase.dart';
 import '../../domain/usecases/logout_user.dart';
 import '../../domain/usecases/register_usecase.dart';
@@ -111,7 +113,8 @@ class AuthCubit extends Cubit<AuthState> {
 
     final raw = e.toString().replaceAll('Exception: ', '').trim();
     if (raw.toLowerCase().contains('rate limit')) {
-      return 'Email rate limit exceeded. Supabase limits sign-up emails on the default mail server. Please wait a few minutes before trying again.';
+      return 'Email rate limit exceeded. Please wait a few minutes before '
+          'trying again.';
     }
     return raw;
   }
