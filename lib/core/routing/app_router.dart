@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../features/admin/presentation/pages/admin_dashboard_page.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/register_page.dart';
 import '../../features/founder/presentation/pages/founder_dashboard_page.dart';
@@ -35,6 +36,7 @@ class AppRouter {
       AppConstants.routeFounderDashboard => const FounderDashboardPage(),
       AppConstants.routeFounderInvestors => const InvestorsPage(),
       AppConstants.routeInvestorDashboard => const InvestorDashboardPage(),
+      AppConstants.routeAdminDashboard => const AdminDashboardPage(),
       AppConstants.routeStartupProfileSetup => const StartupProfileSetupPage(),
       AppConstants.routeStartupProfile => const StartupProfilePage(),
       AppConstants.routeEditStartupProfile => settings.arguments
@@ -50,7 +52,12 @@ class AppRouter {
   }
 
   /// Returns the appropriate destination after a successful authentication.
-  static String dashboardRouteForRole(String role) {
+  static String dashboardRouteForRole(String role, String email) {
+    // Check if admin email
+    if (email == AppConstants.adminEmail) {
+      return AppConstants.routeAdminDashboard;
+    }
+    
     return role == AppConstants.roleInvestor
         ? AppConstants.routeInvestorDashboard
         : AppConstants.routeFounderDashboard;

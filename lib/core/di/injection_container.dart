@@ -2,6 +2,18 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:ethioventure/core/network/network_info.dart';
 import 'package:ethioventure/core/services/user_service.dart';
 import 'package:ethioventure/core/supabase/supabase_service.dart';
+import 'package:ethioventure/features/admin/data/datasources/admin_remote_data_source.dart';
+import 'package:ethioventure/features/admin/data/datasources/admin_remote_data_source_impl.dart';
+import 'package:ethioventure/features/admin/data/repositories/admin_repository_impl.dart';
+import 'package:ethioventure/features/admin/domain/repositories/admin_repository.dart';
+import 'package:ethioventure/features/admin/domain/usecases/approve_profile.dart';
+import 'package:ethioventure/features/admin/domain/usecases/get_approved_investors.dart';
+import 'package:ethioventure/features/admin/domain/usecases/get_approved_startups.dart';
+import 'package:ethioventure/features/admin/domain/usecases/get_pending_investors.dart';
+import 'package:ethioventure/features/admin/domain/usecases/get_pending_startups.dart';
+import 'package:ethioventure/features/admin/domain/usecases/get_rejected_profiles.dart';
+import 'package:ethioventure/features/admin/domain/usecases/reject_profile.dart';
+import 'package:ethioventure/features/admin/presentation/cubit/admin_cubit.dart';
 import 'package:ethioventure/features/auth/data/datasources/auth_remote_data_source.dart';
 import 'package:ethioventure/features/auth/data/datasources/auth_remote_data_source_impl.dart';
 import 'package:ethioventure/features/auth/data/repositories/auth_repository_impl.dart';
@@ -195,6 +207,77 @@ Future<void> configureDependencies() async {
         createStartupProfileUseCase: sl<CreateStartupProfileUseCase>(),
         getStartupProfileUseCase: sl<GetStartupProfileUseCase>(),
         updateStartupProfileUseCase: sl<UpdateStartupProfileUseCase>(),
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Admin Feature
+  // ---------------------------------------------------------------------------
+  if (!sl.isRegistered<AdminRemoteDataSource>()) {
+    sl.registerLazySingleton<AdminRemoteDataSource>(
+      () => AdminRemoteDataSourceImpl(sl<SupabaseClient>()),
+    );
+  }
+
+  if (!sl.isRegistered<AdminRepository>()) {
+    sl.registerLazySingleton<AdminRepository>(
+      () => AdminRepositoryImpl(sl<AdminRemoteDataSource>()),
+    );
+  }
+
+  if (!sl.isRegistered<GetPendingStartups>()) {
+    sl.registerLazySingleton<GetPendingStartups>(
+      () => GetPendingStartups(sl<AdminRepository>()),
+    );
+  }
+
+  if (!sl.isRegistered<GetPendingInvestors>()) {
+    sl.registerLazySingleton<GetPendingInvestors>(
+      () => GetPendingInvestors(sl<AdminRepository>()),
+    );
+  }
+
+  if (!sl.isRegistered<GetApprovedStartups>()) {
+    sl.registerLazySingleton<GetApprovedStartups>(
+      () => GetApprovedStartups(sl<AdminRepository>()),
+    );
+  }
+
+  if (!sl.isRegistered<GetApprovedInvestors>()) {
+    sl.registerLazySingleton<GetApprovedInvestors>(
+      () => GetApprovedInvestors(sl<AdminRepository>()),
+    );
+  }
+
+  if (!sl.isRegistered<GetRejectedProfiles>()) {
+    sl.registerLazySingleton<GetRejectedProfiles>(
+      () => GetRejectedProfiles(sl<AdminRepository>()),
+    );
+  }
+
+  if (!sl.isRegistered<ApproveProfile>()) {
+    sl.registerLazySingleton<ApproveProfile>(
+      () => ApproveProfile(sl<AdminRepository>()),
+    );
+  }
+
+  if (!sl.isRegistered<RejectProfile>()) {
+    sl.registerLazySingleton<RejectProfile>(
+      () => RejectProfile(sl<AdminRepository>()),
+    );
+  }
+
+  if (!sl.isRegistered<AdminCubit>()) {
+    sl.registerFactory<AdminCubit>(
+      () => AdminCubit(
+        getPendingStartups: sl<GetPendingStartups>(),
+        getPendingInvestors: sl<GetPendingInvestors>(),
+        getApprovedStartups: sl<GetApprovedStartups>(),
+        getApprovedInvestors: sl<GetApprovedInvestors>(),
+        getRejectedProfiles: sl<GetRejectedProfiles>(),
+        approveProfile: sl<ApproveProfile>(),
+        rejectProfile: sl<RejectProfile>(),
       ),
     );
   }

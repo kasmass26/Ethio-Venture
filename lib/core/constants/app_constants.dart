@@ -24,8 +24,12 @@ class AppConstants {
   static const String routeRoleSelection = '/role-selection';
   static const String routeFounderDashboard = '/founder-dashboard';
   static const String routeInvestorDashboard = '/investor-dashboard';
+  static const String routeAdminDashboard = '/admin-dashboard';
   static const String routeFounderInvestors = '/founder-investors';
   static const String routeStartupProfileSetup = '/startup-profile-setup';
   static const String routeStartupProfile = '/startup-profile';
   static const String routeEditStartupProfile = '/edit-startup-profile';
+  
+  // Admin email for special access
+  static const String adminEmail = 'admin@gmail.com';
 }

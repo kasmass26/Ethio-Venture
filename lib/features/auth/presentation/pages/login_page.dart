@@ -84,6 +84,7 @@ class _LoginFormViewState extends State<_LoginFormView> {
           } else if (state is Authenticated) {
             final destination = AppRouter.dashboardRouteForRole(
               state.user.role,
+              state.user.email,
             );
             Navigator.of(
               context,
