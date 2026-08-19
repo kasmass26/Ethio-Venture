@@ -12,6 +12,13 @@ class AppBottomNav extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int>? onTap;
 
+  static const investorNavItems = [
+    NavItem(icon: Icons.grid_view_rounded, label: 'Dashboard'),
+    NavItem(icon: Icons.search_rounded, label: 'Discover'),
+    NavItem(icon: Icons.chat_bubble_outline_rounded, label: 'Messages'),
+    NavItem(icon: Icons.person_outline_rounded, label: 'Profile'),
+  ];
+
   const AppBottomNav({
     super.key,
     required this.items,

@@ -104,7 +104,7 @@ class _InvestmentThesisFormState extends State<InvestmentThesisForm> {
     return InvestorProfileEntity(
       id: existing?.id ?? '',
       userId: existing?.userId ?? '',
-      investorType: existing?.investorType ?? 'institutional',
+      investorType: existing?.investorType ?? 'firm',
       organizationName: _orgNameController.text.trim().isEmpty
           ? null
           : _orgNameController.text.trim(),

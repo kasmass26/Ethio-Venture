@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/services/user_service.dart';
 import '../../../../core/theme/app_colors.dart';
+import 'package:ethioventure/features/investor/presentation/widgets/app_bottom_nav.dart';
 
 /// ============================================================================
 /// INVESTOR DASHBOARD — REDESIGN
@@ -167,12 +169,7 @@ class _InvestorDashboardPageState extends State<InvestorDashboardPage> {
     ),
   ];
 
-  static const _navItems = [
-    NavItem(icon: Icons.grid_view_rounded, label: 'Dashboard'),
-    NavItem(icon: Icons.search_rounded, label: 'Discover'),
-    NavItem(icon: Icons.chat_bubble_outline_rounded, label: 'Messages'),
-    NavItem(icon: Icons.person_outline_rounded, label: 'Profile'),
-  ];
+
 
   @override
   Widget build(BuildContext context) {
@@ -211,9 +208,20 @@ class _InvestorDashboardPageState extends State<InvestorDashboardPage> {
           const SizedBox(width: 12),
         ],
       ),
-      bottomNavigationBar: const _AppBottomNav(
-        items: _navItems,
+      bottomNavigationBar: AppBottomNav(
+        items: AppBottomNav.investorNavItems,
         currentIndex: 0,
+        onTap: (index) {
+          if (index == 1) {
+            Navigator.of(context).pushReplacementNamed(
+              AppConstants.routeStartupSearch,
+            );
+          } else if (index == 3) {
+            Navigator.of(context).pushReplacementNamed(
+              AppConstants.routeInvestorProfile,
+            );
+          }
+        },
       ),
       body: SafeArea(
         top: false,
@@ -992,58 +1000,7 @@ class _TrackedStartupCard extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Bottom nav (shared shape with founder page)
-// ---------------------------------------------------------------------------
-class _AppBottomNav extends StatelessWidget {
-  final List<NavItem> items;
-  final int currentIndex;
-  const _AppBottomNav({required this.items, required this.currentIndex});
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(top: BorderSide(color: AppColors.border)),
-      ),
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      child: SafeArea(
-        top: false,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: List.generate(items.length, (i) {
-            final selected = i == currentIndex;
-            final item = items[i];
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  item.icon,
-                  color: selected
-                      ? AppColors.primaryDark
-                      : AppColors.textSecondary,
-                  size: 24,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  item.label,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                    color: selected
-                        ? AppColors.primaryDark
-                        : AppColors.textSecondary,
-                  ),
-                ),
-              ],
-            );
-          }),
-        ),
-      ),
-    );
-  }
-}
 
 // ---------------------------------------------------------------------------
 // Domain models — field-for-field matches of your originals
@@ -1113,9 +1070,4 @@ class TrackedStartup {
   });
 }
 
-class NavItem {
-  final IconData icon;
-  final String label;
 
-  const NavItem({required this.icon, required this.label});
-}

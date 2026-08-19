@@ -2,6 +2,7 @@ import 'package:ethioventure/core/constants/app_constants.dart';
 import 'package:ethioventure/core/di/injection_container.dart';
 import 'package:ethioventure/core/theme/app_colors.dart';
 import 'package:ethioventure/core/theme/app_sizes.dart';
+import 'package:ethioventure/features/investor/presentation/widgets/app_bottom_nav.dart';
 import 'package:ethioventure/features/investor_profile/domain/entities/investor_profile_entity.dart';
 import 'package:ethioventure/features/investor_profile/presentation/cubit/investor_profile_cubit.dart';
 import 'package:ethioventure/features/investor_profile/presentation/cubit/investor_profile_state.dart';
@@ -170,6 +171,21 @@ class _InvestorProfileViewState extends State<_InvestorProfileView> {
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
+      bottomNavigationBar: AppBottomNav(
+        items: AppBottomNav.investorNavItems,
+        currentIndex: 3,
+        onTap: (index) {
+          if (index == 0) {
+            Navigator.of(context).pushReplacementNamed(
+              AppConstants.routeInvestorDashboard,
+            );
+          } else if (index == 1) {
+            Navigator.of(context).pushReplacementNamed(
+              AppConstants.routeStartupSearch,
+            );
+          }
+        },
+      ),
       appBar: AppBar(
         title: const Text('Investment Thesis Setup'),
         centerTitle: false,

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
-import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_sizes.dart';
 import '../cubit/admin_cubit.dart';
@@ -18,7 +17,26 @@ class AdminDashboardPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => getIt<AdminCubit>()..loadAllProfiles(),
-      child: const _AdminDashboardContent(),
+      child: Scaffold(
+        backgroundColor: AppColors.fog,
+        appBar: AppBar(
+          backgroundColor: AppColors.white,
+          foregroundColor: AppColors.ink,
+          elevation: 0,
+          title: const Text(
+            'Approvals Dashboard',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+          ),
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(1),
+            child: Container(
+              height: 1,
+              color: AppColors.hairline,
+            ),
+          ),
+        ),
+        body: const _AdminDashboardContent(),
+      ),
     );
   }
 }
@@ -48,67 +66,7 @@ class _AdminDashboardContentState extends State<_AdminDashboardContent>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.fog,
-      appBar: AppBar(
-        backgroundColor: AppColors.secondary,
-        foregroundColor: AppColors.white,
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(AppSizes.sm),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(AppSizes.radiusSm),
-              ),
-              child: const Icon(Icons.admin_panel_settings, 
-                  color: AppColors.primary, size: 24),
-            ),
-            const SizedBox(width: AppSizes.md),
-            const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Admin Dashboard',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-                Text('Manage Approvals',
-                    style: TextStyle(fontSize: 12, color: AppColors.primarySoft)),
-              ],
-            ),
-          ],
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () {
-              Navigator.pushNamedAndRemoveUntil(
-                context,
-                AppConstants.routeLogin,
-                (route) => false,
-              );
-            },
-            tooltip: 'Logout',
-          ),
-        ],
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: AppColors.primary,
-          indicatorWeight: 3,
-          labelColor: AppColors.white,
-          unselectedLabelColor: AppColors.primarySoft,
-          labelStyle: const TextStyle(fontWeight: FontWeight.w600),
-          tabs: const [
-            Tab(
-              icon: Icon(Icons.business),
-              text: 'Startups',
-            ),
-            Tab(
-              icon: Icon(Icons.account_balance),
-              text: 'Investors',
-            ),
-          ],
-        ),
-      ),
-      body: BlocConsumer<AdminCubit, AdminState>(
+    return BlocConsumer<AdminCubit, AdminState>(
         listener: (context, state) {
           if (state is AdminActionSuccess) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -179,51 +137,73 @@ class _AdminDashboardContentState extends State<_AdminDashboardContent>
                 state.approvedInvestors.length;
             final totalRejected = state.rejectedProfiles.length;
 
-            return RefreshIndicator(
-              onRefresh: () async {
-                await context.read<AdminCubit>().loadAllProfiles();
-              },
-              color: AppColors.primary,
-              child: Column(
-                children: [
-                  // Stats Row
-                  Container(
-                    color: AppColors.white,
-                    padding: const EdgeInsets.all(AppSizes.md),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: ApprovalStatsCard(
-                            title: 'Pending',
-                            count: totalPending,
-                            icon: Icons.pending_actions,
-                            color: AppColors.warning,
-                          ),
-                        ),
-                        const SizedBox(width: AppSizes.md),
-                        Expanded(
-                          child: ApprovalStatsCard(
-                            title: 'Approved',
-                            count: totalApproved,
-                            icon: Icons.check_circle,
-                            color: AppColors.success,
-                          ),
-                        ),
-                        const SizedBox(width: AppSizes.md),
-                        Expanded(
-                          child: ApprovalStatsCard(
-                            title: 'Rejected',
-                            count: totalRejected,
-                            icon: Icons.cancel,
-                            color: AppColors.error,
-                          ),
-                        ),
-                      ],
-                    ),
+            return Column(
+              children: [
+                // Tabs
+                Container(
+                  color: AppColors.white,
+                  child: TabBar(
+                    controller: _tabController,
+                    indicatorColor: AppColors.primary,
+                    indicatorWeight: 3,
+                    labelColor: AppColors.ink,
+                    unselectedLabelColor: AppColors.slate,
+                    labelStyle: const TextStyle(fontWeight: FontWeight.w600),
+                    tabs: const [
+                      Tab(
+                        icon: Icon(Icons.business),
+                        text: 'Startups',
+                      ),
+                      Tab(
+                        icon: Icon(Icons.account_balance),
+                        text: 'Investors',
+                      ),
+                    ],
                   ),
-                  const Divider(height: 1),
-                  // Tabbed Content
-                  Expanded(
+                ),
+                // Stats Row
+                Container(
+                  color: AppColors.white,
+                  padding: const EdgeInsets.all(AppSizes.md),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: ApprovalStatsCard(
+                          title: 'Pending',
+                          count: totalPending,
+                          icon: Icons.pending_actions,
+                          color: AppColors.warning,
+                        ),
+                      ),
+                      const SizedBox(width: AppSizes.md),
+                      Expanded(
+                        child: ApprovalStatsCard(
+                          title: 'Approved',
+                          count: totalApproved,
+                          icon: Icons.check_circle,
+                          color: AppColors.success,
+                        ),
+                      ),
+                      const SizedBox(width: AppSizes.md),
+                      Expanded(
+                        child: ApprovalStatsCard(
+                          title: 'Rejected',
+                          count: totalRejected,
+                          icon: Icons.cancel,
+                          color: AppColors.error,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1),
+                // Tabbed Content
+                Expanded(
+                  child: RefreshIndicator(
+                    onRefresh: () async {
+                      await context.read<AdminCubit>().loadAllProfiles();
+                    },
+                    color: AppColors.primary,
                     child: TabBarView(
                       controller: _tabController,
                       children: [
@@ -232,15 +212,14 @@ class _AdminDashboardContentState extends State<_AdminDashboardContent>
                       ],
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             );
           }
 
           return const SizedBox.shrink();
         },
-      ),
-    );
+      );
   }
 
   Widget _buildStartupsList(BuildContext context, List profiles) {

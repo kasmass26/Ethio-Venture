@@ -4,8 +4,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart'
     show AuthException, Supabase;
 
-import '../../../../core/error/exceptions.dart'
-    show EmailConfirmationRequiredException;
 import '../../domain/usecases/login_usecase.dart';
 import '../../domain/usecases/logout_user.dart';
 import '../../domain/usecases/register_usecase.dart';

@@ -32,8 +32,7 @@ class InvestorProfileModel extends InvestorProfileEntity {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'id': id,
+    final map = <String, dynamic>{
       'user_id': userId,
       'investor_type': investorType,
       'organization_name': organizationName,
@@ -45,6 +44,10 @@ class InvestorProfileModel extends InvestorProfileEntity {
       'geographic_focus': geographicFocus,
       'created_at': createdAt.toIso8601String(),
     };
+    if (id.isNotEmpty) {
+      map['id'] = id;
+    }
+    return map;
   }
 
   static List<String> _parseStringList(dynamic value) {

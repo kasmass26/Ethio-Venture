@@ -1,6 +1,8 @@
+import 'package:ethioventure/core/constants/app_constants.dart';
 import 'package:ethioventure/core/di/injection_container.dart';
 import 'package:ethioventure/core/theme/app_colors.dart';
 import 'package:ethioventure/core/theme/app_sizes.dart';
+import 'package:ethioventure/features/investor/presentation/widgets/app_bottom_nav.dart';
 import 'package:ethioventure/features/startup_profile/domain/entities/startup_profile_entity.dart';
 import 'package:ethioventure/features/startup_profile/presentation/cubit/startup_search_cubit.dart';
 import 'package:ethioventure/features/startup_profile/presentation/cubit/startup_search_state.dart';
@@ -132,6 +134,21 @@ class _StartupListViewState extends State<_StartupListView> {
             ),
           ),
         ],
+      ),
+      bottomNavigationBar: AppBottomNav(
+        items: AppBottomNav.investorNavItems,
+        currentIndex: 1,
+        onTap: (index) {
+          if (index == 0) {
+            Navigator.of(context).pushReplacementNamed(
+              AppConstants.routeInvestorDashboard,
+            );
+          } else if (index == 3) {
+            Navigator.of(context).pushReplacementNamed(
+              AppConstants.routeInvestorProfile,
+            );
+          }
+        },
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
