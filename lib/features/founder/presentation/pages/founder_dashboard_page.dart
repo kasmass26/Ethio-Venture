@@ -1,26 +1,19 @@
-import 'package:ethioventure/features/founder/presentation/widgets/metric_section.dart';
-import 'package:ethioventure/features/founder/presentation/widgets/recommended_investor_section.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/theme/app_colors.dart';
-
+import '../../../auth/presentation/cubit/auth_cubit.dart';
+import '../../../auth/presentation/cubit/auth_state.dart';
 import '../widgets/dashboard_app_bar.dart';
 import '../widgets/dashboard_bottom_nav.dart';
-
+import '../widgets/metric_section.dart';
 import '../widgets/profile_strength_card.dart';
-
+import '../widgets/recommended_investor_section.dart';
 import '../widgets/welcome_header.dart';
 
 /// Founder dashboard home screen.
-///
-/// This page is presentation-only: it renders whatever state it is given.
-/// In a full clean-architecture setup, a Cubit/Bloc (fed by a repository
-/// backed by Supabase) would own [ProfileStrength], the metric list, and
-/// the investor list, and expose them via a state object. Swap the mock
-/// data below for that state without touching any widget in `widgets/`.
 class FounderDashboardPage extends StatelessWidget {
   const FounderDashboardPage({super.key});
-
-  // --- Mock data (replace with real state from a Cubit/Bloc) ---------------
 
   static const _profileStrength = ProfileStrength(
     percent: 85,
@@ -85,16 +78,49 @@ class FounderDashboardPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    String displayName = 'Founder';
+
+    final authState = context.watch<AuthCubit>().state;
+    if (authState is Authenticated) {
+      if (authState.user.name.trim().isNotEmpty) {
+        displayName = authState.user.name.trim();
+      } else if (authState.user.email.contains('@')) {
+        displayName = authState.user.email.split('@').first;
+      }
+    } else {
+      final currentUser = Supabase.instance.client.auth.currentUser;
+      if (currentUser != null) {
+        final metaName = currentUser.userMetadata?['name'] as String?;
+        if (metaName != null && metaName.trim().isNotEmpty) {
+          displayName = metaName.trim();
+        } else if (currentUser.email != null) {
+          displayName = currentUser.email!.split('@').first;
+        }
+      }
+    }
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: const DashboardAppBar(),
-      bottomNavigationBar: const DashboardBottomNav(currentIndex: 0),
+      bottomNavigationBar: DashboardBottomNav(
+        currentIndex: 0,
+        onTap: (index) {
+          if (index == 1) {
+            Navigator.pushNamed(context, '/startup-profile');
+          }
+        },
+      ),
       body: SafeArea(
         top: false,
         child: ListView(
           padding: const EdgeInsets.only(bottom: 24),
           children: [
-            const WelcomeHeader(userName: 'Sarah'),
+            WelcomeHeader(
+              userName: displayName,
+              onUpdatePitchDeck: () {
+                Navigator.pushNamed(context, '/startup-profile');
+              },
+            ),
             const SizedBox(height: 10),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -119,8 +145,6 @@ class FounderDashboardPage extends StatelessWidget {
   }
 }
 
-
-/// A single checklist item inside the "Profile Strength" card.
 class ProfileChecklistItem {
   final String label;
   final bool isComplete;
@@ -128,7 +152,6 @@ class ProfileChecklistItem {
   const ProfileChecklistItem({required this.label, required this.isComplete});
 }
 
-/// Snapshot of profile-completeness data.
 class ProfileStrength {
   final int percent;
   final List<ProfileChecklistItem> checklist;
@@ -136,12 +159,11 @@ class ProfileStrength {
   const ProfileStrength({required this.percent, required this.checklist});
 }
 
-/// One metric tile (Profile Views, Investor Interest, Active Conversations...).
 class DashboardMetric {
   final String label;
   final String value;
   final String deltaText;
-  final String iconAsset; // maps to an IconData via the widget layer
+  final String iconAsset;
   final bool isPositive;
 
   const DashboardMetric({
@@ -153,11 +175,6 @@ class DashboardMetric {
   });
 }
 
-
-
-
-/// Plain domain entity — no Flutter/UI imports, so it can be reused by
-/// any data source (Supabase, REST, cache) without leaking framework details.
 class Investor {
   final String id;
   final String name;
