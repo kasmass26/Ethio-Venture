@@ -1,11 +1,51 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/di/injection_container.dart';
+import '../../../../core/services/user_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../widgets/dashboard_bottom_nav.dart';
 
-class FounderDashboardPage extends StatelessWidget {
+class FounderDashboardPage extends StatefulWidget {
   const FounderDashboardPage({super.key});
+
+  @override
+  State<FounderDashboardPage> createState() => _FounderDashboardPageState();
+}
+
+class _FounderDashboardPageState extends State<FounderDashboardPage> {
+  String _userName = 'User';
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    try {
+      final userService = sl<UserService>();
+      final user = await userService.getCurrentUser();
+      
+      if (user != null && mounted) {
+        setState(() {
+          _userName = userService.getFirstName(user.name);
+          _isLoading = false;
+        });
+      } else if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   // --- Mock data (replace with real state from a Cubit/Bloc) ---------------
 
@@ -72,6 +112,17 @@ class FounderDashboardPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: AppColors.background,
+        body: Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation(AppColors.primary),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.background,
       bottomNavigationBar: DashboardBottomNav(
@@ -92,7 +143,7 @@ class FounderDashboardPage extends StatelessWidget {
         bottom: false,
         child: CustomScrollView(
           slivers: [
-            _TopBar(userName: 'Sarah'),
+            _TopBar(userName: _userName),
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
@@ -100,7 +151,7 @@ class FounderDashboardPage extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _HeroWelcomeCard(
-                      userName: 'Sarah',
+                      userName: _userName,
                       strength: _profileStrength,
                     ),
                     const SizedBox(height: 24),
@@ -733,60 +784,7 @@ class _InvestorCard extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Bottom nav
-// ---------------------------------------------------------------------------
-class _BottomNav extends StatelessWidget {
-  final int currentIndex;
-  const _BottomNav({required this.currentIndex});
-
-  static const _items = [
-    (icon: Icons.home_rounded, label: 'Home'),
-    (icon: Icons.search_rounded, label: 'Discover'),
-    (icon: Icons.chat_bubble_outline_rounded, label: 'Messages'),
-    (icon: Icons.person_outline_rounded, label: 'Profile'),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(top: BorderSide(color: AppColors.border)),
-      ),
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      child: SafeArea(
-        top: false,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: List.generate(_items.length, (i) {
-            final selected = i == currentIndex;
-            final item = _items[i];
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  item.icon,
-                  color: selected ? AppColors.primaryDark : AppColors.textSecondary,
-                  size: 24,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  item.label,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                    color: selected ? AppColors.primaryDark : AppColors.textSecondary,
-                  ),
-                ),
-              ],
-            );
-          }),
-        ),
-      ),
-    );
-  }
-}
+// -
 
 // ---------------------------------------------------------------------------
 // Domain models — unchanged from your original file

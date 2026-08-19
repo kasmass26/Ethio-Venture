@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/di/injection_container.dart';
+import '../../../../core/services/user_service.dart';
 import '../../../../core/theme/app_colors.dart';
 
 /// ============================================================================
@@ -32,8 +34,46 @@ import '../../../../core/theme/app_colors.dart';
 ///   week-over-week change.
 /// ============================================================================
 
-class InvestorDashboardPage extends StatelessWidget {
+class InvestorDashboardPage extends StatefulWidget {
   const InvestorDashboardPage({super.key});
+
+  @override
+  State<InvestorDashboardPage> createState() => _InvestorDashboardPageState();
+}
+
+class _InvestorDashboardPageState extends State<InvestorDashboardPage> {
+  String _userName = 'User';
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    try {
+      final userService = sl<UserService>();
+      final user = await userService.getCurrentUser();
+      
+      if (user != null && mounted) {
+        setState(() {
+          _userName = userService.getFirstName(user.name);
+          _isLoading = false;
+        });
+      } else if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   // --- Mock data (replace with real state from a Cubit/Bloc) ---------------
 
@@ -136,6 +176,17 @@ class InvestorDashboardPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: AppColors.background,
+        body: Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation(AppColors.primary),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -174,7 +225,7 @@ class InvestorDashboardPage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const _PortfolioPulseStrip(activeDeals: '12'),
+                  _PortfolioPulseStrip(activeDeals: '12', userName: _userName),
                   const SizedBox(height: 20),
                   const _SectionHeading(title: 'Your Overview'),
                   const SizedBox(height: 12),
@@ -271,7 +322,11 @@ class _IconBadgeButton extends StatelessWidget {
 }
 class _PortfolioPulseStrip extends StatelessWidget {
   final String activeDeals;
-  const _PortfolioPulseStrip({required this.activeDeals});
+  final String userName;
+  const _PortfolioPulseStrip({
+    required this.activeDeals,
+    required this.userName,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -291,9 +346,9 @@ class _PortfolioPulseStrip extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Good to see you back',
-                  style: TextStyle(
+                Text(
+                  'Good to see you back, $userName',
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16.5,
                     fontWeight: FontWeight.w700,

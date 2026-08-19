@@ -1,5 +1,6 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:ethioventure/core/network/network_info.dart';
+import 'package:ethioventure/core/services/user_service.dart';
 import 'package:ethioventure/core/supabase/supabase_service.dart';
 import 'package:ethioventure/features/auth/data/datasources/auth_remote_data_source.dart';
 import 'package:ethioventure/features/auth/data/datasources/auth_remote_data_source_impl.dart';
@@ -49,6 +50,12 @@ Future<void> configureDependencies() async {
   if (!sl.isRegistered<NetworkInfo>()) {
     sl.registerLazySingleton<NetworkInfo>(
       () => NetworkInfoImpl(sl<Connectivity>()),
+    );
+  }
+
+  if (!sl.isRegistered<UserService>()) {
+    sl.registerLazySingleton<UserService>(
+      () => UserService(sl<SupabaseClient>()),
     );
   }
 
