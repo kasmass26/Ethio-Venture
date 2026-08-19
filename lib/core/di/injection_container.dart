@@ -16,6 +16,12 @@ import 'package:ethioventure/features/investor_profile/domain/usecases/delete_in
 import 'package:ethioventure/features/investor_profile/domain/usecases/get_investor_profile.dart';
 import 'package:ethioventure/features/investor_profile/domain/usecases/update_investor_profile.dart';
 import 'package:ethioventure/features/investor_profile/presentation/cubit/investor_profile_cubit.dart';
+import 'package:ethioventure/features/startup_profile/data/datasources/startup_remote_data_source.dart';
+import 'package:ethioventure/features/startup_profile/data/repositories/startup_repository_impl.dart';
+import 'package:ethioventure/features/startup_profile/domain/repositories/startup_repository.dart';
+import 'package:ethioventure/features/startup_profile/domain/usecases/get_startup_by_id.dart';
+import 'package:ethioventure/features/startup_profile/domain/usecases/search_startups.dart';
+import 'package:ethioventure/features/startup_profile/presentation/cubit/startup_search_cubit.dart';
 import 'package:get_it/get_it.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -142,6 +148,40 @@ Future<void> configureDependencies({SupabaseClient? supabaseClient}) async {
         updateInvestorProfile: sl<UpdateInvestorProfile>(),
         deleteInvestorProfile: sl<DeleteInvestorProfile>(),
       ),
+    );
+  }
+
+  // ── Startup Discovery Feature (Issue #8) ─────────────────────────────────
+
+  if (!sl.isRegistered<StartupRemoteDataSource>()) {
+    sl.registerLazySingleton<StartupRemoteDataSource>(
+      () => StartupRemoteDataSourceImpl(sl<SupabaseClient>()),
+    );
+  }
+
+  if (!sl.isRegistered<StartupRepository>()) {
+    sl.registerLazySingleton<StartupRepository>(
+      () => StartupRepositoryImpl(
+        remoteDataSource: sl<StartupRemoteDataSource>(),
+      ),
+    );
+  }
+
+  if (!sl.isRegistered<SearchStartups>()) {
+    sl.registerLazySingleton<SearchStartups>(
+      () => SearchStartups(sl<StartupRepository>()),
+    );
+  }
+
+  if (!sl.isRegistered<GetStartupById>()) {
+    sl.registerLazySingleton<GetStartupById>(
+      () => GetStartupById(sl<StartupRepository>()),
+    );
+  }
+
+  if (!sl.isRegistered<StartupSearchCubit>()) {
+    sl.registerFactory<StartupSearchCubit>(
+      () => StartupSearchCubit(searchStartups: sl<SearchStartups>()),
     );
   }
 }

@@ -91,14 +91,50 @@ class _RegisterFormViewState extends State<_RegisterFormView> {
                 backgroundColor: AppColors.error,
               ),
             );
+          } else if (state is EmailConfirmationRequired) {
+            // Account created but Supabase requires email confirmation before
+            // a session is granted. Show an informational dialog — do NOT
+            // navigate to any authenticated route because currentUser is null.
+            showDialog<void>(
+              context: context,
+              barrierDismissible: false,
+              builder: (_) => AlertDialog(
+                icon: const Icon(Icons.mark_email_unread_outlined, size: 48),
+                title: const Text('Confirm your email'),
+                content: Text(
+                  'We sent a confirmation link to ${state.email}.\n\n'
+                  'Please open it to activate your account, then return here '
+                  'and sign in.',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop(); // close dialog
+                      // Go to sign-in so the user can log in after confirming.
+                      Navigator.of(context).pushReplacementNamed(
+                        AppConstants.routeLogin,
+                      );
+                    },
+                    child: const Text('Go to Sign In'),
+                  ),
+                ],
+              ),
+            );
           } else if (state is Authenticated) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Account created successfully for ${state.user.name}!'),
+                content: Text(
+                  'Account created successfully for ${state.user.name}!',
+                ),
                 backgroundColor: AppColors.success,
               ),
             );
-            Navigator.of(context).pushReplacementNamed(AppConstants.routeHome);
+            // Session is live — send investors straight to profile setup so
+            // currentUser is non-null when InvestorProfilePage first loads.
+            final destination = state.user.role == AppConstants.roleInvestor
+                ? AppConstants.routeInvestorProfile
+                : AppConstants.routeHome;
+            Navigator.of(context).pushReplacementNamed(destination);
           }
         },
         builder: (context, state) {

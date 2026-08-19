@@ -5,6 +5,7 @@ import 'package:ethioventure/features/auth/presentation/pages/login_page.dart';
 import 'package:ethioventure/features/auth/presentation/pages/register_page.dart';
 import 'package:ethioventure/features/investor_profile/presentation/pages/investor_profile_page.dart';
 import 'package:ethioventure/features/onboarding/presentation/pages/role_selection_page.dart';
+import 'package:ethioventure/features/startup_profile/presentation/pages/startup_list_page.dart';
 import 'package:flutter/material.dart';
 
 /// Central navigation configuration. Features register a typed route here.
@@ -20,6 +21,12 @@ class AppRouter {
         return MaterialPageRoute<void>(
           settings: settings,
           builder: (_) => const InvestorProfilePage(),
+        );
+
+      case AppConstants.routeStartupSearch:
+        return MaterialPageRoute<void>(
+          settings: settings,
+          builder: (_) => const StartupListPage(),
         );
 
       case AppConstants.routeHome:
@@ -216,7 +223,7 @@ class _LandingHomePage extends StatelessWidget {
                           buttonText: 'Explore Opportunities',
                           onTap: () {
                             Navigator.of(context).pushNamed(
-                              AppConstants.routeInvestorProfile,
+                              AppConstants.routeStartupSearch,
                             );
                           },
                         ),

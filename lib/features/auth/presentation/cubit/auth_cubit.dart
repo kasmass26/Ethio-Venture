@@ -1,6 +1,8 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show AuthException;
 
+import '../../../../core/error/exceptions.dart'
+    show EmailConfirmationRequiredException;
 import '../../domain/usecases/login_usecase.dart';
 import '../../domain/usecases/logout_user.dart';
 import '../../domain/usecases/register_usecase.dart';
@@ -23,10 +25,7 @@ class AuthCubit extends Cubit<AuthState> {
   }) async {
     emit(const AuthLoading());
     try {
-      final user = await loginUser(
-        email: email,
-        password: password,
-      );
+      final user = await loginUser(email: email, password: password);
       emit(Authenticated(user));
     } catch (e) {
       emit(AuthFailureState(_mapError(e)));
@@ -48,6 +47,11 @@ class AuthCubit extends Cubit<AuthState> {
         role: role,
       );
       emit(Authenticated(user));
+    } on EmailConfirmationRequiredException catch (e) {
+      // Account created but email confirmation is required before a session
+      // is granted.  Emit a dedicated state so the UI can inform the user
+      // without treating this as an error.
+      emit(EmailConfirmationRequired(email: e.email));
     } catch (e) {
       emit(AuthFailureState(_mapError(e)));
     }
@@ -68,13 +72,21 @@ class AuthCubit extends Cubit<AuthState> {
       final msg = e.message.toLowerCase();
       final code = e.code?.toLowerCase() ?? '';
 
-      if (e.statusCode == '429' || code.contains('rate_limit') || msg.contains('rate limit')) {
-        return 'Email rate limit exceeded. Supabase limits sign-up emails on the default mail server (3-4/hour). Please wait a few minutes, or sign in if your account is already created.';
+      if (e.statusCode == '429' ||
+          code.contains('rate_limit') ||
+          msg.contains('rate limit') ||
+          code.contains('over_email_send_rate_limit')) {
+        return 'Email rate limit exceeded. Supabase limits sign-up emails on '
+            'the free tier (3–4/hour). Please wait a few minutes, or sign in '
+            'if your account is already created.';
       }
-      if (code.contains('already_exists') || msg.contains('already registered') || msg.contains('already exists')) {
+      if (code.contains('already_exists') ||
+          msg.contains('already registered') ||
+          msg.contains('already exists')) {
         return 'An account with this email already exists. Please sign in instead.';
       }
-      if (code.contains('invalid_credentials') || msg.contains('invalid login credentials')) {
+      if (code.contains('invalid_credentials') ||
+          msg.contains('invalid login credentials')) {
         return 'Invalid email or password. Please check your credentials.';
       }
       return e.message;
@@ -82,7 +94,8 @@ class AuthCubit extends Cubit<AuthState> {
 
     final raw = e.toString().replaceAll('Exception: ', '').trim();
     if (raw.toLowerCase().contains('rate limit')) {
-      return 'Email rate limit exceeded. Supabase limits sign-up emails on the default mail server. Please wait a few minutes before trying again.';
+      return 'Email rate limit exceeded. Please wait a few minutes before '
+          'trying again.';
     }
     return raw;
   }
