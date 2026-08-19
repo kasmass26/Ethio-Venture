@@ -22,6 +22,24 @@ import 'package:ethioventure/features/startup_profile/domain/repositories/startu
 import 'package:ethioventure/features/startup_profile/domain/usecases/get_startup_by_id.dart';
 import 'package:ethioventure/features/startup_profile/domain/usecases/search_startups.dart';
 import 'package:ethioventure/features/startup_profile/presentation/cubit/startup_search_cubit.dart';
+
+import 'package:ethioventure/features/pitch_deck/data/datasources/document_remote_data_source.dart';
+import 'package:ethioventure/features/pitch_deck/data/repositories/document_repository_impl.dart';
+import 'package:ethioventure/features/pitch_deck/domain/repositories/document_repository.dart';
+import 'package:ethioventure/features/pitch_deck/domain/usecases/delete_document_use_case.dart';
+import 'package:ethioventure/features/pitch_deck/domain/usecases/get_startup_documents_use_case.dart';
+import 'package:ethioventure/features/pitch_deck/domain/usecases/toggle_document_visibility_use_case.dart';
+import 'package:ethioventure/features/pitch_deck/domain/usecases/upload_document_use_case.dart';
+import 'package:ethioventure/features/pitch_deck/presentation/cubit/document_cubit.dart';
+
+import 'package:ethioventure/features/startup_profile/data/datasources/startup_profile_remote_data_source.dart';
+import 'package:ethioventure/features/startup_profile/data/repositories/startup_profile_repository_impl.dart';
+import 'package:ethioventure/features/startup_profile/domain/repositories/startup_profile_repository.dart';
+import 'package:ethioventure/features/startup_profile/domain/usecases/create_startup_profile.dart';
+import 'package:ethioventure/features/startup_profile/domain/usecases/get_startup_profile.dart';
+import 'package:ethioventure/features/startup_profile/domain/usecases/update_startup_profile.dart';
+import 'package:ethioventure/features/startup_profile/presentation/cubit/startup_profile_cubit.dart';
+
 import 'package:get_it/get_it.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -55,6 +73,9 @@ Future<void> configureDependencies({SupabaseClient? supabaseClient}) async {
 
   // ── Auth Feature ─────────────────────────────────────────────────────────
 
+  // ---------------------------------------------------------------------------
+  // Auth Feature
+  // ---------------------------------------------------------------------------
   if (!sl.isRegistered<AuthRemoteDataSource>()) {
     sl.registerLazySingleton<AuthRemoteDataSource>(
       () => AuthRemoteDataSourceImpl(
@@ -182,6 +203,99 @@ Future<void> configureDependencies({SupabaseClient? supabaseClient}) async {
   if (!sl.isRegistered<StartupSearchCubit>()) {
     sl.registerFactory<StartupSearchCubit>(
       () => StartupSearchCubit(searchStartups: sl<SearchStartups>()),
+    );
+  }
+}
+  // ---------------------------------------------------------------------------
+  // Pitch Deck & Document Feature
+  // ---------------------------------------------------------------------------
+  if (!sl.isRegistered<DocumentRemoteDataSource>()) {
+    sl.registerLazySingleton<DocumentRemoteDataSource>(
+      () => DocumentRemoteDataSourceImpl(sl<SupabaseClient>()),
+    );
+  }
+
+  if (!sl.isRegistered<DocumentRepository>()) {
+    sl.registerLazySingleton<DocumentRepository>(
+      () => DocumentRepositoryImpl(sl<DocumentRemoteDataSource>()),
+    );
+  }
+
+  if (!sl.isRegistered<UploadDocumentUseCase>()) {
+    sl.registerLazySingleton<UploadDocumentUseCase>(
+      () => UploadDocumentUseCase(sl<DocumentRepository>()),
+    );
+  }
+
+  if (!sl.isRegistered<GetStartupDocumentsUseCase>()) {
+    sl.registerLazySingleton<GetStartupDocumentsUseCase>(
+      () => GetStartupDocumentsUseCase(sl<DocumentRepository>()),
+    );
+  }
+
+  if (!sl.isRegistered<DeleteDocumentUseCase>()) {
+    sl.registerLazySingleton<DeleteDocumentUseCase>(
+      () => DeleteDocumentUseCase(sl<DocumentRepository>()),
+    );
+  }
+
+  if (!sl.isRegistered<ToggleDocumentVisibilityUseCase>()) {
+    sl.registerLazySingleton<ToggleDocumentVisibilityUseCase>(
+      () => ToggleDocumentVisibilityUseCase(sl<DocumentRepository>()),
+    );
+  }
+
+  if (!sl.isRegistered<DocumentCubit>()) {
+    sl.registerFactory<DocumentCubit>(
+      () => DocumentCubit(
+        uploadDocumentUseCase: sl<UploadDocumentUseCase>(),
+        getStartupDocumentsUseCase: sl<GetStartupDocumentsUseCase>(),
+        deleteDocumentUseCase: sl<DeleteDocumentUseCase>(),
+        toggleDocumentVisibilityUseCase: sl<ToggleDocumentVisibilityUseCase>(),
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Startup Profile Feature
+  // ---------------------------------------------------------------------------
+  if (!sl.isRegistered<StartupProfileRemoteDataSource>()) {
+    sl.registerLazySingleton<StartupProfileRemoteDataSource>(
+      () => StartupProfileRemoteDataSourceImpl(sl<SupabaseClient>()),
+    );
+  }
+
+  if (!sl.isRegistered<StartupProfileRepository>()) {
+    sl.registerLazySingleton<StartupProfileRepository>(
+      () => StartupProfileRepositoryImpl(sl<StartupProfileRemoteDataSource>()),
+    );
+  }
+
+  if (!sl.isRegistered<CreateStartupProfileUseCase>()) {
+    sl.registerLazySingleton<CreateStartupProfileUseCase>(
+      () => CreateStartupProfileUseCase(sl<StartupProfileRepository>()),
+    );
+  }
+
+  if (!sl.isRegistered<GetStartupProfileUseCase>()) {
+    sl.registerLazySingleton<GetStartupProfileUseCase>(
+      () => GetStartupProfileUseCase(sl<StartupProfileRepository>()),
+    );
+  }
+
+  if (!sl.isRegistered<UpdateStartupProfileUseCase>()) {
+    sl.registerLazySingleton<UpdateStartupProfileUseCase>(
+      () => UpdateStartupProfileUseCase(sl<StartupProfileRepository>()),
+    );
+  }
+
+  if (!sl.isRegistered<StartupProfileCubit>()) {
+    sl.registerFactory<StartupProfileCubit>(
+      () => StartupProfileCubit(
+        createStartupProfileUseCase: sl<CreateStartupProfileUseCase>(),
+        getStartupProfileUseCase: sl<GetStartupProfileUseCase>(),
+        updateStartupProfileUseCase: sl<UpdateStartupProfileUseCase>(),
+      ),
     );
   }
 }

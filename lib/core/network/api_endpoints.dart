@@ -6,7 +6,7 @@ class ApiEndpoints {
   ApiEndpoints._();
 
   // Database tables
-  static const String profiles = 'profiles';
+  static const String users = 'users';
   static const String startupProfiles = 'startup_profiles';
   static const String investorProfiles = 'investor_profiles';
   static const String investmentPreferences = 'investment_preferences';

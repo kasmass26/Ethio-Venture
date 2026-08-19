@@ -17,10 +17,16 @@ class AppConstants {
   static const Duration networkTimeout = Duration(seconds: 20);
 
   static const String routeHome = '/';
+  static const String routeOnboarding = '/onboarding';
   static const String routeLogin = '/login';
   static const String routeRegister = '/register';
   static const String routeRoleSelection = '/role-selection';
   static const String routeInvestorProfile = '/investor-profile';
   static const String routeStartupSearch = '/startup-search';
+  static const String routeFounderDashboard = '/founder-dashboard';
+  static const String routeInvestorDashboard = '/investor-dashboard';
+  static const String routeStartupProfileSetup = '/startup-profile-setup';
+  static const String routeStartupProfile = '/startup-profile';
+  static const String routeEditStartupProfile = '/edit-startup-profile';
 }
 

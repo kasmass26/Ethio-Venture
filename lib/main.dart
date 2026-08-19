@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -45,6 +47,23 @@ Future<void> main() async {
     Bloc.observer = const AppBlocObserver();
   } catch (error, stackTrace) {
     debugPrint('Dependency injection error: $error\n$stackTrace');
+    developer.log(
+      'Supabase initialized. host=${Uri.parse(config.supabaseUrl).host}, '
+      'environment=${config.environment}',
+      name: 'EthioVenture.App',
+    );
+
+    await configureDependencies();
+    Bloc.observer = const AppBlocObserver();
+  } catch (error, stackTrace) {
+    developer.log(
+      'Application initialization failed.',
+      name: 'EthioVenture.App',
+      error: error,
+      stackTrace: stackTrace,
+      level: 1000,
+    );
+    debugPrint('Initialization error: $error\n$stackTrace');
   }
 
   runApp(
@@ -56,11 +75,7 @@ Future<void> main() async {
 }
 
 class EthioVentureApp extends StatelessWidget {
-  const EthioVentureApp({
-    super.key,
-    required this.environment,
-    this.initError,
-  });
+  const EthioVentureApp({super.key, required this.environment});
 
   final String environment;
   /// Non-null when Supabase failed to initialise; shown to the developer.
@@ -83,12 +98,11 @@ class EthioVentureApp extends StatelessWidget {
 
     return MaterialApp(
       title: AppConstants.appName,
-      debugShowCheckedModeBanner: environment != 'production',
+      debugShowCheckedModeBanner: false,
       navigatorKey: AppRouter.navigatorKey,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.system,
-      initialRoute: AppConstants.routeHome,
       onGenerateRoute: AppRouter.onGenerateRoute,
       onUnknownRoute: AppRouter.onUnknownRoute,
     );

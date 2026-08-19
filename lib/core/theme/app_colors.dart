@@ -1,8 +1,15 @@
 import 'package:flutter/material.dart';
 
-/// Ethio Venture's brand tokens. Use these values instead of raw colors in UI.
+/// Ethio Venture design-system color tokens.
+///
+/// Use these tokens throughout the application instead of defining
+/// raw colors inside feature widgets.
 class AppColors {
   AppColors._();
+
+  // ---------------------------------------------------------------------------
+  // Brand
+  // ---------------------------------------------------------------------------
 
   /// Action Cyan: primary calls to action and active states.
   static const Color primary = Color(0xFF00D1FF);
@@ -34,4 +41,34 @@ class AppColors {
   static const Color textPrimaryDark = Color(0xFFF5FAFF);
   static const Color textSecondaryDark = Color(0xFFB7C7D8);
   static const Color borderDark = Color(0xFF294661);
+
+  /// Founder / startup identity.
+  static const Color emerald = Color(0xFF0F6E56);
+
+  /// Soft emerald background.
+  static const Color emeraldTint = Color(0xFFE1F5EE);
+
+  /// Investor identity.
+  static const Color violet = Color(0xFF7F77DD);
+
+  /// Soft violet background.
+  static const Color violetTint = Color(0xFFEEEDFE);
+
+  /// Supporting action/accent color.
+  static const Color coral = Color(0xFFD85A30);
+
+  // ---------------------------------------------------------------------------
+  // Neutral
+  // ---------------------------------------------------------------------------
+
+  static const Color ink = Color(0xFF2C2C2A);
+
+  static const Color slate = Color(0xFF5F5E5A);
+
+  static const Color hairline = Color(0xFFD3D1C7);
+
+  static const Color fog = Color(0xFFF1EFE8);
+
+  static const Color white = Color(0xFFFFFFFF);
 }
+

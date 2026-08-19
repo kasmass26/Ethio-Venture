@@ -12,6 +12,10 @@ import 'package:supabase_flutter/supabase_flutter.dart'
     as sb show AuthException;
 
 import '../../../../core/error/exceptions.dart';
+import 'dart:developer' as developer;
+
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 import '../models/user_model.dart';
 import 'auth_remote_data_source.dart';
 
@@ -42,44 +46,86 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     } catch (e) {
       throw AuthException(message: 'Sign-up failed: $e');
     }
+    developer.log(
+      'Starting sign-up. email=$email, role=$role',
+      name: 'EthioVenture.Auth',
+    );
+
+    late final AuthResponse response;
+    try {
+      response = await supabaseClient.auth.signUp(
+        email: email,
+        password: password,
+        data: {'full_name': name, 'role': role},
+      );
+    } catch (error, stackTrace) {
+      developer.log(
+        'Sign-up request failed. email=$email, role=$role',
+        name: 'EthioVenture.Auth',
+        error: error,
+        stackTrace: stackTrace,
+        level: 1000,
+      );
+      rethrow;
+    }
 
     final user = response.user;
+
+    developer.log(
+      'Sign-up response received. userId=${user?.id}, '
+      'hasSession=${response.session != null}',
+      name: 'EthioVenture.Auth',
+    );
+
     if (user == null) {
       throw const AuthException(
         message: 'Registration failed: no user was returned by Supabase.',
       );
     }
 
-    // 2. Detect email-confirmation-required state.
-    //    When session is null the account exists in auth.users but is not yet
-    //    active. Throw a typed exception so the cubit can emit the correct state
-    //    instead of pretending the user is authenticated.
-    if (response.session == null) {
-      debugPrint(
-        '[Auth] signUp succeeded for ${user.email} but session is null — '
-        'email confirmation is required.',
-      );
-      throw EmailConfirmationRequiredException(email: user.email ?? email);
-    }
-
-    // 3. Session is live — write the application profile record.
-    //    Errors are surfaced, not swallowed, so we can diagnose table/RLS issues.
-    try {
-      await supabaseClient.from('profiles').upsert({
-        'id': user.id,     // FK → auth.users.id  (same UUID)
-        'full_name': name,
-        'role': role,
-      });
-    } on PostgrestException catch (e) {
-      debugPrint('[Auth] profiles upsert failed: ${e.message} (code: ${e.code})');
-      throw ServerException(
-        message: 'Account created but profile record could not be saved. '
-            'Supabase error: ${e.message}',
-      );
-    } catch (e) {
-      debugPrint('[Auth] profiles upsert unexpected error: $e');
-      throw ServerException(
-        message: 'Account created but profile save failed: $e',
+    // `auth.users` is managed by Supabase. Store the application-facing user
+    // record in the public.users table immediately after successful sign-up.
+    // This uses the "Users can insert their own profile" RLS policy from the
+    // supplied schema, so it only runs while sign-up has a valid session.
+    if (response.session != null) {
+      final accountType = role == 'investor' ? 'investor' : 'startup';
+      try {
+        await supabaseClient.from('users').insert({
+          'id': user.id,
+          'email': user.email ?? email,
+          'full_name': name,
+          'account_type': accountType,
+        });
+        developer.log(
+          'Application user stored. userId=${user.id}, '
+          'accountType=$accountType',
+          name: 'EthioVenture.Auth',
+        );
+      } on PostgrestException catch (error, stackTrace) {
+        // A database trigger may have created the same row first. In that
+        // case the desired public.users record already exists.
+        if (error.code == '23505') {
+          developer.log(
+            'Application user already exists. userId=${user.id}',
+            name: 'EthioVenture.Auth',
+          );
+        } else {
+          developer.log(
+            'Could not store application user. userId=${user.id}',
+            name: 'EthioVenture.Auth',
+            error: error,
+            stackTrace: stackTrace,
+            level: 1000,
+          );
+          rethrow;
+        }
+      }
+    } else {
+      developer.log(
+        'Sign-up has no session; public.users must be created by the '
+        'on_auth_user_created database trigger after email confirmation.',
+        name: 'EthioVenture.Auth',
+        level: 900,
       );
     }
 
@@ -98,7 +144,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     required String email,
     required String password,
   }) async {
-    final AuthResponse response;
+    developer.log('Starting sign-in. email=$email', name: 'EthioVenture.Auth');
+
+    late final AuthResponse response;
     try {
       response = await supabaseClient.auth.signInWithPassword(
         email: email,
@@ -121,20 +169,24 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     // Enrich with the profiles table; fall back to auth metadata on error.
     try {
       final profile = await supabaseClient
-          .from('profiles')
-          .select('full_name, role')
+          .from('users')
+          .select('id, account_type, full_name')
           .eq('id', user.id)
           .maybeSingle();
 
       if (profile != null) {
         fullName = profile['full_name']?.toString() ?? fullName;
-        userRole = profile['role']?.toString() ?? userRole;
+        userRole = _appRoleFromAccountType(profile['account_type']?.toString());
       }
-    } on PostgrestException catch (e) {
-      // Non-fatal: log and continue with auth metadata values.
-      debugPrint('[Auth] profiles fetch failed on login: ${e.message}');
-    } catch (e) {
-      debugPrint('[Auth] profiles fetch unexpected error on login: $e');
+    } catch (error, stackTrace) {
+      developer.log(
+        'Could not load profile. userId=${user.id}',
+        name: 'EthioVenture.Auth',
+        error: error,
+        stackTrace: stackTrace,
+        level: 900,
+      );
+      // Fall back to metadata
     }
 
     return UserModel(
@@ -165,5 +217,13 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
   static String _roleFromUser(User user) {
     return user.userMetadata?['role']?.toString() ?? '';
+  }
+
+  static String _appRoleFromAccountType(String? accountType) {
+    return switch (accountType) {
+      'startup' => 'founder',
+      'investor' => 'investor',
+      _ => '',
+    };
   }
 }

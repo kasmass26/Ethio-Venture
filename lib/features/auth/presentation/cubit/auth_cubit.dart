@@ -1,5 +1,8 @@
+import 'dart:developer' as developer;
+
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:supabase_flutter/supabase_flutter.dart' show AuthException;
+import 'package:supabase_flutter/supabase_flutter.dart'
+    show AuthException, Supabase;
 
 import '../../../../core/error/exceptions.dart'
     show EmailConfirmationRequiredException;
@@ -19,16 +22,20 @@ class AuthCubit extends Cubit<AuthState> {
     required this.logoutUser,
   }) : super(const AuthInitial());
 
-  Future<void> login({
-    required String email,
-    required String password,
-  }) async {
+  Future<void> login({required String email, required String password}) async {
     emit(const AuthLoading());
     try {
       final user = await loginUser(email: email, password: password);
       emit(Authenticated(user));
-    } catch (e) {
-      emit(AuthFailureState(_mapError(e)));
+    } catch (error, stackTrace) {
+      developer.log(
+        'Login failed for email=$email',
+        name: 'EthioVenture.Auth',
+        error: error,
+        stackTrace: stackTrace,
+        level: 1000,
+      );
+      emit(AuthFailureState(_mapError(error)));
     }
   }
 
@@ -46,14 +53,22 @@ class AuthCubit extends Cubit<AuthState> {
         password: password,
         role: role,
       );
-      emit(Authenticated(user));
-    } on EmailConfirmationRequiredException catch (e) {
-      // Account created but email confirmation is required before a session
-      // is granted.  Emit a dedicated state so the UI can inform the user
-      // without treating this as an error.
-      emit(EmailConfirmationRequired(email: e.email));
-    } catch (e) {
-      emit(AuthFailureState(_mapError(e)));
+      // Confirm-email sign-ups create a user without a session. Sending that
+      // user to a protected dashboard makes registration look broken.
+      if (Supabase.instance.client.auth.currentSession == null) {
+        emit(const EmailConfirmationRequired());
+      } else {
+        emit(Authenticated(user));
+      }
+    } catch (error, stackTrace) {
+      developer.log(
+        'Registration failed for email=$email, role=$role',
+        name: 'EthioVenture.Auth',
+        error: error,
+        stackTrace: stackTrace,
+        level: 1000,
+      );
+      emit(AuthFailureState(_mapError(error)));
     }
   }
 
@@ -62,8 +77,15 @@ class AuthCubit extends Cubit<AuthState> {
     try {
       await logoutUser();
       emit(const Unauthenticated());
-    } catch (e) {
-      emit(AuthFailureState(_mapError(e)));
+    } catch (error, stackTrace) {
+      developer.log(
+        'Logout failed.',
+        name: 'EthioVenture.Auth',
+        error: error,
+        stackTrace: stackTrace,
+        level: 1000,
+      );
+      emit(AuthFailureState(_mapError(error)));
     }
   }
 
@@ -74,11 +96,8 @@ class AuthCubit extends Cubit<AuthState> {
 
       if (e.statusCode == '429' ||
           code.contains('rate_limit') ||
-          msg.contains('rate limit') ||
-          code.contains('over_email_send_rate_limit')) {
-        return 'Email rate limit exceeded. Supabase limits sign-up emails on '
-            'the free tier (3–4/hour). Please wait a few minutes, or sign in '
-            'if your account is already created.';
+          msg.contains('rate limit')) {
+        return 'Email rate limit exceeded. Supabase limits sign-up emails on the default mail server (3-4/hour). Please wait a few minutes, or sign in if your account is already created.';
       }
       if (code.contains('already_exists') ||
           msg.contains('already registered') ||
