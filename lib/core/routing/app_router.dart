@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../features/auth/presentation/pages/login_page.dart';
+import '../../features/auth/presentation/pages/onboarding_page.dart';
 import '../../features/auth/presentation/pages/register_page.dart';
 import '../../features/founder/presentation/pages/founder_dashboard_page.dart';
 import '../../features/investor/presentation/pages/investor_dashboard_page.dart';
-import '../../features/onboarding/presentation/pages/onboarding_page.dart';
 import '../../features/startup_profile/domain/entities/startup_profile_entity.dart';
 import '../../features/startup_profile/presentation/pages/edit_startup_profile_page.dart';
 import '../../features/startup_profile/presentation/pages/startup_profile_page.dart';
