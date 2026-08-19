@@ -1,6 +1,5 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:ethioventure/core/network/network_info.dart';
-import 'package:ethioventure/core/supabase/supabase_service.dart';
 import 'package:ethioventure/features/auth/data/datasources/auth_remote_data_source.dart';
 import 'package:ethioventure/features/auth/data/datasources/auth_remote_data_source_impl.dart';
 import 'package:ethioventure/features/auth/data/repositories/auth_repository_impl.dart';
@@ -23,17 +22,16 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 final GetIt sl = GetIt.instance;
 
 /// Registers shared infrastructure and feature dependencies.
-Future<void> configureDependencies() async {
-  if (!sl.isRegistered<SupabaseClient>()) {
-    sl.registerLazySingleton<SupabaseClient>(
-      () => SupabaseService.client,
-    );
-  }
-
+///
+/// [supabaseClient] must be the already-initialised [SupabaseClient] returned
+/// by [Supabase.instance.client] after a successful [Supabase.initialize]
+/// call. When it is null (Supabase failed to initialise) the Supabase-dependent
+/// registrations are skipped — the app will show the config-error screen
+/// instead of crashing inside a cubit.
+Future<void> configureDependencies({SupabaseClient? supabaseClient}) async {
+  // Shared infrastructure
   if (!sl.isRegistered<Connectivity>()) {
-    sl.registerLazySingleton<Connectivity>(
-      Connectivity.new,
-    );
+    sl.registerLazySingleton<Connectivity>(Connectivity.new);
   }
 
   if (!sl.isRegistered<NetworkInfo>()) {
@@ -42,7 +40,15 @@ Future<void> configureDependencies() async {
     );
   }
 
-  // Auth Feature
+  // All Supabase-dependent registrations require a live client.
+  if (supabaseClient == null) return;
+
+  if (!sl.isRegistered<SupabaseClient>()) {
+    sl.registerSingleton<SupabaseClient>(supabaseClient);
+  }
+
+  // ── Auth Feature ─────────────────────────────────────────────────────────
+
   if (!sl.isRegistered<AuthRemoteDataSource>()) {
     sl.registerLazySingleton<AuthRemoteDataSource>(
       () => AuthRemoteDataSourceImpl(
@@ -87,7 +93,8 @@ Future<void> configureDependencies() async {
     );
   }
 
-  // Investor Profile Feature
+  // ── Investor Profile Feature ──────────────────────────────────────────────
+
   if (!sl.isRegistered<InvestorProfileRemoteDataSource>()) {
     sl.registerLazySingleton<InvestorProfileRemoteDataSource>(
       () => InvestorProfileRemoteDataSourceImpl(sl<SupabaseClient>()),
