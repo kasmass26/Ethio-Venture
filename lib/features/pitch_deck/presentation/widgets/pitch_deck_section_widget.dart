@@ -8,9 +8,14 @@ import '../cubit/document_state.dart';
 import '../../domain/entities/document_entity.dart';
 
 class PitchDeckSectionWidget extends StatelessWidget {
-  const PitchDeckSectionWidget({super.key, required this.startupId});
+  const PitchDeckSectionWidget({
+    super.key,
+    required this.startupId,
+    this.isFounder = true,
+  });
 
   final String startupId;
+  final bool isFounder;
 
   String _formatFileSize(int bytes) {
     if (bytes < 1024) return '$bytes B';
@@ -220,14 +225,15 @@ class PitchDeckSectionWidget extends StatelessWidget {
                     ),
                   ],
                 ),
-                IconButton(
-                  icon: const Icon(
-                    Icons.add_circle_outline,
-                    color: AppColors.primary,
+                if (isFounder)
+                  IconButton(
+                    icon: const Icon(
+                      Icons.add_circle_outline,
+                      color: AppColors.primary,
+                    ),
+                    tooltip: 'Upload New Document',
+                    onPressed: () => _showUploadDialog(context),
                   ),
-                  tooltip: 'Upload New Document',
-                  onPressed: () => _showUploadDialog(context),
-                ),
               ],
             ),
             const Divider(height: AppSizes.lg),
@@ -361,72 +367,86 @@ class PitchDeckSectionWidget extends StatelessWidget {
               ],
             ),
           ),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert, color: AppColors.slate),
-            onSelected: (action) {
-              if (action == 'view') {
+          if (isFounder)
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert, color: AppColors.slate),
+              onSelected: (action) {
+                if (action == 'view') {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Opening ${doc.fileName}...'),
+                      backgroundColor: AppColors.primary,
+                    ),
+                  );
+                } else if (action == 'toggle') {
+                  context.read<DocumentCubit>().toggleVisibility(
+                    documentId: doc.id,
+                    startupId: startupId,
+                    isPrivate: !doc.isPrivate,
+                  );
+                } else if (action == 'delete') {
+                  context.read<DocumentCubit>().deleteDocument(
+                    documentId: doc.id,
+                    startupId: startupId,
+                  );
+                }
+              },
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: 'view',
+                  child: Row(
+                    children: [
+                      Icon(Icons.remove_red_eye_outlined, size: 18),
+                      SizedBox(width: 8),
+                      Text('View / Download'),
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'toggle',
+                  child: Row(
+                    children: [
+                      Icon(
+                        doc.isPrivate ? Icons.lock_open : Icons.lock_outline,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(doc.isPrivate ? 'Make Public' : 'Make Private'),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.delete_outline,
+                        color: AppColors.coral,
+                        size: 18,
+                      ),
+                      SizedBox(width: 8),
+                      Text(
+                        'Remove Document',
+                        style: TextStyle(color: AppColors.coral),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            )
+          else
+            IconButton(
+              icon: const Icon(Icons.remove_red_eye_outlined, color: AppColors.primary),
+              tooltip: 'View / Download Document',
+              onPressed: () {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('Opening ${doc.fileName}...'),
                     backgroundColor: AppColors.primary,
                   ),
                 );
-              } else if (action == 'toggle') {
-                context.read<DocumentCubit>().toggleVisibility(
-                  documentId: doc.id,
-                  startupId: startupId,
-                  isPrivate: !doc.isPrivate,
-                );
-              } else if (action == 'delete') {
-                context.read<DocumentCubit>().deleteDocument(
-                  documentId: doc.id,
-                  startupId: startupId,
-                );
-              }
-            },
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'view',
-                child: Row(
-                  children: [
-                    Icon(Icons.remove_red_eye_outlined, size: 18),
-                    SizedBox(width: 8),
-                    Text('View / Download'),
-                  ],
-                ),
-              ),
-              PopupMenuItem(
-                value: 'toggle',
-                child: Row(
-                  children: [
-                    Icon(
-                      doc.isPrivate ? Icons.lock_open : Icons.lock_outline,
-                      size: 18,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(doc.isPrivate ? 'Make Public' : 'Make Private'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'delete',
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.delete_outline,
-                      color: AppColors.coral,
-                      size: 18,
-                    ),
-                    SizedBox(width: 8),
-                    Text(
-                      'Remove Document',
-                      style: TextStyle(color: AppColors.coral),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+              },
+            ),
         ],
       ),
     );

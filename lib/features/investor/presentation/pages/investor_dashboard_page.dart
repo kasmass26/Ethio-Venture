@@ -287,10 +287,15 @@ class _DashboardScaffold extends StatelessWidget {
                 return _RecommendedStartupsSection(
                   state: state,
                   onViewAll: () {
-                    // TODO: navigate to full recommendations list.
+                    Navigator.of(context).pushNamed(
+                      AppConstants.routeStartupSearch,
+                    );
                   },
-                  onViewProfile: (startup) {
-                    // TODO: navigate to startup profile detail page.
+                  onViewProfile: (recommendedItem) {
+                    Navigator.of(context).pushNamed(
+                      AppConstants.routeStartupDetail,
+                      arguments: recommendedItem,
+                    );
                   },
                 );
               },
@@ -310,10 +315,15 @@ class _DashboardScaffold extends StatelessWidget {
                   _TrackedStartupsSection(
                     startups: tracked,
                     onManage: () {
-                      // TODO: navigate to tracked startups management.
+                      Navigator.of(context).pushNamed(
+                        AppConstants.routeStartupSearch,
+                      );
                     },
                     onTapStartup: (startup) {
-                      // TODO: navigate to startup detail page.
+                      Navigator.of(context).pushNamed(
+                        AppConstants.routeStartupDetail,
+                        arguments: startup.id,
+                      );
                     },
                   ),
                 ],
@@ -787,114 +797,118 @@ class _StartupCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 240,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Text(
-                  startup.name,
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 14.5,
-                    fontWeight: FontWeight.w700,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                decoration: BoxDecoration(
-                  color: AppColors.primarySoft,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  '${startup.matchScore}% match',
-                  style: const TextStyle(
-                    color: AppColors.primaryDark,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w800,
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        width: 240,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
+                    startup.name,
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Expanded(
-            child: Text(
-              startup.tagline,
-              style: const TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 12,
-                height: 1.35,
-              ),
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: AppColors.primarySoft,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    '${startup.matchScore}% match',
+                    style: const TextStyle(
+                      color: AppColors.primaryDark,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: 10),
-          // Industry + stage tags
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              startup.industry,
-              startup.fundingStage,
-            ]
-                .map(
-                  (tag) => Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.secondarySoft,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      tag,
-                      style: const TextStyle(
-                        color: AppColors.secondary,
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w700,
+            const SizedBox(height: 6),
+            Expanded(
+              child: Text(
+                startup.tagline,
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 12,
+                  height: 1.35,
+                ),
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(height: 10),
+            // Industry + stage tags
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                startup.industry,
+                startup.fundingStage,
+              ]
+                  .map(
+                    (tag) => Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.secondarySoft,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        tag,
+                        style: const TextStyle(
+                          color: AppColors.secondary,
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
+                  )
+                  .toList(),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: onTap,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.primaryDark,
+                  side: const BorderSide(color: AppColors.primaryDark),
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                )
-                .toList(),
-          ),
-          const SizedBox(height: 10),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton(
-              onPressed: onTap,
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.primaryDark,
-                side: const BorderSide(color: AppColors.primaryDark),
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Text(
+                  'View Profile',
+                  style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
                 ),
               ),
-              child: const Text(
-                'View Profile',
-                style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
-              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

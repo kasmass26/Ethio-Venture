@@ -75,7 +75,7 @@ class RecommendedStartupsCubit extends Cubit<RecommendedStartupsState> {
   }
 
   /// Converts raw [StartupProfileEntity] rows to scored [RecommendedStartupItem]
-  /// objects, sorted descending by match score.
+  /// objects, sorted descending by match score, capped at [_maxResults].
   List<RecommendedStartupItem> _scoreAndSort(
     List<StartupProfileEntity> startups,
     InvestorProfileEntity? profile,
@@ -83,7 +83,7 @@ class RecommendedStartupsCubit extends Cubit<RecommendedStartupsState> {
     final scored =
         startups.map((s) => _toItem(s, profile)).toList()
           ..sort((a, b) => b.matchScore.compareTo(a.matchScore));
-    return scored;
+    return scored.take(_maxResults).toList();
   }
 
   RecommendedStartupItem _toItem(
@@ -98,6 +98,7 @@ class RecommendedStartupsCubit extends Cubit<RecommendedStartupsState> {
       industry: startup.industry,
       fundingStage: startup.fundingStage,
       matchScore: score,
+      startup: startup,
     );
   }
 

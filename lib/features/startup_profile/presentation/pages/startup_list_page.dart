@@ -416,7 +416,12 @@ class _ResultsList extends StatelessWidget {
             }
             return StartupCard(
               startup: startups[index],
-              onTap: null, // detail page wired in Step 4
+              onTap: () {
+                Navigator.of(context).pushNamed(
+                  AppConstants.routeStartupDetail,
+                  arguments: startups[index],
+                );
+              },
             );
           },
         ),

@@ -7,11 +7,13 @@ import '../../features/auth/presentation/pages/register_page.dart';
 import '../../features/founder/presentation/pages/founder_dashboard_page.dart';
 import '../../features/founder/presentation/pages/investors_page.dart';
 import '../../features/investor/presentation/pages/investor_dashboard_page.dart';
+import '../../features/investor/presentation/cubit/recommended_startups_state.dart';
 import '../../features/investor_profile/presentation/pages/investor_profile_page.dart';
 import '../../features/onboarding/presentation/pages/onboarding_page.dart';
 import '../../features/splash/splash_page.dart';
 import '../../features/startup_profile/domain/entities/startup_profile_entity.dart';
 import '../../features/startup_profile/presentation/pages/edit_startup_profile_page.dart';
+import '../../features/startup_profile/presentation/pages/startup_detail_page.dart';
 import '../../features/startup_profile/presentation/pages/startup_list_page.dart';
 import '../../features/startup_profile/presentation/pages/startup_profile_page.dart';
 import '../../features/startup_profile/presentation/pages/startup_profile_setup_page.dart';
@@ -47,6 +49,20 @@ class AppRouter {
               profile: settings.arguments as StartupProfileEntity,
             )
           : _UnknownRoutePage(routeName: settings.name),
+      AppConstants.routeStartupDetail => settings.arguments is StartupProfileEntity
+          ? StartupDetailPage(
+              startup: settings.arguments as StartupProfileEntity,
+            )
+          : settings.arguments is RecommendedStartupItem
+              ? StartupDetailPage(
+                  startup: (settings.arguments as RecommendedStartupItem).startup,
+                  matchScore: (settings.arguments as RecommendedStartupItem).matchScore,
+                )
+              : settings.arguments is String
+                  ? StartupDetailPage.fromId(
+                      startupId: settings.arguments as String,
+                    )
+                  : _UnknownRoutePage(routeName: settings.name),
       AppConstants.routeInvestorProfile => const InvestorProfilePage(),
       AppConstants.routeStartupSearch => const StartupListPage(),
       _ => _UnknownRoutePage(routeName: settings.name),

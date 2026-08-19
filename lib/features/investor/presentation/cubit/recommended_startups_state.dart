@@ -1,3 +1,4 @@
+import 'package:ethioventure/features/startup_profile/domain/entities/startup_profile_entity.dart';
 import 'package:flutter/foundation.dart';
 
 @immutable
@@ -62,6 +63,7 @@ class RecommendedStartupItem {
     required this.industry,
     required this.fundingStage,
     required this.matchScore,
+    required this.startup,
   });
 
   final String id;
@@ -76,13 +78,17 @@ class RecommendedStartupItem {
   /// 0–100 match score derived from investor profile preferences.
   final int matchScore;
 
+  /// The underlying domain entity containing all profile data.
+  final StartupProfileEntity startup;
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is RecommendedStartupItem &&
           id == other.id &&
-          matchScore == other.matchScore;
+          matchScore == other.matchScore &&
+          startup == other.startup;
 
   @override
-  int get hashCode => Object.hash(id, matchScore);
+  int get hashCode => Object.hash(id, matchScore, startup);
 }

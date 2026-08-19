@@ -31,6 +31,7 @@ class AppConstants {
   static const String routeStartupProfileSetup = '/startup-profile-setup';
   static const String routeStartupProfile = '/startup-profile';
   static const String routeEditStartupProfile = '/edit-startup-profile';
+  static const String routeStartupDetail = '/startup-detail';
   
   // Admin email for special access
   static const String adminEmail = 'admin@gmail.com';
