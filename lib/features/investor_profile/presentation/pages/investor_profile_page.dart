@@ -7,9 +7,14 @@ import 'package:ethioventure/features/investor_profile/domain/entities/investor_
 import 'package:ethioventure/features/investor_profile/presentation/cubit/investor_profile_cubit.dart';
 import 'package:ethioventure/features/investor_profile/presentation/cubit/investor_profile_state.dart';
 import 'package:ethioventure/features/investor_profile/presentation/widgets/investment_thesis_form.dart';
+import 'package:ethioventure/features/investor_profile/presentation/widgets/investor_profile_display_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show Supabase;
+
+// REGENERATED FROM SCRATCH – all layout rebuilt to avoid BoxConstraints
+// infinite-width errors that occurred with Center → ConstrainedBox(maxWidth) →
+// SingleChildScrollView → Row → OutlinedButton chains.
 
 /// Presentation page for Investor Profile & Investment Thesis Setup.
 ///
@@ -22,18 +27,10 @@ class InvestorProfilePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Auth guard — checked once at build time before the cubit is created.
-    // currentUser is non-null only when a live Supabase session exists.
-    // We use a safe accessor so the page degrades gracefully in test
-    // environments where Supabase is not initialised.
     final bool isAuthenticated;
     try {
       isAuthenticated = Supabase.instance.client.auth.currentUser != null;
     } on AssertionError {
-      // Supabase not initialised (e.g. widget tests) — fall through to the
-      // unauthenticated view so tests that pump the page directly don't crash.
-      // In production this path is never taken because main() calls
-      // Supabase.initialize() before runApp().
       return BlocProvider(
         create: (_) => sl<InvestorProfileCubit>()..loadProfile(),
         child: const _InvestorProfileView(),
@@ -53,8 +50,6 @@ class InvestorProfilePage extends StatelessWidget {
 
 // ── Unauthenticated placeholder ───────────────────────────────────────────────
 
-/// Shown when the user reaches the Investor Profile page without an active
-/// Supabase session. Provides a clear call-to-action instead of crashing.
 class _UnauthenticatedView extends StatelessWidget {
   const _UnauthenticatedView();
 
@@ -133,8 +128,38 @@ class _InvestorProfileView extends StatefulWidget {
   State<_InvestorProfileView> createState() => _InvestorProfileViewState();
 }
 
-class _InvestorProfileViewState extends State<_InvestorProfileView> {
+class _InvestorProfileViewState extends State<_InvestorProfileView>
+    with SingleTickerProviderStateMixin {
   InvestorProfileEntity? _currentProfile;
+  bool _isEditing = false;
+  late final AnimationController _fadeCtrl;
+  late final Animation<double> _fade;
+
+  @override
+  void initState() {
+    super.initState();
+    _fadeCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 280),
+    );
+    _fade = CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeInOut);
+    _fadeCtrl.forward();
+  }
+
+  @override
+  void dispose() {
+    _fadeCtrl.dispose();
+    super.dispose();
+  }
+
+  void _switchMode(bool editing) {
+    _fadeCtrl.reverse().then((_) {
+      if (mounted) {
+        setState(() => _isEditing = editing);
+        _fadeCtrl.forward();
+      }
+    });
+  }
 
   void _saveProfile(
     BuildContext context,
@@ -143,7 +168,6 @@ class _InvestorProfileViewState extends State<_InvestorProfileView> {
   }) {
     final cubit = context.read<InvestorProfileCubit>();
     if (_currentProfile != null && _currentProfile!.id.isNotEmpty) {
-      // Update existing profile — preserve immutable fields from the server copy.
       cubit.updateProfile(
         InvestorProfileEntity(
           id: _currentProfile!.id,
@@ -160,7 +184,6 @@ class _InvestorProfileViewState extends State<_InvestorProfileView> {
         ),
       );
     } else {
-      // New profile — the repository injects the authenticated user's UUID.
       cubit.createProfile(profile);
     }
   }
@@ -169,8 +192,10 @@ class _InvestorProfileViewState extends State<_InvestorProfileView> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final showDisplay = _currentProfile != null && !_isEditing;
 
     return Scaffold(
+      backgroundColor: isDark ? AppColors.backgroundDark : AppColors.background,
       bottomNavigationBar: AppBottomNav(
         items: AppBottomNav.investorNavItems,
         currentIndex: 3,
@@ -187,11 +212,41 @@ class _InvestorProfileViewState extends State<_InvestorProfileView> {
         },
       ),
       appBar: AppBar(
-        title: const Text('Investment Thesis Setup'),
+        title: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 200),
+          child: Text(
+            showDisplay ? 'Investor Profile' : 'Investment Thesis Setup',
+            key: ValueKey(showDisplay),
+          ),
+        ),
         centerTitle: false,
         actions: [
+          if (showDisplay)
+            Padding(
+              padding: const EdgeInsets.only(right: AppSizes.xs),
+              child: TextButton.icon(
+                onPressed: () => _switchMode(true),
+                icon: const Icon(Icons.edit_outlined, size: 18),
+                label: const Text('Edit'),
+                style: TextButton.styleFrom(
+                  foregroundColor: isDark ? AppColors.primary : AppColors.secondary,
+                ),
+              ),
+            )
+          else if (_currentProfile != null)
+            Padding(
+              padding: const EdgeInsets.only(right: AppSizes.xs),
+              child: TextButton.icon(
+                onPressed: () => _switchMode(false),
+                icon: const Icon(Icons.close, size: 18),
+                label: const Text('Cancel'),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.coral,
+                ),
+              ),
+            ),
           Container(
-            margin: const EdgeInsets.only(right: AppSizes.md),
+            margin: const EdgeInsets.only(right: AppSizes.md, left: AppSizes.xs),
             padding: const EdgeInsets.symmetric(
               horizontal: AppSizes.sm,
               vertical: AppSizes.xs,
@@ -205,7 +260,7 @@ class _InvestorProfileViewState extends State<_InvestorProfileView> {
               children: [
                 Icon(
                   Icons.verified_outlined,
-                  size: 16,
+                  size: 14,
                   color: isDark ? Colors.white : AppColors.secondary,
                 ),
                 const SizedBox(width: AppSizes.xs),
@@ -231,7 +286,15 @@ class _InvestorProfileViewState extends State<_InvestorProfileView> {
               ),
             );
           } else if (state is InvestorProfileLoaded) {
-            setState(() => _currentProfile = state.profile);
+            _fadeCtrl.reverse().then((_) {
+              if (mounted) {
+                setState(() {
+                  _currentProfile = state.profile;
+                  _isEditing = false;
+                });
+                _fadeCtrl.forward();
+              }
+            });
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('Investment thesis saved successfully!'),
@@ -241,10 +304,30 @@ class _InvestorProfileViewState extends State<_InvestorProfileView> {
           }
         },
         builder: (context, state) {
-          if (state is InvestorProfileLoading) {
-            return const Center(
-              child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+          if (state is InvestorProfileLoading && _currentProfile == null) {
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(
+                    width: 48,
+                    height: 48,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 3,
+                      valueColor:
+                          AlwaysStoppedAnimation<Color>(AppColors.primary),
+                    ),
+                  ),
+                  const SizedBox(height: AppSizes.md),
+                  Text(
+                    'Loading your profile…',
+                    style: TextStyle(
+                      color: isDark
+                          ? AppColors.textSecondaryDark
+                          : AppColors.textSecondary,
+                    ),
+                  ),
+                ],
               ),
             );
           }
@@ -255,56 +338,129 @@ class _InvestorProfileViewState extends State<_InvestorProfileView> {
 
           final isSaving = state is InvestorProfileSaving;
 
-          return Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(
-                maxWidth: AppSizes.maxContentWidth,
-              ),
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSizes.pageHorizontal,
-                  vertical: AppSizes.lg,
+          // LayoutBuilder gives every descendant a finite, concrete width.
+          // This is the key fix: using LayoutBuilder instead of
+          // Center + ConstrainedBox(maxWidth only), which left width unbounded.
+          return LayoutBuilder(
+            builder: (context, outer) {
+              final maxW = outer.maxWidth.clamp(0.0, AppSizes.maxContentWidth);
+              final hPad = ((outer.maxWidth - maxW) / 2) + AppSizes.pageHorizontal;
+
+              return FadeTransition(
+                opacity: _fade,
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: hPad,
+                    vertical: AppSizes.lg,
+                  ),
+                  child: showDisplay
+                      ? InvestorProfileDisplayWidget(
+                          profile: _currentProfile!,
+                          onEdit: () => _switchMode(true),
+                        )
+                      : _EditFormSection(
+                          currentProfile: _currentProfile,
+                          isSaving: isSaving,
+                          isDark: isDark,
+                          theme: theme,
+                          onCancel: () => _switchMode(false),
+                          onSave: (p, draft) =>
+                              _saveProfile(context, p, isDraft: draft),
+                        ),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Investment Thesis Setup',
-                      style: theme.textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        color: isDark
-                            ? AppColors.textPrimaryDark
-                            : AppColors.secondary,
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                    const SizedBox(height: AppSizes.xs),
-                    Text(
-                      'Configure your fund criteria, industry preferences, '
-                      'and target ticket sizes to receive high-relevance '
-                      'Ethiopian startup deal flow.',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: isDark
-                            ? AppColors.textSecondaryDark
-                            : AppColors.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: AppSizes.xl),
-                    InvestmentThesisForm(
-                      initialProfile: _currentProfile,
-                      isSaving: isSaving,
-                      onSaveDraft: (profile) =>
-                          _saveProfile(context, profile, isDraft: true),
-                      onCompleteProfile: (profile) =>
-                          _saveProfile(context, profile, isDraft: false),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+              );
+            },
           );
         },
       ),
+    );
+  }
+}
+
+// ── Edit form section (extracted to avoid putting Rows/Buttons in an
+// unbounded-width context) ────────────────────────────────────────────────────
+
+class _EditFormSection extends StatelessWidget {
+  const _EditFormSection({
+    required this.currentProfile,
+    required this.isSaving,
+    required this.isDark,
+    required this.theme,
+    required this.onCancel,
+    required this.onSave,
+  });
+
+  final InvestorProfileEntity? currentProfile;
+  final bool isSaving;
+  final bool isDark;
+  final ThemeData theme;
+  final VoidCallback onCancel;
+  final void Function(InvestorProfileEntity profile, bool isDraft) onSave;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // ── Header row ────────────────────────────────────────────────────────
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            if (currentProfile != null) ...[  
+              // InkWell-based back button avoids OutlinedButton width issues
+              InkWell(
+                onTap: onCancel,
+                borderRadius: BorderRadius.circular(AppSizes.radiusSm),
+                child: Padding(
+                  padding: const EdgeInsets.all(AppSizes.xs),
+                  child: Icon(
+                    Icons.arrow_back_ios_new_rounded,
+                    size: 20,
+                    color: isDark
+                        ? AppColors.textSecondaryDark
+                        : AppColors.textSecondary,
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppSizes.sm),
+            ],
+            Expanded(
+              child: Text(
+                currentProfile != null
+                    ? 'Edit Investment Thesis'
+                    : 'Investment Thesis Setup',
+                style: theme.textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: isDark
+                      ? AppColors.textPrimaryDark
+                      : AppColors.secondary,
+                  letterSpacing: -0.5,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSizes.xs),
+        Text(
+          'Configure your fund criteria, industry preferences, '
+          'and target ticket sizes to receive high-relevance '
+          'Ethiopian startup deal flow.',
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: isDark
+                ? AppColors.textSecondaryDark
+                : AppColors.textSecondary,
+          ),
+        ),
+        const SizedBox(height: AppSizes.xl),
+
+        // ── Form ──────────────────────────────────────────────────────────────
+        InvestmentThesisForm(
+          initialProfile: currentProfile,
+          isSaving: isSaving,
+          onSaveDraft: (p) => onSave(p, true),
+          onCompleteProfile: (p) => onSave(p, false),
+        ),
+      ],
     );
   }
 }
