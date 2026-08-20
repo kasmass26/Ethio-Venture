@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -6,11 +7,13 @@ import '../../../../core/constants/app_constants.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../investor_profile/domain/entities/investor_discovery_entity.dart';
+import '../../../messaging/domain/repositories/messaging_repository.dart';
 import '../../../startup_profile/presentation/cubit/startup_profile_cubit.dart';
 import '../../../startup_profile/presentation/cubit/startup_profile_state.dart';
 import '../cubit/recommended_investors_cubit.dart';
 import '../cubit/recommended_investors_state.dart';
 import '../widgets/dashboard_bottom_nav.dart';
+import '../widgets/investor_card.dart';
 import '../widgets/investor_detail_sheet.dart';
 
 class InvestorsPage extends StatefulWidget {
@@ -21,14 +24,20 @@ class InvestorsPage extends StatefulWidget {
 }
 
 class _InvestorsPageState extends State<InvestorsPage> {
-  String _selectedFilter = 'All';
+  String _selectedFilter = 'Recommended ⭐';
   String _searchQuery = '';
-  final List<String> _filters = ['All', 'High Match', 'VC', 'Angel', 'Syndicate'];
+  final List<String> _filters = [
+    'Recommended ⭐',
+    'All',
+    'High Match (70%+)',
+    'VC',
+    'Angel',
+    'Syndicate',
+  ];
 
   @override
   Widget build(BuildContext context) {
-    final currentUserId =
-        sl<SupabaseClient>().auth.currentUser?.id ?? '';
+    final currentUserId = sl<SupabaseClient>().auth.currentUser?.id ?? '';
 
     return MultiBlocProvider(
       providers: [
@@ -72,6 +81,7 @@ class _InvestorsPageState extends State<InvestorsPage> {
             child: CustomScrollView(
               slivers: [
                 _buildAppBar(),
+                _buildMatchHeaderCard(),
                 _buildSearchBar(),
                 _buildFilterChips(),
                 _buildInvestorsList(),
@@ -111,10 +121,217 @@ class _InvestorsPageState extends State<InvestorsPage> {
     );
   }
 
+  Widget _buildMatchHeaderCard() {
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 10),
+        child: BlocBuilder<StartupProfileCubit, StartupProfileState>(
+          builder: (context, state) {
+            if (state is StartupProfileLoaded) {
+              final profile = state.profile;
+              return Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [AppColors.secondary, AppColors.secondaryLight],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.secondary.withOpacity(0.15),
+                      blurRadius: 14,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(
+                            Icons.auto_awesome_rounded,
+                            color: Colors.white,
+                            size: 18,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'AI Investor Recommendation Engine',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              Text(
+                                'Matched & ranked based on your startup profile',
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 11.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.of(context)
+                                .pushNamed(AppConstants.routeStartupProfile)
+                                .then((_) {
+                              final uid = sl<SupabaseClient>().auth.currentUser?.id ?? '';
+                              if (context.mounted && uid.isNotEmpty) {
+                                context.read<StartupProfileCubit>().loadProfile(uid);
+                              }
+                            });
+                          },
+                          style: TextButton.styleFrom(
+                            foregroundColor: Colors.white,
+                            backgroundColor: Colors.white.withOpacity(0.18),
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            minimumSize: const Size(0, 0),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          child: const Row(
+                            children: [
+                              Text(
+                                'Edit Profile',
+                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+                              ),
+                              SizedBox(width: 3),
+                              Icon(Icons.edit_outlined, size: 12),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
+                      children: [
+                        if (profile.startupName.isNotEmpty)
+                          _ProfileChip(
+                            icon: Icons.business_rounded,
+                            label: profile.startupName,
+                          ),
+                        if (profile.industry.isNotEmpty)
+                          _ProfileChip(
+                            icon: Icons.category_rounded,
+                            label: profile.industry,
+                          ),
+                        if (profile.fundingStage.isNotEmpty)
+                          _ProfileChip(
+                            icon: Icons.stairs_rounded,
+                            label: profile.fundingStage,
+                          ),
+                        if (profile.fundingAmountNeeded > 0)
+                          _ProfileChip(
+                            icon: Icons.payments_rounded,
+                            label: '\$${profile.fundingAmountNeeded.toStringAsFixed(0)} Needed',
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            if (state is StartupProfileEmpty) {
+              return Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: AppColors.primary.withOpacity(0.4)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: const BoxDecoration(
+                        color: AppColors.primarySoft,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.person_add_alt_1_rounded,
+                        color: AppColors.primaryDark,
+                        size: 22,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Unlock Personalised Investor Matches',
+                            style: TextStyle(
+                              color: AppColors.textPrimary,
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Complete your startup profile to rank investors by industry & ticket size.',
+                            style: TextStyle(
+                              color: AppColors.textSecondary.withOpacity(0.9),
+                              fontSize: 11.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(context)
+                            .pushNamed(AppConstants.routeStartupProfileSetup);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryDark,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: const Text(
+                        'Setup',
+                        style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            return const SizedBox.shrink();
+          },
+        ),
+      ),
+    );
+  }
+
   Widget _buildSearchBar() {
     return SliverToBoxAdapter(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 14),
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 14),
         child: TextField(
           onChanged: (value) {
             setState(() {
@@ -342,23 +559,112 @@ class _InvestorsPageState extends State<InvestorsPage> {
             );
           }
 
-          return SliverPadding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) {
-                  final investor = filtered[index];
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 14),
-                    child: _InvestorCatalogCard(
-                      investor: investor,
-                      onTap: () => InvestorDetailSheet.show(context, investor),
+          // Compute top recommendations for spotlight rail (score >= 50 or top 5)
+          final topRecommended = state.investors
+              .where((i) => i.matchScore >= 50)
+              .take(5)
+              .toList();
+
+          final bool showSpotlight =
+              (_selectedFilter == 'Recommended ⭐' || _selectedFilter == 'All') &&
+                  topRecommended.isNotEmpty &&
+                  _searchQuery.isEmpty;
+
+          return SliverMainAxisGroup(
+            slivers: [
+              // Spotlight Rail for Top Recommended Investors
+              if (showSpotlight)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 18, bottom: 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 20),
+                          child: Row(
+                            children: [
+                              Icon(Icons.star_rounded,
+                                  color: AppColors.warning, size: 18),
+                              SizedBox(width: 6),
+                              Text(
+                                'Top Matches For You',
+                                style: TextStyle(
+                                  color: AppColors.textPrimary,
+                                  fontSize: 15.5,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        SizedBox(
+                          height: 275,
+                          child: ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            itemCount: topRecommended.length,
+                            separatorBuilder: (_, __) =>
+                                const SizedBox(width: 14),
+                            itemBuilder: (context, index) {
+                              final investor = topRecommended[index];
+                              return InvestorCard(
+                                investor: investor,
+                                onTap: () =>
+                                    InvestorDetailSheet.show(context, investor),
+                              );
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 20),
+                          child: Divider(color: AppColors.border, height: 1),
+                        ),
+                      ],
                     ),
-                  );
-                },
-                childCount: filtered.length,
+                  ),
+                ),
+
+              // Main Directory List Title
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
+                  child: Text(
+                    _selectedFilter == 'Recommended ⭐'
+                        ? 'Recommended Investors Directory'
+                        : 'All Investors (${filtered.length})',
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
               ),
-            ),
+
+              // Main Directory List
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final investor = filtered[index];
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 14),
+                        child: _InvestorCatalogCard(
+                          investor: investor,
+                          onTap: () => InvestorDetailSheet.show(context, investor),
+                          onConnectTap: () => _connectAndPitch(context, investor),
+                        ),
+                      );
+                    },
+                    childCount: filtered.length,
+                  ),
+                ),
+              ),
+            ],
           );
         }
 
@@ -385,7 +691,10 @@ class _InvestorsPageState extends State<InvestorsPage> {
       }
 
       // 2. Filter chip
-      if (_selectedFilter == 'High Match') {
+      if (_selectedFilter == 'Recommended ⭐') {
+        return true; // Already sorted by score descending in Cubit
+      }
+      if (_selectedFilter == 'High Match (70%+)') {
         return inv.matchScore >= 70;
       }
       if (_selectedFilter == 'VC') {
@@ -403,16 +712,109 @@ class _InvestorsPageState extends State<InvestorsPage> {
       return true;
     }).toList();
   }
+
+  Future<void> _connectAndPitch(
+      BuildContext context, InvestorDiscoveryEntity investor) async {
+    try {
+      developer.log(
+        'Connecting with investor ${investor.displayName} (ID: ${investor.id}) from InvestorsPage',
+        name: 'InvestorsPage.ConnectPitch',
+      );
+      final messagingRepo = sl<MessagingRepository>();
+      final startupProfileId = await messagingRepo.resolveStartupProfileId();
+
+      if (startupProfileId == null) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Please complete your startup profile first to connect with investors.',
+              ),
+              backgroundColor: AppColors.warning,
+            ),
+          );
+        }
+        return;
+      }
+
+      final conv = await messagingRepo.getOrCreateConversation(
+        startupProfileId: startupProfileId,
+        investorProfileId: investor.id,
+      );
+
+      if (context.mounted) {
+        Navigator.of(context).pushNamed(
+          AppConstants.routeChat,
+          arguments: {
+            'conversationId': conv.id,
+            'participantName': investor.displayName,
+          },
+        );
+      }
+    } catch (e, st) {
+      developer.log(
+        'Error connecting with investor: $e',
+        name: 'InvestorsPage.ConnectPitch',
+        error: e,
+        stackTrace: st,
+      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: AppColors.error,
+            content: Text(
+              'Could not connect with investor: ${e.toString().replaceAll('Exception: ', '')}',
+            ),
+          ),
+        );
+      }
+    }
+  }
+}
+
+class _ProfileChip extends StatelessWidget {
+  const _ProfileChip({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.18),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: Colors.white),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 11.5,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _InvestorCatalogCard extends StatelessWidget {
   const _InvestorCatalogCard({
     required this.investor,
     required this.onTap,
+    required this.onConnectTap,
   });
 
   final InvestorDiscoveryEntity investor;
   final VoidCallback onTap;
+  final VoidCallback onConnectTap;
 
   @override
   Widget build(BuildContext context) {
@@ -522,6 +924,47 @@ class _InvestorCatalogCard extends StatelessWidget {
                 ],
               ),
 
+              // Match Reasons Chips (Why this investor is recommended)
+              if (investor.matchReasons.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  children: investor.matchReasons.map((reason) {
+                    return Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: AppColors.successSoft,
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: AppColors.success.withOpacity(0.3),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.check_circle_rounded,
+                            size: 11,
+                            color: AppColors.success,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            reason,
+                            style: const TextStyle(
+                              color: AppColors.success,
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
+
               // Bio excerpt if available
               if (investor.bio != null && investor.bio!.trim().isNotEmpty) ...[
                 const SizedBox(height: 10),
@@ -580,50 +1023,88 @@ class _InvestorCatalogCard extends StatelessWidget {
                 ],
               ),
 
-              const SizedBox(height: 12),
+              const SizedBox(height: 14),
 
-              // Bottom info bar: Ticket size and View Profile
+              // Bottom info & action bar: Ticket size + Connect & Pitch button
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: AppColors.background,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.payments_outlined,
-                            size: 13, color: AppColors.secondary),
-                        const SizedBox(width: 5),
-                        Text(
-                          investor.ticketSizeDisplay,
-                          style: const TextStyle(
-                            color: AppColors.secondary,
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w700,
+                  Flexible(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: AppColors.background,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.payments_outlined,
+                              size: 13, color: AppColors.secondary),
+                          const SizedBox(width: 5),
+                          Flexible(
+                            child: Text(
+                              investor.ticketSizeDisplay,
+                              style: const TextStyle(
+                                color: AppColors.secondary,
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w700,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                  const Row(
-                    mainAxisSize: MainAxisSize.min,
+                  const SizedBox(width: 8),
+                  Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 4,
                     children: [
-                      Text(
-                        'View Thesis',
-                        style: TextStyle(
-                          color: AppColors.primaryDark,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
+                      TextButton(
+                        onPressed: onTap,
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.textSecondary,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 6),
+                          minimumSize: const Size(0, 0),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        child: const Text(
+                          'View Thesis',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
-                      SizedBox(width: 4),
-                      Icon(Icons.arrow_forward_ios_rounded,
-                          size: 10, color: AppColors.primaryDark),
+                      ElevatedButton.icon(
+                        onPressed: onConnectTap,
+                        icon: const Icon(Icons.send_rounded,
+                            size: 13, color: Colors.white),
+                        label: const Text(
+                          'Connect',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.secondary,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 8),
+                          minimumSize: const Size(0, 34),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          elevation: 0,
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -646,12 +1127,14 @@ class _MatchScoreBadge extends StatelessWidget {
     final isHigh = score >= 70;
     final bg = isHigh ? AppColors.successSoft : AppColors.primarySoft;
     final fg = isHigh ? AppColors.success : AppColors.primaryDark;
+    final label = isHigh ? 'High Match' : 'Match';
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: fg.withOpacity(0.25)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -664,6 +1147,15 @@ class _MatchScoreBadge extends StatelessWidget {
               color: fg,
               fontSize: 11,
               fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(width: 3),
+          Text(
+            label,
+            style: TextStyle(
+              color: fg,
+              fontSize: 9.5,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ],
