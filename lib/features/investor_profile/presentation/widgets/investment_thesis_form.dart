@@ -8,7 +8,7 @@ import 'package:ethioventure/features/investor_profile/presentation/widgets/stag
 import 'package:ethioventure/features/investor_profile/presentation/widgets/ticket_size_inputs.dart';
 import 'package:flutter/material.dart';
 
-/// Form encapsulating the Stitch "Investment Thesis Setup" design.
+/// Modern form encapsulating the "Investment Thesis Setup & Edit" interface.
 class InvestmentThesisForm extends StatefulWidget {
   const InvestmentThesisForm({
     super.key,
@@ -155,15 +155,15 @@ class _InvestmentThesisFormState extends State<InvestmentThesisForm> {
           // Section 1: Organization Details
           SectionCard(
             sectionNumber: 1,
-            title: 'Organization Details',
-            subtitle: 'Provide your entity or syndicate identity.',
+            title: 'Organization Identity & Bio',
+            subtitle: 'Provide your firm name and fund overview.',
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 TextFormField(
                   controller: _orgNameController,
                   decoration: const InputDecoration(
-                    labelText: 'Organization Name',
+                    labelText: 'Organization / Firm Name',
                     hintText: 'e.g. Addis Capital Syndicate',
                     prefixIcon: Icon(Icons.business_outlined),
                   ),
@@ -176,13 +176,13 @@ class _InvestmentThesisFormState extends State<InvestmentThesisForm> {
                 const SizedBox(height: AppSizes.md),
                 TextFormField(
                   controller: _bioController,
-                  maxLines: 3,
+                  maxLines: 4,
                   decoration: const InputDecoration(
-                    labelText: 'Bio / Overview (Optional)',
+                    labelText: 'Investment Thesis & Bio (Optional)',
                     hintText:
-                        'Briefly describe your firm, background, and value-add.',
+                        'Describe your firm, thesis, key focus sectors, and value-add for Ethiopian startups.',
                     prefixIcon: Padding(
-                      padding: EdgeInsets.only(bottom: 40),
+                      padding: EdgeInsets.only(bottom: 50),
                       child: Icon(Icons.description_outlined),
                     ),
                   ),
@@ -196,7 +196,7 @@ class _InvestmentThesisFormState extends State<InvestmentThesisForm> {
           // Section 2: Preferred Industries
           SectionCard(
             sectionNumber: 2,
-            title: 'Preferred Industries',
+            title: 'Preferred Investment Sectors',
             subtitle: 'Select up to 5 industries you actively invest in.',
             trailing: Container(
               padding: const EdgeInsets.symmetric(
@@ -215,7 +215,7 @@ class _InvestmentThesisFormState extends State<InvestmentThesisForm> {
               child: Text(
                 '${_selectedIndustries.length}/5 selected',
                 style: theme.textTheme.labelSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w700,
                   color: _selectedIndustries.length == 5
                       ? (isDark ? AppColors.primary : AppColors.secondary)
                       : (isDark
@@ -243,7 +243,7 @@ class _InvestmentThesisFormState extends State<InvestmentThesisForm> {
           SectionCard(
             sectionNumber: 3,
             title: 'Target Funding Stages',
-            subtitle: 'Choose the stages of startups you are looking to back.',
+            subtitle: 'Choose the growth stages of startups you back.',
             child: StageSelector(
               selectedStages: _selectedStages,
               errorText: _stageError,
@@ -262,7 +262,7 @@ class _InvestmentThesisFormState extends State<InvestmentThesisForm> {
           // Section 4: Typical Ticket Size
           SectionCard(
             sectionNumber: 4,
-            title: 'Typical Ticket Size',
+            title: 'Typical Check / Ticket Size Range',
             subtitle:
                 'Specify your typical minimum and maximum investment range in USD.',
             child: TicketSizeInputs(
@@ -272,30 +272,77 @@ class _InvestmentThesisFormState extends State<InvestmentThesisForm> {
           ),
           const SizedBox(height: AppSizes.xl),
 
-          // Actions
+          // Actions Bar
           LayoutBuilder(
             builder: (context, constraints) {
               final isWide = constraints.maxWidth > 480;
 
-              final saveDraftBtn = OutlinedButton(
+              final saveDraftBtn = OutlinedButton.icon(
                 onPressed: widget.isSaving ? null : _handleSaveDraft,
-                child: const Text('Save as Draft'),
+                icon: const Icon(Icons.bookmark_border_rounded, size: 18),
+                label: const Text('Save as Draft'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: AppSizes.md),
+                ),
               );
 
-              final completeProfileBtn = ElevatedButton(
-                onPressed: widget.isSaving ? null : _handleCompleteProfile,
-                child: widget.isSaving
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            AppColors.secondary,
-                          ),
-                        ),
-                      )
-                    : const Text('Complete Profile'),
+              final completeProfileBtn = Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+                  gradient: const LinearGradient(
+                    colors: [AppColors.secondary, AppColors.secondaryLight],
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.secondary.withValues(alpha: 0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: widget.isSaving ? null : _handleCompleteProfile,
+                    borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: AppSizes.md),
+                      child: widget.isSaving
+                          ? const Center(
+                              child: SizedBox(
+                                height: 22,
+                                width: 22,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
+                                ),
+                              ),
+                            )
+                          : Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.check_circle_outline,
+                                    size: 19, color: Colors.white),
+                                const SizedBox(width: 8),
+                                Text(
+                                  widget.initialProfile != null
+                                      ? 'Save Changes'
+                                      : 'Complete Profile',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                              ],
+                            ),
+                    ),
+                  ),
+                ),
               );
 
               if (isWide) {

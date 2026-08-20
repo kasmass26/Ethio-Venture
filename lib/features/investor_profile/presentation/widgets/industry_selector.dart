@@ -2,7 +2,7 @@ import 'package:ethioventure/core/theme/app_colors.dart';
 import 'package:ethioventure/core/theme/app_sizes.dart';
 import 'package:flutter/material.dart';
 
-/// Multi-select chip selector for investor preferred industries with a 5-item limit.
+/// Multi-select chip selector for investor preferred industries with icons and a 5-item limit.
 class IndustrySelector extends StatelessWidget {
   const IndustrySelector({
     super.key,
@@ -17,15 +17,17 @@ class IndustrySelector extends StatelessWidget {
   final String? errorText;
   final int maxSelections;
 
-  static const List<String> availableIndustries = [
-    'Fintech',
-    'Agri-Tech',
-    'EdTech',
-    'HealthTech',
-    'E-commerce',
-    'Clean Energy',
-    'Logistics',
-  ];
+  static const Map<String, IconData> industryIcons = {
+    'Fintech': Icons.account_balance_outlined,
+    'Agri-Tech': Icons.agriculture_outlined,
+    'EdTech': Icons.school_outlined,
+    'HealthTech': Icons.medical_services_outlined,
+    'E-commerce': Icons.shopping_bag_outlined,
+    'Clean Energy': Icons.bolt_outlined,
+    'Logistics': Icons.local_shipping_outlined,
+  };
+
+  static List<String> get availableIndustries => industryIcons.keys.toList();
 
   void _toggleIndustry(BuildContext context, String industry) {
     final updated = Set<String>.from(selectedIndustries);
@@ -38,6 +40,7 @@ class IndustrySelector extends StatelessWidget {
           SnackBar(
             content: Text('You can select up to $maxSelections industries only.'),
             duration: const Duration(seconds: 2),
+            backgroundColor: AppColors.warning,
           ),
         );
         return;
@@ -58,36 +61,72 @@ class IndustrySelector extends StatelessWidget {
         Wrap(
           spacing: AppSizes.sm,
           runSpacing: AppSizes.sm,
-          children: availableIndustries.map((industry) {
+          children: industryIcons.entries.map((entry) {
+            final industry = entry.key;
+            final icon = entry.value;
             final isSelected = selectedIndustries.contains(industry);
-            return FilterChip(
-              label: Text(industry),
-              selected: isSelected,
-              onSelected: (_) => _toggleIndustry(context, industry),
-              checkmarkColor: Colors.white,
-              selectedColor: isDark ? AppColors.primary : AppColors.secondary,
-              labelStyle: TextStyle(
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                color: isSelected
-                    ? (isDark ? AppColors.secondary : Colors.white)
-                    : (isDark
-                        ? AppColors.textPrimaryDark
-                        : AppColors.textPrimary),
-              ),
-              backgroundColor: isDark
-                  ? AppColors.surfaceDark
-                  : AppColors.surfaceVariant,
-              side: BorderSide(
-                color: isSelected
-                    ? Colors.transparent
-                    : (isDark ? AppColors.borderDark : AppColors.border),
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppSizes.radiusXl),
-              ),
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSizes.sm,
-                vertical: AppSizes.xs,
+
+            return InkWell(
+              onTap: () => _toggleIndustry(context, industry),
+              borderRadius: BorderRadius.circular(12),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? (isDark ? AppColors.primary : AppColors.secondary)
+                      : (isDark
+                          ? AppColors.surfaceDark
+                          : AppColors.surfaceVariant),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isSelected
+                        ? Colors.transparent
+                        : (isDark ? AppColors.borderDark : AppColors.border),
+                    width: 1.5,
+                  ),
+                  boxShadow: isSelected
+                      ? [
+                          BoxShadow(
+                            color: (isDark ? AppColors.primary : AppColors.secondary)
+                                .withValues(alpha: 0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 3),
+                          ),
+                        ]
+                      : null,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      isSelected ? Icons.check_circle_rounded : icon,
+                      size: 16,
+                      color: isSelected
+                          ? (isDark ? AppColors.secondary : Colors.white)
+                          : (isDark
+                              ? AppColors.textSecondaryDark
+                              : AppColors.textSecondary),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      industry,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight:
+                            isSelected ? FontWeight.w800 : FontWeight.w600,
+                        color: isSelected
+                            ? (isDark ? AppColors.secondary : Colors.white)
+                            : (isDark
+                                ? AppColors.textPrimaryDark
+                                : AppColors.textPrimary),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             );
           }).toList(),
@@ -98,7 +137,7 @@ class IndustrySelector extends StatelessWidget {
             errorText!,
             style: theme.textTheme.bodySmall?.copyWith(
               color: isDark ? const Color(0xFFFFB4AB) : AppColors.error,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],

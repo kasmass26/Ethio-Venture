@@ -33,7 +33,7 @@ class InvestorProfileDisplayWidget extends StatelessWidget {
       case InvestorType.angel:
         return 'Angel Investor';
       case InvestorType.vc:
-        return 'Venture Capital';
+        return 'Venture Capital Fund';
       case InvestorType.firm:
         return 'Investment Firm / Syndicate';
     }
@@ -51,6 +51,16 @@ class InvestorProfileDisplayWidget extends StatelessWidget {
     }
   }
 
+  int _calculateCompleteness() {
+    int score = 20; // Base profile
+    if (profile.organizationName != null && profile.organizationName!.trim().isNotEmpty) score += 20;
+    if (profile.bio != null && profile.bio!.trim().isNotEmpty) score += 20;
+    if (profile.preferredIndustries.isNotEmpty) score += 20;
+    if (profile.preferredStages.isNotEmpty) score += 10;
+    if (profile.ticketSizeMin != null || profile.ticketSizeMax != null) score += 10;
+    return score.clamp(0, 100);
+  }
+
   void _confirmLogout(BuildContext context) {
     showDialog<bool>(
       context: context,
@@ -58,9 +68,15 @@ class InvestorProfileDisplayWidget extends StatelessWidget {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppSizes.radiusLg),
         ),
-        title: const Text('Sign Out'),
+        title: const Row(
+          children: [
+            Icon(Icons.logout_rounded, color: AppColors.coral, size: 22),
+            SizedBox(width: 10),
+            Text('Sign Out'),
+          ],
+        ),
         content: const Text(
-          'Are you sure you want to sign out of EthioVenture?',
+          'Are you sure you want to sign out of your EthioVenture investor portal session?',
         ),
         actions: [
           TextButton(
@@ -99,53 +115,70 @@ class InvestorProfileDisplayWidget extends StatelessWidget {
         : 'Investor Entity';
 
     final initial = orgName.substring(0, 1).toUpperCase();
+    final completenessScore = _calculateCompleteness();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        // ── Glassmorphic Hero Header ─────────────────────────────────────────
         _HeroHeader(
           orgName: orgName,
           initial: initial,
           investorTypeLabel: _formatInvestorType(profile.investorType),
           investorTypeIcon: _investorTypeIcon(profile.investorType),
           geographicFocus: profile.geographicFocus,
+          completenessScore: completenessScore,
           onEdit: onEdit,
           isDark: isDark,
         ),
         const SizedBox(height: AppSizes.lg),
+
+        // ── Completeness Banner (if under 100%) ──────────────────────────────
+        if (completenessScore < 100) ...[
+          _CompletenessBanner(
+            score: completenessScore,
+            onEdit: onEdit,
+            isDark: isDark,
+          ),
+          const SizedBox(height: AppSizes.lg),
+        ],
 
         // ── Stat Summary Cards ─────────────────────────────────────────────
         LayoutBuilder(
           builder: (context, constraints) {
             final cards = [
               _MetricCard(
-                icon: Icons.account_balance_wallet_outlined,
+                icon: Icons.payments_outlined,
                 accentColor: AppColors.primaryDark,
                 title: 'TICKET RANGE',
                 value:
                     '${_formatCurrency(profile.ticketSizeMin)} – ${_formatCurrency(profile.ticketSizeMax)}',
-                subtitle: 'USD Range',
+                subtitle: 'USD Investment Check Size',
                 isDark: isDark,
               ),
               _MetricCard(
                 icon: Icons.category_outlined,
                 accentColor: AppColors.secondary,
-                title: 'INDUSTRIES',
-                value: '${profile.preferredIndustries.length}',
-                subtitle: 'Active Focus Sectors',
+                title: 'FOCUS SECTORS',
+                value: '${profile.preferredIndustries.length} Industries',
+                subtitle: profile.preferredIndustries.isNotEmpty
+                    ? profile.preferredIndustries.take(2).join(', ')
+                    : 'Not specified',
                 isDark: isDark,
               ),
               _MetricCard(
                 icon: Icons.timeline_outlined,
-                accentColor: const Color(0xFFC9932E),
+                accentColor: const Color(0xFFD97706),
                 title: 'TARGET STAGES',
-                value: '${profile.preferredStages.length}',
-                subtitle: 'Deal Criteria',
+                value: '${profile.preferredStages.length} Stages',
+                subtitle: profile.preferredStages.isNotEmpty
+                    ? profile.preferredStages.join(', ')
+                    : 'Not specified',
                 isDark: isDark,
               ),
             ];
 
-            if (constraints.maxWidth > 520) {
+            if (constraints.maxWidth > 600) {
               return Row(
                 children: [
                   for (int i = 0; i < cards.length; i++) ...[
@@ -168,19 +201,24 @@ class InvestorProfileDisplayWidget extends StatelessWidget {
         ),
         const SizedBox(height: AppSizes.lg),
 
-        // ── Investment Thesis Bio ─────────────────────────────────────────
+        // ── Investment Thesis & Overview ───────────────────────────────────
         _SectionCard(
-          title: 'Investment Thesis & Bio',
+          title: 'Investment Thesis & Overview',
           icon: Icons.article_outlined,
           isDark: isDark,
           child: (profile.bio != null && profile.bio!.trim().isNotEmpty)
               ? Container(
-                  padding: const EdgeInsets.only(left: AppSizes.md),
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(AppSizes.md),
                   decoration: BoxDecoration(
+                    color: isDark
+                        ? AppColors.backgroundDark.withValues(alpha: 0.5)
+                        : AppColors.background,
+                    borderRadius: BorderRadius.circular(AppSizes.radiusMd),
                     border: Border(
                       left: BorderSide(
-                        color: AppColors.primary.withValues(alpha: 0.4),
-                        width: 3,
+                        color: AppColors.primary,
+                        width: 4,
                       ),
                     ),
                   ),
@@ -188,6 +226,7 @@ class InvestorProfileDisplayWidget extends StatelessWidget {
                     profile.bio!,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       height: 1.6,
+                      fontSize: 14.5,
                       color: isDark
                           ? AppColors.textPrimaryDark
                           : AppColors.textPrimary,
@@ -197,7 +236,7 @@ class InvestorProfileDisplayWidget extends StatelessWidget {
               : _EmptyState(
                   icon: Icons.edit_note_outlined,
                   message:
-                      'No overview bio yet. Add details about your fund, thesis, and value-add.',
+                      'No overview bio yet. Add details about your fund, thesis, and value-add to attract top founders.',
                   isDark: isDark,
                 ),
         ),
@@ -220,7 +259,7 @@ class InvestorProfileDisplayWidget extends StatelessWidget {
                   children: profile.preferredIndustries.map((industry) {
                     return _Tag(
                       label: industry,
-                      icon: Icons.check_circle_outline,
+                      icon: Icons.check_circle_rounded,
                       color: AppColors.primaryDark,
                       isDark: isDark,
                       filled: true,
@@ -247,8 +286,8 @@ class InvestorProfileDisplayWidget extends StatelessWidget {
                   children: profile.preferredStages.map((stage) {
                     return _Tag(
                       label: stage,
-                      icon: Icons.bolt,
-                      color: const Color(0xFFC9932E),
+                      icon: Icons.bolt_rounded,
+                      color: const Color(0xFFD97706),
                       isDark: isDark,
                       filled: false,
                     );
@@ -257,7 +296,7 @@ class InvestorProfileDisplayWidget extends StatelessWidget {
         ),
         const SizedBox(height: AppSizes.xl),
 
-        // ── Bottom Actions ───────────────────────────────────────────────────
+        // ── Bottom Actions Bar ──────────────────────────────────────────────
         Container(
           padding: const EdgeInsets.all(AppSizes.lg),
           decoration: BoxDecoration(
@@ -268,8 +307,8 @@ class InvestorProfileDisplayWidget extends StatelessWidget {
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 10,
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 14,
                 offset: const Offset(0, 4),
               ),
             ],
@@ -294,7 +333,13 @@ class InvestorProfileDisplayWidget extends StatelessWidget {
                   children: [
                     Icon(Icons.logout_outlined, color: AppColors.coral, size: 18),
                     SizedBox(width: 8),
-                    Text('Sign Out', style: TextStyle(color: AppColors.coral, fontWeight: FontWeight.w600)),
+                    Text(
+                      'Sign Out',
+                      style: TextStyle(
+                        color: AppColors.coral,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ],
                 ),
               );
@@ -309,9 +354,9 @@ class InvestorProfileDisplayWidget extends StatelessWidget {
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.secondary.withValues(alpha: 0.35),
-                      blurRadius: 14,
-                      offset: const Offset(0, 6),
+                      color: AppColors.secondary.withValues(alpha: 0.3),
+                      blurRadius: 12,
+                      offset: const Offset(0, 5),
                     ),
                   ],
                 ),
@@ -328,10 +373,11 @@ class InvestorProfileDisplayWidget extends StatelessWidget {
                           Icon(Icons.edit_outlined, size: 18, color: Colors.white),
                           SizedBox(width: 8),
                           Text(
-                            'Edit Thesis',
+                            'Edit Thesis Criteria',
                             style: TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.w700,
+                              fontSize: 15,
                             ),
                           ),
                         ],
@@ -369,7 +415,7 @@ class InvestorProfileDisplayWidget extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// Hero header: richer gradient, decorative depth, glass edit button
+// Hero Header Component
 // ─────────────────────────────────────────────────────────────────────────
 class _HeroHeader extends StatelessWidget {
   const _HeroHeader({
@@ -378,6 +424,7 @@ class _HeroHeader extends StatelessWidget {
     required this.investorTypeLabel,
     required this.investorTypeIcon,
     required this.geographicFocus,
+    required this.completenessScore,
     required this.onEdit,
     required this.isDark,
   });
@@ -387,6 +434,7 @@ class _HeroHeader extends StatelessWidget {
   final String investorTypeLabel;
   final IconData investorTypeIcon;
   final List<String> geographicFocus;
+  final int completenessScore;
   final VoidCallback onEdit;
   final bool isDark;
 
@@ -403,15 +451,15 @@ class _HeroHeader extends StatelessWidget {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: isDark
-                    ? [AppColors.surfaceDark, AppColors.backgroundDark]
-                    : [AppColors.secondary, const Color(0xFF1B3A52)],
+                    ? [const Color(0xFF0F172A), const Color(0xFF1E293B)]
+                    : [AppColors.secondary, const Color(0xFF1E3A5F)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               boxShadow: [
                 BoxShadow(
                   color: (isDark ? Colors.black : AppColors.secondary)
-                      .withValues(alpha: 0.2),
+                      .withValues(alpha: 0.25),
                   blurRadius: 20,
                   offset: const Offset(0, 10),
                 ),
@@ -420,28 +468,32 @@ class _HeroHeader extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Builder(
-                  builder: (context) {
-                    // Avatar with gradient ring + glow
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isNarrow = constraints.maxWidth < 420;
+
+                    // Avatar with glowing ring
                     final avatar = Container(
-                      width: 68,
-                      height: 68,
-                      padding: const EdgeInsets.all(2.5),
+                      width: 72,
+                      height: 72,
+                      padding: const EdgeInsets.all(3),
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         gradient: const LinearGradient(
-                          colors: [Color(0xFFFFD98A), Color(0xFFFFB800)],
+                          colors: [Color(0xFFF59E0B), Color(0xFF10B981)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFFFFB800).withValues(alpha: 0.35),
-                            blurRadius: 12,
+                            color: const Color(0xFFF59E0B).withValues(alpha: 0.35),
+                            blurRadius: 14,
                             spreadRadius: 1,
                           ),
                         ],
                       ),
                       child: Container(
-                        decoration: BoxDecoration(
+                        decoration: const BoxDecoration(
                           shape: BoxShape.circle,
                           color: AppColors.primarySoft,
                         ),
@@ -449,8 +501,8 @@ class _HeroHeader extends StatelessWidget {
                           child: Text(
                             initial,
                             style: const TextStyle(
-                              fontSize: 26,
-                              fontWeight: FontWeight.w800,
+                              fontSize: 28,
+                              fontWeight: FontWeight.w900,
                               color: AppColors.secondary,
                             ),
                           ),
@@ -462,9 +514,9 @@ class _HeroHeader extends StatelessWidget {
                     final editButton = ClipRRect(
                       borderRadius: BorderRadius.circular(AppSizes.radiusMd),
                       child: BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                         child: Material(
-                          color: Colors.white.withValues(alpha: 0.9),
+                          color: Colors.white.withValues(alpha: 0.15),
                           child: InkWell(
                             onTap: onEdit,
                             child: Container(
@@ -472,16 +524,23 @@ class _HeroHeader extends StatelessWidget {
                                 horizontal: AppSizes.md,
                                 vertical: AppSizes.sm,
                               ),
+                              decoration: BoxDecoration(
+                                borderRadius:
+                                    BorderRadius.circular(AppSizes.radiusMd),
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.25),
+                                ),
+                              ),
                               child: const Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(Icons.edit_outlined, size: 15, color: AppColors.secondary),
+                                  Icon(Icons.edit_outlined,
+                                      size: 15, color: Colors.white),
                                   SizedBox(width: 6),
                                   Text(
                                     'Edit Profile',
                                     style: TextStyle(
-                                      color: AppColors.secondary,
+                                      color: Colors.white,
                                       fontWeight: FontWeight.w700,
                                       fontSize: 13,
                                     ),
@@ -494,104 +553,140 @@ class _HeroHeader extends StatelessWidget {
                       ),
                     );
 
-                    return LayoutBuilder(
-                      builder: (context, constraints) {
-                        final isNarrow = constraints.maxWidth < 340;
+                    final titleColumn = Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                orgName,
+                                style: theme.textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white,
+                                  fontSize: 22,
+                                  letterSpacing: -0.3,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            const Icon(
+                              Icons.verified_rounded,
+                              size: 20,
+                              color: Color(0xFFF59E0B),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.15),
+                                borderRadius:
+                                    BorderRadius.circular(AppSizes.radiusSm),
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.2),
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(investorTypeIcon,
+                                      size: 13, color: Colors.white),
+                                  const SizedBox(width: 5),
+                                  Flexible(
+                                    child: Text(
+                                      investorTypeLabel,
+                                      style: theme.textTheme.labelMedium?.copyWith(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 9,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF10B981)
+                                    .withValues(alpha: 0.25),
+                                borderRadius:
+                                    BorderRadius.circular(AppSizes.radiusSm),
+                                border: Border.all(
+                                  color: const Color(0xFF10B981)
+                                      .withValues(alpha: 0.4),
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.auto_awesome_rounded,
+                                    size: 12,
+                                    color: Color(0xFF6EE7B7),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '$completenessScore% Profile Strength',
+                                    style: const TextStyle(
+                                      color: Color(0xFF6EE7B7),
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    );
 
-                        final titleColumn = Column(
+                    if (isNarrow) {
+                      return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Flexible(
-                                child: Text(
-                                  orgName,
-                                  style: theme.textTheme.titleLarge?.copyWith(
-                                    fontWeight: FontWeight.w800,
-                                    color: Colors.white,
-                                    fontSize: 22,
-                                    letterSpacing: -0.3,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              const Icon(
-                                Icons.verified,
-                                size: 19,
-                                color: Color(0xFFFFB800),
-                              ),
+                              avatar,
+                              const SizedBox(width: AppSizes.md),
+                              Expanded(child: titleColumn),
                             ],
                           ),
-                          const SizedBox(height: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 5,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.14),
-                              borderRadius: BorderRadius.circular(AppSizes.radiusSm),
-                              border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.16),
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(investorTypeIcon, size: 13, color: Colors.white),
-                                const SizedBox(width: 5),
-                                Flexible(
-                                  child: Text(
-                                    investorTypeLabel,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: theme.textTheme.labelMedium?.copyWith(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
+                          const SizedBox(height: AppSizes.md),
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: editButton,
                           ),
                         ],
                       );
+                    }
 
-                        if (isNarrow) {
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  avatar,
-                                  const SizedBox(width: AppSizes.md),
-                                  Expanded(child: titleColumn),
-                                ],
-                              ),
-                              const SizedBox(height: AppSizes.md),
-                              Align(
-                                alignment: Alignment.centerLeft,
-                                child: editButton,
-                              ),
-                            ],
-                          );
-                        }
-
-                        return Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            avatar,
-                            const SizedBox(width: AppSizes.md),
-                            Expanded(child: titleColumn),
-                            const SizedBox(width: AppSizes.xs),
-                            editButton,
-                          ],
-                        );
-                      },
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        avatar,
+                        const SizedBox(width: AppSizes.md),
+                        Expanded(child: titleColumn),
+                        const SizedBox(width: AppSizes.xs),
+                        editButton,
+                      ],
                     );
                   },
                 ),
@@ -604,13 +699,13 @@ class _HeroHeader extends StatelessWidget {
                       return Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: AppSizes.sm,
-                          vertical: 6,
+                          vertical: 5,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.2),
+                          color: Colors.black.withValues(alpha: 0.25),
                           borderRadius: BorderRadius.circular(999),
                           border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.18),
+                            color: Colors.white.withValues(alpha: 0.2),
                           ),
                         ),
                         child: Row(
@@ -638,17 +733,17 @@ class _HeroHeader extends StatelessWidget {
               ],
             ),
           ),
-          // Subtle decorative glow circles for depth
+          // Decorative background depth elements
           Positioned(
             top: -40,
             right: -30,
             child: IgnorePointer(
               child: Container(
-                width: 140,
-                height: 140,
+                width: 150,
+                height: 150,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: const Color(0xFFFFB800).withValues(alpha: 0.08),
+                  color: const Color(0xFFF59E0B).withValues(alpha: 0.08),
                 ),
               ),
             ),
@@ -660,7 +755,100 @@ class _HeroHeader extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// Metric card with gradient icon chip + top accent bar
+// Completeness Banner Component
+// ─────────────────────────────────────────────────────────────────────────
+class _CompletenessBanner extends StatelessWidget {
+  const _CompletenessBanner({
+    required this.score,
+    required this.onEdit,
+    required this.isDark,
+  });
+
+  final int score;
+  final VoidCallback onEdit;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSizes.md),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.surfaceDark : AppColors.primarySoft,
+        borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+        border: Border.all(
+          color: AppColors.primary.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: const BoxDecoration(
+              color: AppColors.primaryDark,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.stars_rounded,
+              color: Colors.white,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: AppSizes.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Profile Completeness: $score%',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 14,
+                    color: isDark ? AppColors.textPrimaryDark : AppColors.secondary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: score / 100,
+                    backgroundColor: isDark
+                        ? AppColors.borderDark
+                        : AppColors.primary.withValues(alpha: 0.2),
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                      AppColors.primaryDark,
+                    ),
+                    minHeight: 6,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Add missing details to rank higher in AI startup deal-flow matches.',
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    color: isDark
+                        ? AppColors.textSecondaryDark
+                        : AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: AppSizes.sm),
+          TextButton(
+            onPressed: onEdit,
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.primaryDark,
+            ),
+            child: const Text('Complete'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Metric card with accent bar
 // ─────────────────────────────────────────────────────────────────────────
 class _MetricCard extends StatelessWidget {
   const _MetricCard({
@@ -702,7 +890,7 @@ class _MetricCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            height: 3,
+            height: 3.5,
             decoration: BoxDecoration(
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(AppSizes.radiusLg),
@@ -724,7 +912,7 @@ class _MetricCard extends StatelessWidget {
                     color: accentColor.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(AppSizes.radiusSm),
                   ),
-                  child: Icon(icon, color: accentColor, size: 19),
+                  child: Icon(icon, color: accentColor, size: 20),
                 ),
                 const SizedBox(height: AppSizes.sm),
                 Text(
@@ -734,7 +922,7 @@ class _MetricCard extends StatelessWidget {
                         ? AppColors.textSecondaryDark
                         : AppColors.textSecondary,
                     fontWeight: FontWeight.w700,
-                    letterSpacing: 0.4,
+                    letterSpacing: 0.5,
                     fontSize: 10.5,
                   ),
                 ),
@@ -753,11 +941,13 @@ class _MetricCard extends StatelessWidget {
                 Text(
                   subtitle,
                   style: theme.textTheme.bodySmall?.copyWith(
-                    fontSize: 11,
+                    fontSize: 11.5,
                     color: isDark
                         ? AppColors.textSecondaryDark
                         : AppColors.textSecondary,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
@@ -769,7 +959,7 @@ class _MetricCard extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// Section card with icon chip header
+// Section Card Container
 // ─────────────────────────────────────────────────────────────────────────
 class _SectionCard extends StatelessWidget {
   const _SectionCard({
@@ -810,12 +1000,12 @@ class _SectionCard extends StatelessWidget {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(7),
+                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
+                  color: AppColors.primary.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(AppSizes.radiusSm),
                 ),
-                child: Icon(icon, size: 17, color: AppColors.primary),
+                child: Icon(icon, size: 18, color: AppColors.primary),
               ),
               const SizedBox(width: 10),
               Text(
@@ -864,9 +1054,9 @@ class _Tag extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: filled
-            ? color.withValues(alpha: isDark ? 0.16 : 0.1)
+            ? color.withValues(alpha: isDark ? 0.18 : 0.1)
             : (isDark ? AppColors.surfaceVariant : AppColors.surfaceVariant),
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: filled
               ? color.withValues(alpha: 0.3)
@@ -878,11 +1068,16 @@ class _Tag extends StatelessWidget {
         children: [
           Icon(icon, size: 15, color: color),
           const SizedBox(width: 6),
-          Text(
-            label,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+          Flexible(
+            child: Text(
+              label,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+                fontSize: 13,
+                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],

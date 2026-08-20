@@ -2,7 +2,7 @@ import 'package:ethioventure/core/theme/app_colors.dart';
 import 'package:ethioventure/core/theme/app_sizes.dart';
 import 'package:flutter/material.dart';
 
-/// Multi-select chip selector for target funding stages.
+/// Multi-select chip selector for target funding stages with icons.
 class StageSelector extends StatelessWidget {
   const StageSelector({
     super.key,
@@ -15,12 +15,14 @@ class StageSelector extends StatelessWidget {
   final ValueChanged<Set<String>> onChanged;
   final String? errorText;
 
-  static const List<String> availableStages = [
-    'Pre-Seed',
-    'Seed',
-    'Series A',
-    'Series B+',
-  ];
+  static const Map<String, IconData> stageIcons = {
+    'Pre-Seed': Icons.lightbulb_outlined,
+    'Seed': Icons.nature_outlined,
+    'Series A': Icons.rocket_launch_outlined,
+    'Series B+': Icons.corporate_fare_outlined,
+  };
+
+  static List<String> get availableStages => stageIcons.keys.toList();
 
   void _toggleStage(String stage) {
     final updated = Set<String>.from(selectedStages);
@@ -43,36 +45,71 @@ class StageSelector extends StatelessWidget {
         Wrap(
           spacing: AppSizes.sm,
           runSpacing: AppSizes.sm,
-          children: availableStages.map((stage) {
+          children: stageIcons.entries.map((entry) {
+            final stage = entry.key;
+            final icon = entry.value;
             final isSelected = selectedStages.contains(stage);
-            return FilterChip(
-              label: Text(stage),
-              selected: isSelected,
-              onSelected: (_) => _toggleStage(stage),
-              checkmarkColor: Colors.white,
-              selectedColor: isDark ? AppColors.primary : AppColors.secondary,
-              labelStyle: TextStyle(
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                color: isSelected
-                    ? (isDark ? AppColors.secondary : Colors.white)
-                    : (isDark
-                        ? AppColors.textPrimaryDark
-                        : AppColors.textPrimary),
-              ),
-              backgroundColor: isDark
-                  ? AppColors.surfaceDark
-                  : AppColors.surfaceVariant,
-              side: BorderSide(
-                color: isSelected
-                    ? Colors.transparent
-                    : (isDark ? AppColors.borderDark : AppColors.border),
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppSizes.radiusXl),
-              ),
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSizes.md,
-                vertical: AppSizes.xs,
+
+            return InkWell(
+              onTap: () => _toggleStage(stage),
+              borderRadius: BorderRadius.circular(12),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 11,
+                ),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? const Color(0xFFD97706)
+                      : (isDark
+                          ? AppColors.surfaceDark
+                          : AppColors.surfaceVariant),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isSelected
+                        ? Colors.transparent
+                        : (isDark ? AppColors.borderDark : AppColors.border),
+                    width: 1.5,
+                  ),
+                  boxShadow: isSelected
+                      ? [
+                          BoxShadow(
+                            color: const Color(0xFFD97706).withValues(alpha: 0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 3),
+                          ),
+                        ]
+                      : null,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      isSelected ? Icons.bolt_rounded : icon,
+                      size: 17,
+                      color: isSelected
+                          ? Colors.white
+                          : (isDark
+                              ? AppColors.textSecondaryDark
+                              : AppColors.textSecondary),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      stage,
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight:
+                            isSelected ? FontWeight.w800 : FontWeight.w600,
+                        color: isSelected
+                            ? Colors.white
+                            : (isDark
+                                ? AppColors.textPrimaryDark
+                                : AppColors.textPrimary),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             );
           }).toList(),
@@ -83,7 +120,7 @@ class StageSelector extends StatelessWidget {
             errorText!,
             style: theme.textTheme.bodySmall?.copyWith(
               color: isDark ? const Color(0xFFFFB4AB) : AppColors.error,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
