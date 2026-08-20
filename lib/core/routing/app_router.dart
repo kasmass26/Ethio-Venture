@@ -9,6 +9,9 @@ import '../../features/founder/presentation/pages/investors_page.dart';
 import '../../features/investor/presentation/pages/investor_dashboard_page.dart';
 import '../../features/investor/presentation/cubit/recommended_startups_state.dart';
 import '../../features/investor_profile/presentation/pages/investor_profile_page.dart';
+import '../../features/matching/presentation/pages/recommendations_page.dart';
+import '../../features/messaging/presentation/pages/chat_page.dart';
+import '../../features/messaging/presentation/pages/conversations_page.dart';
 import '../../features/onboarding/presentation/pages/onboarding_page.dart';
 import '../../features/splash/splash_page.dart';
 import '../../features/startup_profile/domain/entities/startup_profile_entity.dart';
@@ -65,6 +68,18 @@ class AppRouter {
                   : _UnknownRoutePage(routeName: settings.name),
       AppConstants.routeInvestorProfile => const InvestorProfilePage(),
       AppConstants.routeStartupSearch => const StartupListPage(),
+      AppConstants.routeRecommendations => const RecommendationsPage(),
+      AppConstants.routeMessages => const ConversationsPage(),
+      AppConstants.routeChat => settings.arguments is Map<String, dynamic>
+          ? ChatPage(
+              conversationId: (settings.arguments
+                  as Map<String, dynamic>)['conversationId'] as String,
+              participantName: (settings.arguments
+                  as Map<String, dynamic>)['participantName'] as String,
+              participantAvatarUrl: (settings.arguments
+                  as Map<String, dynamic>)['participantAvatarUrl'] as String?,
+            )
+          : _UnknownRoutePage(routeName: settings.name),
       _ => _UnknownRoutePage(routeName: settings.name),
     };
 

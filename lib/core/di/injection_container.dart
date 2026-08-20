@@ -55,6 +55,16 @@ import 'package:ethioventure/features/admin/domain/usecases/get_pending_startups
 import 'package:ethioventure/features/admin/domain/usecases/get_rejected_profiles.dart';
 import 'package:ethioventure/features/admin/domain/usecases/reject_profile.dart';
 import 'package:ethioventure/features/admin/presentation/cubit/admin_cubit.dart';
+import 'package:ethioventure/features/matching/data/datasources/matching_remote_data_source.dart';
+import 'package:ethioventure/features/matching/data/repositories/matching_repository_impl.dart';
+import 'package:ethioventure/features/matching/domain/repositories/matching_repository.dart';
+import 'package:ethioventure/features/matching/domain/services/match_scoring_service.dart';
+import 'package:ethioventure/features/matching/presentation/cubit/recommendations_cubit.dart';
+import 'package:ethioventure/features/messaging/data/datasources/messaging_remote_data_source.dart';
+import 'package:ethioventure/features/messaging/data/repositories/messaging_repository_impl.dart';
+import 'package:ethioventure/features/messaging/domain/repositories/messaging_repository.dart';
+import 'package:ethioventure/features/messaging/presentation/cubit/chat_cubit.dart';
+import 'package:ethioventure/features/messaging/presentation/cubit/conversations_cubit.dart';
 
 import 'package:get_it/get_it.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -410,6 +420,76 @@ Future<void> configureDependencies({SupabaseClient? supabaseClient}) async {
         getRejectedProfiles: sl<GetRejectedProfiles>(),
         approveProfile: sl<ApproveProfile>(),
         rejectProfile: sl<RejectProfile>(),
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Messaging Feature
+  // ---------------------------------------------------------------------------
+  if (!sl.isRegistered<MessagingRemoteDataSource>()) {
+    sl.registerLazySingleton<MessagingRemoteDataSource>(
+      () => MessagingRemoteDataSource(
+        supabaseClient: sl<SupabaseClient>(),
+      ),
+    );
+  }
+
+  if (!sl.isRegistered<MessagingRepository>()) {
+    sl.registerLazySingleton<MessagingRepository>(
+      () => MessagingRepositoryImpl(
+        remoteDataSource: sl<MessagingRemoteDataSource>(),
+      ),
+    );
+  }
+
+  if (!sl.isRegistered<ConversationsCubit>()) {
+    sl.registerFactory<ConversationsCubit>(
+      () => ConversationsCubit(
+        repository: sl<MessagingRepository>(),
+      ),
+    );
+  }
+
+  if (!sl.isRegistered<ChatCubit>()) {
+    sl.registerFactory<ChatCubit>(
+      () => ChatCubit(
+        repository: sl<MessagingRepository>(),
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Matching / Recommendations Feature
+  // ---------------------------------------------------------------------------
+  if (!sl.isRegistered<MatchScoringService>()) {
+    sl.registerLazySingleton<MatchScoringService>(
+      () => const MatchScoringService(),
+    );
+  }
+
+  if (!sl.isRegistered<MatchingRemoteDataSource>()) {
+    sl.registerLazySingleton<MatchingRemoteDataSource>(
+      () => MatchingRemoteDataSource(
+        supabaseClient: sl<SupabaseClient>(),
+      ),
+    );
+  }
+
+  if (!sl.isRegistered<MatchingRepository>()) {
+    sl.registerLazySingleton<MatchingRepository>(
+      () => MatchingRepositoryImpl(
+        remoteDataSource: sl<MatchingRemoteDataSource>(),
+        scoringService: sl<MatchScoringService>(),
+      ),
+    );
+  }
+
+  if (!sl.isRegistered<RecommendationsCubit>()) {
+    sl.registerFactory<RecommendationsCubit>(
+      () => RecommendationsCubit(
+        repository: sl<MatchingRepository>(),
+        messagingRepository: sl<MessagingRepository>(),
       ),
     );
   }
