@@ -7,8 +7,8 @@ import '../../features/auth/presentation/pages/register_page.dart';
 import '../../features/founder/presentation/pages/founder_dashboard_page.dart';
 import '../../features/founder/presentation/pages/investors_page.dart';
 import '../../features/investor/presentation/pages/investor_dashboard_page.dart';
-import '../../features/investor/presentation/cubit/recommended_startups_state.dart';
 import '../../features/investor_profile/presentation/pages/investor_profile_page.dart';
+import '../../features/matching/domain/entities/match_result_entity.dart';
 import '../../features/matching/presentation/pages/recommendations_page.dart';
 import '../../features/messaging/presentation/pages/chat_page.dart';
 import '../../features/messaging/presentation/pages/conversations_page.dart';
@@ -56,10 +56,10 @@ class AppRouter {
           ? StartupDetailPage(
               startup: settings.arguments as StartupProfileEntity,
             )
-          : settings.arguments is RecommendedStartupItem
-              ? StartupDetailPage(
-                  startup: (settings.arguments as RecommendedStartupItem).startup,
-                  matchScore: (settings.arguments as RecommendedStartupItem).matchScore,
+          : settings.arguments is MatchResultEntity
+              ? StartupDetailPage.fromId(
+                  startupId: (settings.arguments as MatchResultEntity).startup.id,
+                  matchScore: (settings.arguments as MatchResultEntity).overallScore,
                 )
               : settings.arguments is String
                   ? StartupDetailPage.fromId(

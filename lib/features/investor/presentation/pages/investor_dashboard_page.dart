@@ -5,11 +5,12 @@ import '../../../../core/constants/app_constants.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/services/user_service.dart';
 import '../../../../core/theme/app_colors.dart';
-import 'package:ethioventure/features/investor/presentation/cubit/recommended_startups_cubit.dart';
-import 'package:ethioventure/features/investor/presentation/cubit/recommended_startups_state.dart';
 import 'package:ethioventure/features/investor/presentation/widgets/app_bottom_nav.dart';
 import 'package:ethioventure/features/investor_profile/presentation/cubit/investor_profile_cubit.dart';
 import 'package:ethioventure/features/investor_profile/presentation/cubit/investor_profile_state.dart';
+import 'package:ethioventure/features/matching/domain/entities/match_result_entity.dart';
+import 'package:ethioventure/features/matching/presentation/cubit/recommendations_cubit.dart';
+import 'package:ethioventure/features/matching/presentation/cubit/recommendations_state.dart';
 
 /// ============================================================================
 /// INVESTOR DASHBOARD — REDESIGN
@@ -173,22 +174,14 @@ class _InvestorDashboardPageState extends State<InvestorDashboardPage> {
         BlocProvider<InvestorProfileCubit>(
           create: (_) => sl<InvestorProfileCubit>()..loadProfile(),
         ),
-        BlocProvider<RecommendedStartupsCubit>(
-          create: (_) => sl<RecommendedStartupsCubit>(),
+        BlocProvider<RecommendationsCubit>(
+          create: (_) => sl<RecommendationsCubit>()..loadRecommendations(),
         ),
       ],
       child: BlocListener<InvestorProfileCubit, InvestorProfileState>(
         listener: (context, profileState) {
-          // Once the investor profile resolves (loaded or empty), trigger
-          // the recommendations fetch so it can use the profile preferences.
           if (profileState is InvestorProfileLoaded) {
-            context
-                .read<RecommendedStartupsCubit>()
-                .load(profileState.profile);
-          } else if (profileState is InvestorProfileEmpty ||
-              profileState is InvestorProfileError) {
-            // No profile yet — fetch recent startups with a neutral score.
-            context.read<RecommendedStartupsCubit>().load();
+            context.read<RecommendationsCubit>().loadRecommendations();
           }
         },
         child: _DashboardScaffold(
@@ -286,8 +279,8 @@ class _DashboardScaffold extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 24),
-            // ── Dynamic recommendations driven by RecommendedStartupsCubit ──
-            BlocBuilder<RecommendedStartupsCubit, RecommendedStartupsState>(
+            // ── Dynamic recommendations driven by RecommendationsCubit ──
+            BlocBuilder<RecommendationsCubit, RecommendationsState>(
               builder: (context, state) {
                 return _RecommendedStartupsSection(
                   state: state,
@@ -296,10 +289,10 @@ class _DashboardScaffold extends StatelessWidget {
                       AppConstants.routeRecommendations,
                     );
                   },
-                  onViewProfile: (recommendedItem) {
+                  onViewProfile: (match) {
                     Navigator.of(context).pushNamed(
                       AppConstants.routeStartupDetail,
-                      arguments: recommendedItem,
+                      arguments: match,
                     );
                   },
                 );
@@ -650,12 +643,18 @@ class _RecommendedStartupsSection extends StatelessWidget {
     required this.onViewProfile,
   });
 
-  final RecommendedStartupsState state;
+  final RecommendationsState state;
   final VoidCallback onViewAll;
-  final ValueChanged<RecommendedStartupItem> onViewProfile;
+  final ValueChanged<MatchResultEntity> onViewProfile;
 
   @override
   Widget build(BuildContext context) {
+    final hasResults = switch (state) {
+      RecommendationsLoaded(:final results) => results.isNotEmpty,
+      RecommendationsOpeningConversation(:final results) => results.isNotEmpty,
+      _ => false,
+    };
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -663,53 +662,62 @@ class _RecommendedStartupsSection extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: _SectionHeading(
             title: 'Recommended For You',
-            onAction: state is RecommendedStartupsLoaded ? onViewAll : null,
+            onAction: hasResults ? onViewAll : null,
           ),
         ),
         const SizedBox(height: 12),
         switch (state) {
-          RecommendedStartupsLoading() ||
-          RecommendedStartupsInitial() =>
+          RecommendationsLoading() ||
+          RecommendationsInitial() =>
             const _RecommendedShimmer(),
-          RecommendedStartupsLoaded(:final startups) when startups.isEmpty =>
+          RecommendationsLoaded(:final results) when results.isEmpty =>
             const _RecommendedEmpty(),
-          RecommendedStartupsLoaded(:final startups) =>
+          RecommendationsLoaded(:final results) =>
             _RecommendedRail(
-              startups: startups,
+              startups: results,
               onViewProfile: onViewProfile,
             ),
-          RecommendedStartupsError(:final message) =>
+          RecommendationsOpeningConversation(:final results) =>
+            _RecommendedRail(
+              startups: results,
+              onViewProfile: onViewProfile,
+            ),
+          RecommendationsError(:final message) =>
             _RecommendedError(message: message),
+          RecommendationsNotInvestor() =>
+            const SizedBox.shrink(),
+          RecommendationsUnauthenticated() =>
+            const SizedBox.shrink(),
         },
       ],
     );
   }
 }
 
-/// Horizontal scrolling rail of real startup cards.
+/// Horizontal scrolling rail of real startup cards from matching.
 class _RecommendedRail extends StatelessWidget {
   const _RecommendedRail({
     required this.startups,
     required this.onViewProfile,
   });
 
-  final List<RecommendedStartupItem> startups;
-  final ValueChanged<RecommendedStartupItem> onViewProfile;
+  final List<MatchResultEntity> startups;
+  final ValueChanged<MatchResultEntity> onViewProfile;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 196,
+      height: 204,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 20),
         itemCount: startups.length,
         separatorBuilder: (_, __) => const SizedBox(width: 12),
         itemBuilder: (context, i) {
-          final startup = startups[i];
+          final match = startups[i];
           return _StartupCard(
-            startup: startup,
-            onTap: () => onViewProfile(startup),
+            match: match,
+            onTap: () => onViewProfile(match),
           );
         },
       ),
@@ -724,14 +732,14 @@ class _RecommendedShimmer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 196,
+      height: 204,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 20),
         itemCount: 3,
         separatorBuilder: (context, index) => const SizedBox(width: 12),
         itemBuilder: (context, index) => Container(
-          width: 240,
+          width: 250,
           decoration: BoxDecoration(
             color: AppColors.surfaceVariant,
             borderRadius: BorderRadius.circular(20),
@@ -796,17 +804,22 @@ class _RecommendedError extends StatelessWidget {
 }
 
 class _StartupCard extends StatelessWidget {
-  final RecommendedStartupItem startup;
+  final MatchResultEntity match;
   final VoidCallback onTap;
-  const _StartupCard({required this.startup, required this.onTap});
+  const _StartupCard({required this.match, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
+    final startup = match.startup;
+    final description = (startup.description != null && startup.description!.trim().isNotEmpty)
+        ? startup.description!.trim()
+        : 'High-potential venture matching your investment criteria.';
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(20),
       child: Container(
-        width: 240,
+        width: 250,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: AppColors.surface,
@@ -821,7 +834,7 @@ class _StartupCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    startup.name,
+                    startup.businessName,
                     style: const TextStyle(
                       color: AppColors.textPrimary,
                       fontSize: 14.5,
@@ -839,7 +852,7 @@ class _StartupCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    '${startup.matchScore}% match',
+                    '${match.overallScore}% match',
                     style: const TextStyle(
                       color: AppColors.primaryDark,
                       fontSize: 10,
@@ -852,7 +865,7 @@ class _StartupCard extends StatelessWidget {
             const SizedBox(height: 6),
             Expanded(
               child: Text(
-                startup.tagline,
+                description,
                 style: const TextStyle(
                   color: AppColors.textSecondary,
                   fontSize: 12,
@@ -868,8 +881,10 @@ class _StartupCard extends StatelessWidget {
               spacing: 6,
               runSpacing: 6,
               children: [
-                startup.industry,
-                startup.fundingStage,
+                if (startup.industry != null && startup.industry!.isNotEmpty)
+                  startup.industry!,
+                if (startup.fundingStage != null && startup.fundingStage!.isNotEmpty)
+                  startup.fundingStage!,
               ]
                   .map(
                     (tag) => Container(

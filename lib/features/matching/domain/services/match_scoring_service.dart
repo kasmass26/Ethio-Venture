@@ -82,4 +82,96 @@ class MatchScoringService {
     final normalized = location.trim().toLowerCase();
     return geographicFocus.any((g) => g.trim().toLowerCase() == normalized);
   }
+
+  /// Calculates compatibility score (0–100) and reasons for an investor
+  /// relative to a founder's startup profile.
+  (int score, List<String> matchReasons) scoreInvestorForStartup({
+    required List<String> preferredIndustries,
+    required List<String> preferredStages,
+    required double? ticketSizeMin,
+    required double? ticketSizeMax,
+    required String? startupIndustry,
+    required String? startupStage,
+    required double? startupFundingNeeded,
+  }) {
+    if (startupIndustry == null &&
+        startupStage == null &&
+        startupFundingNeeded == null) {
+      final reasons = <String>[];
+      if (preferredIndustries.isNotEmpty) {
+        reasons.add(preferredIndustries.first);
+      }
+      if (preferredStages.isNotEmpty) {
+        reasons.add(preferredStages.first);
+      }
+      if (reasons.isEmpty) {
+        reasons.add('Verified Investor');
+      }
+      return (75, reasons);
+    }
+
+    int score = 0;
+    final List<String> reasons = [];
+
+    // 1. Industry match (+40)
+    if (startupIndustry != null && startupIndustry.trim().isNotEmpty) {
+      final normInd = startupIndustry.trim().toLowerCase();
+      final hasMatch = preferredIndustries.any((ind) {
+        final i = ind.trim().toLowerCase();
+        return i == normInd || i.contains(normInd) || normInd.contains(i);
+      });
+      if (hasMatch) {
+        score += 40;
+        reasons.add('$startupIndustry fit');
+      }
+    }
+
+    // 2. Stage match (+35)
+    if (startupStage != null && startupStage.trim().isNotEmpty) {
+      final normStg = startupStage.trim().toLowerCase();
+      final hasMatch = preferredStages.any((stg) {
+        final s = stg.trim().toLowerCase();
+        return s == normStg || s.contains(normStg) || normStg.contains(s);
+      });
+      if (hasMatch) {
+        score += 35;
+        reasons.add('$startupStage stage');
+      }
+    }
+
+    // 3. Ticket size match (+25)
+    if (ticketSizeMin == null && ticketSizeMax == null) {
+      score += 15;
+    } else if (startupFundingNeeded != null) {
+      final min = ticketSizeMin;
+      final max = ticketSizeMax;
+      final needed = startupFundingNeeded;
+      if (min != null && max != null) {
+        if (needed >= min && needed <= max) {
+          score += 25;
+          reasons.add('Ticket size match');
+        } else if (needed >= min * 0.7 && needed <= max * 1.3) {
+          score += 15;
+          reasons.add('Flexible ticket');
+        }
+      } else if (min != null && needed >= min) {
+        score += 20;
+        reasons.add('Ticket size match');
+      } else if (max != null && needed <= max) {
+        score += 20;
+        reasons.add('Ticket size match');
+      }
+    }
+
+    if (reasons.isEmpty) {
+      if (preferredIndustries.isNotEmpty) {
+        reasons.add(preferredIndustries.first);
+      } else {
+        reasons.add('Active Investor');
+      }
+    }
+
+    final finalScore = (score == 0 ? 55 : score).clamp(20, 99);
+    return (finalScore, reasons);
+  }
 }
