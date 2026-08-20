@@ -1,34 +1,92 @@
 import 'package:ethioventure/features/startup_profile/domain/entities/startup_profile_entity.dart';
 
 /// Data-layer representation of a row in [public.startup_profiles].
+///
+/// Extends [StartupProfileEntity] so it can be returned anywhere the domain
+/// type is expected.
+///
+/// Column mapping (DB → Dart):
+///   id                     → id
+///   user_id                → userId
+///   startup_name           → startupName
+///   description            → description
+///   industry               → industry
+///   funding_stage          → fundingStage
+///   location               → location
+///   funding_amount_needed  → fundingAmountNeeded
+///   team_information       → teamInformation
+///   contact_information    → contactInformation
+///   created_at             → createdAt
+///   updated_at             → updatedAt
 class StartupProfileModel extends StartupProfileEntity {
   const StartupProfileModel({
     required super.id,
-    required super.profileId,
-    required super.name,
-    super.summary,
+    required super.userId,
+    required super.startupName,
+    required super.description,
     required super.industry,
-    required super.stage,
-    super.location,
-    super.fundingTarget,
-    super.status,
-    super.teamInformation,
-    super.contactInformation,
+    required super.fundingStage,
+    required super.fundingAmountNeeded,
+    required super.location,
+    required super.teamInformation,
+    required super.contactInformation,
     required super.createdAt,
     required super.updatedAt,
   });
 
+  factory StartupProfileModel.fromJson(Map<String, dynamic> json) {
+    final name = json['startup_name']?.toString().isNotEmpty == true
+        ? json['startup_name'].toString()
+        : (json['business_name']?.toString() ?? '');
+
+    final amount = _parseDouble(json['funding_amount_needed']) ??
+        _parseDouble(json['funding_amount_sought']) ??
+        0.0;
+
+    DateTime parsedCreated;
+    try {
+      parsedCreated = json['created_at'] != null
+          ? DateTime.parse(json['created_at'].toString())
+          : DateTime.now();
+    } catch (_) {
+      parsedCreated = DateTime.now();
+    }
+
+    DateTime parsedUpdated;
+    try {
+      parsedUpdated = json['updated_at'] != null
+          ? DateTime.parse(json['updated_at'].toString())
+          : DateTime.now();
+    } catch (_) {
+      parsedUpdated = DateTime.now();
+    }
+
+    return StartupProfileModel(
+      id: json['id']?.toString() ?? '',
+      userId: json['user_id']?.toString() ?? '',
+      startupName: name,
+      description: json['description']?.toString() ?? '',
+      industry: json['industry']?.toString() ?? '',
+      fundingStage: json['funding_stage']?.toString() ?? '',
+      location: json['location']?.toString() ?? '',
+      fundingAmountNeeded: amount,
+      teamInformation: json['team_information']?.toString() ?? '',
+      contactInformation: json['contact_information']?.toString() ?? '',
+      createdAt: parsedCreated,
+      updatedAt: parsedUpdated,
+    );
+  }
+
   factory StartupProfileModel.fromEntity(StartupProfileEntity entity) {
     return StartupProfileModel(
       id: entity.id,
-      profileId: entity.profileId,
-      name: entity.name,
-      summary: entity.summary,
+      userId: entity.userId,
+      startupName: entity.startupName,
+      description: entity.description,
       industry: entity.industry,
-      stage: entity.stage,
+      fundingStage: entity.fundingStage,
       location: entity.location,
-      fundingTarget: entity.fundingTarget,
-      status: entity.status,
+      fundingAmountNeeded: entity.fundingAmountNeeded,
       teamInformation: entity.teamInformation,
       contactInformation: entity.contactInformation,
       createdAt: entity.createdAt,
@@ -36,40 +94,16 @@ class StartupProfileModel extends StartupProfileEntity {
     );
   }
 
-  factory StartupProfileModel.fromJson(Map<String, dynamic> json) {
-    return StartupProfileModel(
-      id: json['id'] as String,
-      profileId: (json['profile_id'] ?? json['user_id'] ?? '') as String,
-      name: (json['name'] ?? json['startup_name'] ?? '') as String,
-      summary: (json['summary'] ?? json['description']) as String?,
-      industry: (json['industry'] ?? 'Fintech') as String,
-      stage: (json['stage'] ?? json['funding_stage'] ?? 'MVP') as String,
-      location: json['location'] as String?,
-      fundingTarget: _parseDouble(json['funding_target'] ?? json['funding_amount_needed']),
-      status: _parseStatus(json['status']),
-      teamInformation: (json['team_information'] ?? 'Core Founder Team') as String,
-      contactInformation: (json['contact_information'] ?? 'contact@startup.et') as String,
-      createdAt: json['created_at'] != null ? DateTime.parse(json['created_at'] as String) : DateTime.now(),
-      updatedAt: json['updated_at'] != null ? DateTime.parse(json['updated_at'] as String) : DateTime.now(),
-    );
-  }
-
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'profile_id': profileId,
-      'user_id': profileId,
-      'name': name,
-      'startup_name': name,
-      'summary': summary,
-      'description': summary,
+      'user_id': userId,
+      'startup_name': startupName,
+      'description': description,
       'industry': industry,
-      'stage': stage,
-      'funding_stage': stage,
+      'funding_stage': fundingStage,
       'location': location,
-      'funding_target': fundingTarget,
-      'funding_amount_needed': fundingTarget,
-      'status': status.name,
+      'funding_amount_needed': fundingAmountNeeded,
       'team_information': teamInformation,
       'contact_information': contactInformation,
       'created_at': createdAt.toIso8601String(),
@@ -77,8 +111,35 @@ class StartupProfileModel extends StartupProfileEntity {
     };
   }
 
-  Map<String, dynamic> toInsertJson() => toJson();
-  Map<String, dynamic> toUpdateJson() => toJson();
+  Map<String, dynamic> toInsertJson() {
+    return {
+      'user_id': userId,
+      'startup_name': startupName,
+      'description': description,
+      'industry': industry,
+      'funding_stage': fundingStage,
+      'location': location,
+      'funding_amount_needed': fundingAmountNeeded,
+      'team_information': teamInformation,
+      'contact_information': contactInformation,
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
+    };
+  }
+
+  Map<String, dynamic> toUpdateJson() {
+    return {
+      'startup_name': startupName,
+      'description': description,
+      'industry': industry,
+      'funding_stage': fundingStage,
+      'location': location,
+      'funding_amount_needed': fundingAmountNeeded,
+      'team_information': teamInformation,
+      'contact_information': contactInformation,
+      'updated_at': updatedAt.toIso8601String(),
+    };
+  }
 
   // ── Private helpers ────────────────────────────────────────────────────────
 
@@ -88,11 +149,5 @@ class StartupProfileModel extends StartupProfileEntity {
     if (value is int) return value.toDouble();
     if (value is String) return double.tryParse(value);
     return null;
-  }
-
-  static StartupStatus _parseStatus(dynamic value) {
-    if (value == null) return StartupStatus.draft;
-    final raw = value.toString().toLowerCase();
-    return raw == 'published' ? StartupStatus.published : StartupStatus.draft;
   }
 }

@@ -1,6 +1,7 @@
 import 'package:ethioventure/core/error/exceptions.dart';
 import 'package:ethioventure/features/investor_profile/data/datasources/investor_profile_remote_data_source.dart';
 import 'package:ethioventure/features/investor_profile/data/models/investor_profile_model.dart';
+import 'package:ethioventure/features/investor_profile/domain/entities/investor_discovery_entity.dart';
 import 'package:ethioventure/features/investor_profile/domain/entities/investor_profile_entity.dart';
 import 'package:ethioventure/features/investor_profile/domain/repositories/investor_profile_repository.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide AuthException;
@@ -52,6 +53,11 @@ class InvestorProfileRepositoryImpl implements InvestorProfileRepository {
   Future<InvestorProfileEntity?> getInvestorProfile() async {
     final userId = _getCurrentUserId();
     return _remoteDataSource.getInvestorProfileByUserId(userId);
+  }
+
+  @override
+  Future<List<InvestorDiscoveryEntity>> getApprovedInvestors() async {
+    return _remoteDataSource.getApprovedInvestors();
   }
 
   @override

@@ -13,9 +13,11 @@ import 'package:ethioventure/features/investor_profile/data/repositories/investo
 import 'package:ethioventure/features/investor_profile/domain/repositories/investor_profile_repository.dart';
 import 'package:ethioventure/features/investor_profile/domain/usecases/create_investor_profile.dart';
 import 'package:ethioventure/features/investor_profile/domain/usecases/delete_investor_profile.dart';
+import 'package:ethioventure/features/investor_profile/domain/usecases/get_approved_investors_usecase.dart';
 import 'package:ethioventure/features/investor_profile/domain/usecases/get_investor_profile.dart';
 import 'package:ethioventure/features/investor_profile/domain/usecases/update_investor_profile.dart';
 import 'package:ethioventure/features/investor_profile/presentation/cubit/investor_profile_cubit.dart';
+import 'package:ethioventure/features/founder/presentation/cubit/recommended_investors_cubit.dart';
 import 'package:ethioventure/features/startup_profile/data/datasources/startup_remote_data_source.dart';
 import 'package:ethioventure/features/startup_profile/data/repositories/startup_repository_impl.dart';
 import 'package:ethioventure/features/startup_profile/domain/repositories/startup_repository.dart';
@@ -40,13 +42,62 @@ import 'package:ethioventure/features/startup_profile/domain/usecases/get_startu
 import 'package:ethioventure/features/startup_profile/domain/usecases/update_startup_profile.dart';
 import 'package:ethioventure/features/startup_profile/presentation/cubit/startup_profile_cubit.dart';
 
+import 'package:ethioventure/features/admin/data/datasources/admin_remote_data_source.dart';
+import 'package:ethioventure/features/admin/data/datasources/admin_remote_data_source_impl.dart';
+import 'package:ethioventure/features/admin/data/repositories/admin_repository_impl.dart';
+import 'package:ethioventure/features/admin/domain/repositories/admin_repository.dart';
+import 'package:ethioventure/features/admin/domain/usecases/approve_profile.dart';
+import 'package:ethioventure/features/admin/domain/usecases/get_approved_investors.dart';
+import 'package:ethioventure/features/admin/domain/usecases/get_approved_startups.dart';
+import 'package:ethioventure/features/admin/domain/usecases/get_pending_investors.dart';
+import 'package:ethioventure/features/admin/domain/usecases/get_pending_startups.dart';
+import 'package:ethioventure/features/admin/domain/usecases/get_rejected_profiles.dart';
+import 'package:ethioventure/features/admin/domain/usecases/reject_profile.dart';
+import 'package:ethioventure/features/admin/presentation/cubit/admin_cubit.dart';
+import 'package:ethioventure/features/matching/data/datasources/matching_remote_data_source.dart';
+import 'package:ethioventure/features/matching/data/repositories/matching_repository_impl.dart';
+import 'package:ethioventure/features/matching/domain/repositories/matching_repository.dart';
+import 'package:ethioventure/features/matching/domain/services/match_scoring_service.dart';
+import 'package:ethioventure/features/matching/presentation/cubit/recommendations_cubit.dart';
+import 'package:ethioventure/features/messaging/data/datasources/messaging_remote_data_source.dart';
+import 'package:ethioventure/features/messaging/data/repositories/messaging_repository_impl.dart';
+import 'package:ethioventure/features/messaging/domain/repositories/messaging_repository.dart';
+import 'package:ethioventure/features/messaging/presentation/cubit/chat_cubit.dart';
+import 'package:ethioventure/features/messaging/presentation/cubit/conversations_cubit.dart';
+
+import 'package:ethioventure/features/notifications/data/datasources/notification_remote_data_source.dart';
+import 'package:ethioventure/features/notifications/data/repositories/notification_repository_impl.dart';
+import 'package:ethioventure/features/notifications/domain/repositories/notification_repository.dart';
+import 'package:ethioventure/features/notifications/presentation/cubit/notifications_cubit.dart';
+
+import 'package:ethioventure/core/services/user_service.dart';
+
 import 'package:get_it/get_it.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 final GetIt sl = GetIt.instance;
 
 /// Registers shared infrastructure and feature dependencies.
+///
+/// [supabaseClient] must be the already-initialised [SupabaseClient] returned
+/// by [Supabase.instance.client] after a successful [Supabase.initialize]
+/// call. When it is null (Supabase failed to initialise) the Supabase-dependent
+/// registrations are skipped — the app will show the config-error screen
+/// instead of crashing inside a cubit.
 Future<void> configureDependencies({SupabaseClient? supabaseClient}) async {
+  SupabaseClient? client = supabaseClient;
+  if (client == null) {
+    try {
+      client = Supabase.instance.client;
+    } catch (_) {
+      client = null;
+    }
+  }
+
+  if (client != null && !sl.isRegistered<SupabaseClient>()) {
+    sl.registerSingleton<SupabaseClient>(client);
+  }
+
   // Shared infrastructure
   if (!sl.isRegistered<Connectivity>()) {
     sl.registerLazySingleton<Connectivity>(Connectivity.new);
@@ -58,11 +109,17 @@ Future<void> configureDependencies({SupabaseClient? supabaseClient}) async {
     );
   }
 
-  // All Supabase-dependent registrations require a live client.
-  if (supabaseClient == null) return;
-
   if (!sl.isRegistered<SupabaseClient>()) {
-    sl.registerSingleton<SupabaseClient>(supabaseClient);
+    return;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Core Services
+  // ---------------------------------------------------------------------------
+  if (!sl.isRegistered<UserService>()) {
+    sl.registerLazySingleton<UserService>(
+      () => UserService(sl<SupabaseClient>()),
+    );
   }
 
   // ---------------------------------------------------------------------------
@@ -150,6 +207,20 @@ Future<void> configureDependencies({SupabaseClient? supabaseClient}) async {
   if (!sl.isRegistered<DeleteInvestorProfile>()) {
     sl.registerLazySingleton<DeleteInvestorProfile>(
       () => DeleteInvestorProfile(sl<InvestorProfileRepository>()),
+    );
+  }
+
+  if (!sl.isRegistered<GetApprovedInvestorsUseCase>()) {
+    sl.registerLazySingleton<GetApprovedInvestorsUseCase>(
+      () => GetApprovedInvestorsUseCase(sl<InvestorProfileRepository>()),
+    );
+  }
+
+  if (!sl.isRegistered<RecommendedInvestorsCubit>()) {
+    sl.registerFactory<RecommendedInvestorsCubit>(
+      () => RecommendedInvestorsCubit(
+        getApprovedInvestorsUseCase: sl<GetApprovedInvestorsUseCase>(),
+      ),
     );
   }
 
@@ -290,4 +361,173 @@ Future<void> configureDependencies({SupabaseClient? supabaseClient}) async {
       ),
     );
   }
+
+  // ---------------------------------------------------------------------------
+  // Admin Feature
+  // ---------------------------------------------------------------------------
+  if (!sl.isRegistered<AdminRemoteDataSource>()) {
+    sl.registerLazySingleton<AdminRemoteDataSource>(
+      () => AdminRemoteDataSourceImpl(sl<SupabaseClient>()),
+    );
+  }
+
+  if (!sl.isRegistered<AdminRepository>()) {
+    sl.registerLazySingleton<AdminRepository>(
+      () => AdminRepositoryImpl(sl<AdminRemoteDataSource>()),
+    );
+  }
+
+  if (!sl.isRegistered<GetPendingStartups>()) {
+    sl.registerLazySingleton<GetPendingStartups>(
+      () => GetPendingStartups(sl<AdminRepository>()),
+    );
+  }
+
+  if (!sl.isRegistered<GetPendingInvestors>()) {
+    sl.registerLazySingleton<GetPendingInvestors>(
+      () => GetPendingInvestors(sl<AdminRepository>()),
+    );
+  }
+
+  if (!sl.isRegistered<GetApprovedStartups>()) {
+    sl.registerLazySingleton<GetApprovedStartups>(
+      () => GetApprovedStartups(sl<AdminRepository>()),
+    );
+  }
+
+  if (!sl.isRegistered<GetApprovedInvestors>()) {
+    sl.registerLazySingleton<GetApprovedInvestors>(
+      () => GetApprovedInvestors(sl<AdminRepository>()),
+    );
+  }
+
+  if (!sl.isRegistered<GetRejectedProfiles>()) {
+    sl.registerLazySingleton<GetRejectedProfiles>(
+      () => GetRejectedProfiles(sl<AdminRepository>()),
+    );
+  }
+
+  if (!sl.isRegistered<ApproveProfile>()) {
+    sl.registerLazySingleton<ApproveProfile>(
+      () => ApproveProfile(sl<AdminRepository>()),
+    );
+  }
+
+  if (!sl.isRegistered<RejectProfile>()) {
+    sl.registerLazySingleton<RejectProfile>(
+      () => RejectProfile(sl<AdminRepository>()),
+    );
+  }
+
+  if (!sl.isRegistered<AdminCubit>()) {
+    sl.registerFactory<AdminCubit>(
+      () => AdminCubit(
+        getPendingStartups: sl<GetPendingStartups>(),
+        getPendingInvestors: sl<GetPendingInvestors>(),
+        getApprovedStartups: sl<GetApprovedStartups>(),
+        getApprovedInvestors: sl<GetApprovedInvestors>(),
+        getRejectedProfiles: sl<GetRejectedProfiles>(),
+        approveProfile: sl<ApproveProfile>(),
+        rejectProfile: sl<RejectProfile>(),
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Messaging Feature
+  // ---------------------------------------------------------------------------
+  if (!sl.isRegistered<MessagingRemoteDataSource>()) {
+    sl.registerLazySingleton<MessagingRemoteDataSource>(
+      () => MessagingRemoteDataSource(
+        supabaseClient: sl<SupabaseClient>(),
+      ),
+    );
+  }
+
+  if (!sl.isRegistered<MessagingRepository>()) {
+    sl.registerLazySingleton<MessagingRepository>(
+      () => MessagingRepositoryImpl(
+        remoteDataSource: sl<MessagingRemoteDataSource>(),
+      ),
+    );
+  }
+
+  if (!sl.isRegistered<ConversationsCubit>()) {
+    sl.registerFactory<ConversationsCubit>(
+      () => ConversationsCubit(
+        repository: sl<MessagingRepository>(),
+      ),
+    );
+  }
+
+  if (!sl.isRegistered<ChatCubit>()) {
+    sl.registerFactory<ChatCubit>(
+      () => ChatCubit(
+        repository: sl<MessagingRepository>(),
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Matching / Recommendations Feature
+  // ---------------------------------------------------------------------------
+  if (!sl.isRegistered<MatchScoringService>()) {
+    sl.registerLazySingleton<MatchScoringService>(
+      () => const MatchScoringService(),
+    );
+  }
+
+  if (!sl.isRegistered<MatchingRemoteDataSource>()) {
+    sl.registerLazySingleton<MatchingRemoteDataSource>(
+      () => MatchingRemoteDataSource(
+        supabaseClient: sl<SupabaseClient>(),
+      ),
+    );
+  }
+
+  if (!sl.isRegistered<MatchingRepository>()) {
+    sl.registerLazySingleton<MatchingRepository>(
+      () => MatchingRepositoryImpl(
+        remoteDataSource: sl<MatchingRemoteDataSource>(),
+        scoringService: sl<MatchScoringService>(),
+      ),
+    );
+  }
+
+  if (!sl.isRegistered<RecommendationsCubit>()) {
+    sl.registerFactory<RecommendationsCubit>(
+      () => RecommendationsCubit(
+        repository: sl<MatchingRepository>(),
+        messagingRepository: sl<MessagingRepository>(),
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Notifications Feature
+  // ---------------------------------------------------------------------------
+  if (!sl.isRegistered<NotificationRemoteDataSource>()) {
+    sl.registerLazySingleton<NotificationRemoteDataSource>(
+      () => NotificationRemoteDataSource(
+        supabaseClient: sl<SupabaseClient>(),
+      ),
+    );
+  }
+
+  if (!sl.isRegistered<NotificationRepository>()) {
+    sl.registerLazySingleton<NotificationRepository>(
+      () => NotificationRepositoryImpl(
+        remoteDataSource: sl<NotificationRemoteDataSource>(),
+      ),
+    );
+  }
+
+  if (!sl.isRegistered<NotificationsCubit>()) {
+    sl.registerFactory<NotificationsCubit>(
+      () => NotificationsCubit(
+        repository: sl<NotificationRepository>(),
+      ),
+    );
+  }
 }
+

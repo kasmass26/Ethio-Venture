@@ -1,6 +1,8 @@
+import 'package:ethioventure/core/constants/app_constants.dart';
 import 'package:ethioventure/core/di/injection_container.dart';
 import 'package:ethioventure/core/theme/app_colors.dart';
 import 'package:ethioventure/core/theme/app_sizes.dart';
+import 'package:ethioventure/features/investor/presentation/widgets/app_bottom_nav.dart';
 import 'package:ethioventure/features/startup_profile/domain/entities/startup_profile_entity.dart';
 import 'package:ethioventure/features/startup_profile/presentation/cubit/startup_search_cubit.dart';
 import 'package:ethioventure/features/startup_profile/presentation/cubit/startup_search_state.dart';
@@ -133,6 +135,23 @@ class _StartupListViewState extends State<_StartupListView> {
           ),
         ],
       ),
+      bottomNavigationBar: AppBottomNav(
+        items: AppBottomNav.investorNavItems,
+        currentIndex: 1,
+        onTap: (index) {
+          if (index == 0) {
+            Navigator.of(
+              context,
+            ).pushReplacementNamed(AppConstants.routeInvestorDashboard);
+          } else if (index == 2) {
+            Navigator.of(context).pushNamed(AppConstants.routeMessages);
+          } else if (index == 3) {
+            Navigator.of(
+              context,
+            ).pushReplacementNamed(AppConstants.routeInvestorProfile);
+          }
+        },
+      ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -176,9 +195,9 @@ class _StartupListViewState extends State<_StartupListView> {
                           WidgetsBinding.instance.addPostFrameCallback((_) {
                             _searchPending = false;
                             if (mounted) {
-                              context
-                                  .read<StartupSearchCubit>()
-                                  .updateQuery(value);
+                              context.read<StartupSearchCubit>().updateQuery(
+                                value,
+                              );
                             }
                           });
                         }
@@ -192,9 +211,11 @@ class _StartupListViewState extends State<_StartupListView> {
                 // Filter button with active-filter indicator dot.
                 BlocBuilder<StartupSearchCubit, StartupSearchState>(
                   builder: (context, state) {
-                    final filter =
-                        context.read<StartupSearchCubit>().currentFilter;
-                    final hasFilters = filter.industry != null ||
+                    final filter = context
+                        .read<StartupSearchCubit>()
+                        .currentFilter;
+                    final hasFilters =
+                        filter.industry != null ||
                         filter.stage != null ||
                         filter.location != null ||
                         filter.minFundingTarget != null ||
@@ -283,7 +304,85 @@ class _StartupListViewState extends State<_StartupListView> {
             },
           ),
 
-          const SizedBox(height: AppSizes.sm),
+          // ── AI Recommendations Banner ────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSizes.pageHorizontal,
+              AppSizes.xs,
+              AppSizes.pageHorizontal,
+              AppSizes.xs,
+            ),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+              onTap: () => Navigator.of(
+                context,
+              ).pushNamed(AppConstants.routeRecommendations),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSizes.md,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: isDark
+                        ? [AppColors.surfaceDark, AppColors.backgroundDark]
+                        : [AppColors.primarySoft, AppColors.secondarySoft],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+                  border: Border.all(
+                    color: AppColors.secondary.withValues(alpha: 0.2),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: const BoxDecoration(
+                        color: AppColors.secondary,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.auto_awesome_rounded,
+                        size: 14,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Matched Recommendations',
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                          Text(
+                            'Personalized based on your investment thesis',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: AppColors.textSecondary,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      size: 13,
+                      color: AppColors.secondary,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: AppSizes.xs),
           const Divider(height: 1),
 
           // ── Results area ─────────────────────────────────────────────────
@@ -312,7 +411,8 @@ class _StartupListViewState extends State<_StartupListView> {
 
                 // Empty
                 if (state is StartupSearchEmpty) {
-                  final hasFilters = !state.filter.isEmpty ||
+                  final hasFilters =
+                      !state.filter.isEmpty ||
                       _searchController.text.isNotEmpty;
                   return _EmptyView(
                     hasFilters: hasFilters,
@@ -392,14 +492,21 @@ class _ResultsList extends StatelessWidget {
                 child: Center(
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      AppColors.primary,
+                    ),
                   ),
                 ),
               );
             }
             return StartupCard(
               startup: startups[index],
-              onTap: null, // detail page wired in Step 4
+              onTap: () {
+                Navigator.of(context).pushNamed(
+                  AppConstants.routeStartupDetail,
+                  arguments: startups[index],
+                );
+              },
             );
           },
         ),
@@ -411,10 +518,7 @@ class _ResultsList extends StatelessWidget {
 // ── Empty state ───────────────────────────────────────────────────────────────
 
 class _EmptyView extends StatelessWidget {
-  const _EmptyView({
-    required this.hasFilters,
-    required this.onClearFilters,
-  });
+  const _EmptyView({required this.hasFilters, required this.onClearFilters});
 
   final bool hasFilters;
   final VoidCallback onClearFilters;
@@ -439,14 +543,10 @@ class _EmptyView extends StatelessWidget {
             ),
             const SizedBox(height: AppSizes.lg),
             Text(
-              hasFilters
-                  ? 'No startups found'
-                  : 'No startups yet',
+              hasFilters ? 'No startups found' : 'No startups yet',
               style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w700,
-                color: isDark
-                    ? AppColors.textPrimaryDark
-                    : AppColors.secondary,
+                color: isDark ? AppColors.textPrimaryDark : AppColors.secondary,
               ),
               textAlign: TextAlign.center,
             ),
@@ -455,7 +555,7 @@ class _EmptyView extends StatelessWidget {
               hasFilters
                   ? 'Try adjusting your search or filters to find startups.'
                   : 'Ethiopian startups will appear here once they publish '
-                      'their profiles.',
+                        'their profiles.',
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: isDark
                     ? AppColors.textSecondaryDark
@@ -497,11 +597,7 @@ class _ErrorView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.error_outline,
-              size: 64,
-              color: AppColors.error,
-            ),
+            const Icon(Icons.error_outline, size: 64, color: AppColors.error),
             const SizedBox(height: AppSizes.lg),
             Text(
               'Something went wrong',
@@ -515,8 +611,9 @@ class _ErrorView extends StatelessWidget {
             Text(
               message,
               style: theme.textTheme.bodyMedium?.copyWith(
-                color:
-                    isDark ? AppColors.textSecondaryDark : AppColors.textSecondary,
+                color: isDark
+                    ? AppColors.textSecondaryDark
+                    : AppColors.textSecondary,
               ),
               textAlign: TextAlign.center,
               maxLines: 4,

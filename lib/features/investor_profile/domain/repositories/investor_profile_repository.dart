@@ -1,3 +1,4 @@
+import 'package:ethioventure/features/investor_profile/domain/entities/investor_discovery_entity.dart';
 import 'package:ethioventure/features/investor_profile/domain/entities/investor_profile_entity.dart';
 
 /// Repository contract for investor profile operations.
@@ -11,6 +12,9 @@ abstract interface class InvestorProfileRepository {
   /// Returns `null` if the user has not created an investor profile yet.
   /// Throws an exception if the operation fails (network error, permissions, etc.).
   Future<InvestorProfileEntity?> getInvestorProfile();
+
+  /// Retrieves a list of active and approved investors for discovery.
+  Future<List<InvestorDiscoveryEntity>> getApprovedInvestors();
 
   /// Creates a new investor profile for the current authenticated user.
   ///

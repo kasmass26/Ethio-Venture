@@ -2,26 +2,23 @@ import 'package:flutter/foundation.dart';
 
 /// Domain representation of a row in [public.startup_profiles].
 ///
-/// [profileId] references [public.profiles.id] (= [auth.users.id]) and is
-/// unique per startup — one founder owns one startup profile.
-///
-/// Fields map directly to the schema defined in docs/database-design.md:
-///   id, profile_id, name, summary, industry, stage, location,
-///   funding_target, status, created_at, updated_at.
+/// Fields map directly to the schema defined in migrations:
+///   id, user_id, startup_name, description, industry, funding_stage,
+///   location, funding_amount_needed, team_information, contact_information,
+///   created_at, updated_at.
 @immutable
 class StartupProfileEntity {
   const StartupProfileEntity({
     required this.id,
-    required this.profileId,
-    required this.name,
-    this.summary,
+    required this.userId,
+    required this.startupName,
+    required this.description,
     required this.industry,
-    required this.stage,
-    this.location,
-    this.fundingTarget,
-    this.status = StartupStatus.draft,
-    this.teamInformation = 'Core Founder Team',
-    this.contactInformation = 'contact@startup.et',
+    required this.fundingStage,
+    required this.fundingAmountNeeded,
+    required this.location,
+    required this.teamInformation,
+    required this.contactInformation,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -30,60 +27,54 @@ class StartupProfileEntity {
   final String id;
 
   /// Foreign key → public.profiles.id (= auth.users.id of the founder).
-  final String profileId;
+  final String userId;
 
   /// Public name of the startup.
-  final String name;
+  final String startupName;
 
-  /// Short pitch / summary shown on the listing card.
-  final String? summary;
+  /// Detailed description of the startup.
+  final String description;
 
   /// Primary industry vertical (e.g. 'Fintech', 'Agri-Tech', 'Health').
   final String industry;
 
-  /// Funding stage the startup is currently seeking
-  /// (e.g. 'Pre-Seed', 'Seed', 'Series A').
-  final String stage;
+  /// Funding stage the startup is currently seeking.
+  final String fundingStage;
 
-  /// City / region the startup is based in (e.g. 'Addis Ababa').
-  final String? location;
+  /// City / region the startup is based in.
+  final String location;
 
-  /// Capital sought in USD. Maps to [funding_target] in the DB.
-  final double? fundingTarget;
+  /// Capital sought in USD. Maps to [funding_amount_needed] in the DB.
+  final double fundingAmountNeeded;
 
-  /// Publication status — only [StartupStatus.published] profiles are
-  /// visible to investors.
-  final StartupStatus status;
-
-  /// Team information summary.
+  /// Team and founder details.
   final String teamInformation;
 
-  /// Contact details.
+  /// Contact information.
   final String contactInformation;
 
   final DateTime createdAt;
   final DateTime updatedAt;
 
-  // Backward-compatibility getters for feature widgets
-  String get userId => profileId;
-  String get startupName => name;
-  String get description => summary ?? '';
-  String get fundingStage => stage;
-  double get fundingAmountNeeded => fundingTarget ?? 0.0;
+  // Schema aliases for matching and investor modules
+  String get profileId => userId;
+  String get name => startupName;
+  String? get summary => description;
+  String get stage => fundingStage;
+  double? get fundingTarget => fundingAmountNeeded;
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
         other is StartupProfileEntity &&
             id == other.id &&
-            profileId == other.profileId &&
-            name == other.name &&
-            summary == other.summary &&
+            userId == other.userId &&
+            startupName == other.startupName &&
+            description == other.description &&
             industry == other.industry &&
-            stage == other.stage &&
+            fundingStage == other.fundingStage &&
             location == other.location &&
-            fundingTarget == other.fundingTarget &&
-            status == other.status &&
+            fundingAmountNeeded == other.fundingAmountNeeded &&
             teamInformation == other.teamInformation &&
             contactInformation == other.contactInformation &&
             createdAt == other.createdAt &&
@@ -93,23 +84,16 @@ class StartupProfileEntity {
   @override
   int get hashCode => Object.hash(
         id,
-        profileId,
-        name,
-        summary,
+        userId,
+        startupName,
+        description,
         industry,
-        stage,
+        fundingStage,
         location,
-        fundingTarget,
-        status,
+        fundingAmountNeeded,
         teamInformation,
         contactInformation,
         createdAt,
         updatedAt,
       );
-}
-
-/// Mirrors the [status] check constraint defined in the database schema.
-enum StartupStatus {
-  draft,
-  published,
 }

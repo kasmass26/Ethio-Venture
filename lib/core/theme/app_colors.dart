@@ -42,11 +42,8 @@ class AppColors {
   static const Color textSecondaryDark = Color(0xFFB7C7D8);
   static const Color borderDark = Color(0xFF294661);
 
-  /// Founder / startup identity.
-  static const Color emerald = Color(0xFF0F6E56);
-
-  /// Soft emerald background.
-  static const Color emeraldTint = Color(0xFFE1F5EE);
+  /// Soft primary background.
+  static const Color primaryTint = Color(0xFFE1F5EE);
 
   /// Investor identity.
   static const Color violet = Color(0xFF7F77DD);
@@ -71,4 +68,3 @@ class AppColors {
 
   static const Color white = Color(0xFFFFFFFF);
 }
-

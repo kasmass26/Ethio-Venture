@@ -56,8 +56,8 @@ class StartupCard extends StatelessWidget {
                     ),
                     alignment: Alignment.center,
                     child: Text(
-                      startup.name.isNotEmpty
-                          ? startup.name[0].toUpperCase()
+                      startup.startupName.isNotEmpty
+                          ? startup.startupName[0].toUpperCase()
                           : '?',
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w800,
@@ -71,7 +71,7 @@ class StartupCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          startup.name,
+                          startup.startupName,
                           style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.w700,
                             color: isDark
@@ -96,7 +96,7 @@ class StartupCard extends StatelessWidget {
                                   : AppColors.primarySoft,
                             ),
                             _Badge(
-                              label: startup.stage,
+                              label: startup.fundingStage,
                               color: isDark
                                   ? AppColors.textSecondaryDark
                                   : AppColors.textSecondary,
@@ -113,11 +113,10 @@ class StartupCard extends StatelessWidget {
               ),
 
               // ── Summary ────────────────────────────────────────────────
-              if (startup.summary != null &&
-                  startup.summary!.isNotEmpty) ...[
+              if (startup.description.isNotEmpty) ...[
                 const SizedBox(height: AppSizes.md),
                 Text(
-                  startup.summary!,
+                  startup.description,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: isDark
                         ? AppColors.textSecondaryDark
@@ -136,8 +135,7 @@ class StartupCard extends StatelessWidget {
               // ── Row 2: location + funding target ───────────────────────
               Row(
                 children: [
-                  if (startup.location != null &&
-                      startup.location!.isNotEmpty) ...[
+                  if (startup.location.isNotEmpty) ...[
                     Icon(
                       Icons.location_on_outlined,
                       size: AppSizes.iconSm,
@@ -148,7 +146,7 @@ class StartupCard extends StatelessWidget {
                     const SizedBox(width: AppSizes.xs),
                     Expanded(
                       child: Text(
-                        startup.location!,
+                        startup.location,
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: isDark
                               ? AppColors.textSecondaryDark
@@ -159,22 +157,20 @@ class StartupCard extends StatelessWidget {
                     ),
                   ] else
                     const Spacer(),
-                  if (startup.fundingTarget != null) ...[
-                    const SizedBox(width: AppSizes.sm),
-                    Icon(
-                      Icons.trending_up,
-                      size: AppSizes.iconSm,
+                  const SizedBox(width: AppSizes.sm),
+                  Icon(
+                    Icons.trending_up,
+                    size: AppSizes.iconSm,
+                    color: isDark ? AppColors.primary : AppColors.secondary,
+                  ),
+                  const SizedBox(width: AppSizes.xs),
+                  Text(
+                    _formatFunding(startup.fundingAmountNeeded),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w600,
                       color: isDark ? AppColors.primary : AppColors.secondary,
                     ),
-                    const SizedBox(width: AppSizes.xs),
-                    Text(
-                      _formatFunding(startup.fundingTarget!),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: isDark ? AppColors.primary : AppColors.secondary,
-                      ),
-                    ),
-                  ],
+                  ),
                 ],
               ),
             ],

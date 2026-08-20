@@ -11,10 +11,7 @@ import '../widgets/startup_profile_form.dart';
 
 /// Page enabling founders to edit their existing startup profile.
 class EditStartupProfilePage extends StatelessWidget {
-  const EditStartupProfilePage({
-    super.key,
-    required this.profile,
-  });
+  const EditStartupProfilePage({super.key, required this.profile});
 
   static const String routeName = '/edit-startup-profile';
 
@@ -65,17 +62,18 @@ class EditStartupProfilePage extends StatelessWidget {
                   children: [
                     Text(
                       'Update Profile Information',
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(
                             fontWeight: FontWeight.bold,
-                            color: AppColors.emerald,
+                            color: AppColors.primary,
                           ),
                     ),
                     const SizedBox(height: AppSizes.xs),
                     Text(
                       'Keep your funding needs, traction, and team details updated for prospective investors.',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppColors.slate,
-                          ),
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodyMedium?.copyWith(color: AppColors.slate),
                     ),
                     const SizedBox(height: AppSizes.lg),
                     Card(
@@ -92,9 +90,9 @@ class EditStartupProfilePage extends StatelessWidget {
                           isSubmitting: isSubmitting,
                           buttonText: 'Save Changes',
                           onSubmit: (updatedProfile) {
-                            context
-                                .read<StartupProfileCubit>()
-                                .updateProfile(updatedProfile);
+                            context.read<StartupProfileCubit>().updateProfile(
+                              updatedProfile,
+                            );
                           },
                         ),
                       ),

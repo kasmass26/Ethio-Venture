@@ -66,21 +66,22 @@ class _OnboardingPageState extends State<OnboardingPage> {
                         width: 32,
                         height: 32,
                         decoration: BoxDecoration(
-                          color: AppColors.emeraldTint,
+                          color: AppColors.primaryTint,
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(
                           Icons.rocket_launch,
                           size: 18,
-                          color: AppColors.emerald,
+                          color: AppColors.primary,
                         ),
                       ),
                       const SizedBox(width: AppSizes.xs),
                       Text(
                         AppConstants.appName,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
                               fontWeight: FontWeight.bold,
-                              color: AppColors.emerald,
+                              color: AppColors.primary,
                             ),
                       ),
                     ],
@@ -125,22 +126,20 @@ class _OnboardingPageState extends State<OnboardingPage> {
                           width: 120,
                           height: 120,
                           decoration: BoxDecoration(
-                            color: AppColors.emeraldTint,
+                            color: AppColors.primaryTint,
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
                             slide.icon,
                             size: 64,
-                            color: AppColors.emerald,
+                            color: AppColors.primary,
                           ),
                         ),
                         const SizedBox(height: AppSizes.xl),
                         Text(
                           slide.title,
                           textAlign: TextAlign.center,
-                          style: Theme.of(context)
-                              .textTheme
-                              .headlineSmall
+                          style: Theme.of(context).textTheme.headlineSmall
                               ?.copyWith(
                                 fontWeight: FontWeight.bold,
                                 color: AppColors.ink,
@@ -150,13 +149,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
                         Text(
                           slide.description,
                           textAlign: TextAlign.center,
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodyLarge
-                              ?.copyWith(
-                                color: AppColors.slate,
-                                height: 1.5,
-                              ),
+                          style: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(color: AppColors.slate, height: 1.5),
                         ),
                       ],
                     ),
@@ -177,7 +171,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                   height: 8,
                   decoration: BoxDecoration(
                     color: _currentPage == index
-                        ? AppColors.emerald
+                        ? AppColors.primary
                         : AppColors.fog,
                     borderRadius: BorderRadius.circular(4),
                   ),
@@ -202,11 +196,12 @@ class _OnboardingPageState extends State<OnboardingPage> {
                         Navigator.pushNamed(context, '/register');
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.emerald,
+                        backgroundColor: AppColors.primary,
                         foregroundColor: AppColors.white,
                         shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(AppSizes.radiusMd),
+                          borderRadius: BorderRadius.circular(
+                            AppSizes.radiusMd,
+                          ),
                         ),
                         elevation: 2,
                       ),
@@ -228,14 +223,15 @@ class _OnboardingPageState extends State<OnboardingPage> {
                         Navigator.pushNamed(context, '/login');
                       },
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.emerald,
+                        foregroundColor: AppColors.primary,
                         side: const BorderSide(
-                          color: AppColors.emerald,
+                          color: AppColors.primary,
                           width: 1.5,
                         ),
                         shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(AppSizes.radiusMd),
+                          borderRadius: BorderRadius.circular(
+                            AppSizes.radiusMd,
+                          ),
                         ),
                       ),
                       child: const Text(

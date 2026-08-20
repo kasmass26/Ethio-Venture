@@ -45,12 +45,6 @@ class StartupRemoteDataSourceImpl implements StartupRemoteDataSource {
 
   static const _table = 'startup_profiles';
 
-  /// Column list for the discovery view.  Enumerating avoids fetching
-  /// columns added by future features (e.g. document metadata).
-  static const _listColumns =
-      'id, profile_id, name, summary, industry, stage, '
-      'location, funding_target, status, created_at, updated_at';
-
   // ── searchStartups ──────────────────────────────────────────────────────
 
   @override
@@ -58,59 +52,92 @@ class StartupRemoteDataSourceImpl implements StartupRemoteDataSource {
     StartupFilter filter,
   ) async {
     try {
-      // ── WHERE phase (PostgrestFilterBuilder) ─────────────────────────────
-      // Start with the base filter: only published profiles are visible
-      // to investors.  Every subsequent .eq / .ilike / .gte / .lte call
-      // narrows this with AND logic.
-      PostgrestFilterBuilder<PostgrestList> filterQuery = _client
-          .from(_table)
-          .select(_listColumns)
-          .eq('status', 'published');
-
-      // Free-text search: OR across name and summary (case-insensitive).
-      final q = filter.query?.trim();
-      if (q != null && q.isNotEmpty) {
-        filterQuery = filterQuery.or('name.ilike.%$q%,summary.ilike.%$q%');
+      List<dynamic> rows = [];
+      try {
+        final data = await _client
+            .from(_table)
+            .select()
+            .order('created_at', ascending: false);
+        rows = (data as List).cast<dynamic>();
+      } catch (e) {
+        debugPrint(
+          '[Startup] Order by created_at failed, falling back to simple select: $e',
+        );
+        final data = await _client.from(_table).select();
+        rows = (data as List).cast<dynamic>();
       }
 
-      // Exact-match filters for controlled-vocabulary columns.
-      if (filter.industry != null) {
-        filterQuery = filterQuery.eq('industry', filter.industry!);
-      }
-      if (filter.stage != null) {
-        filterQuery = filterQuery.eq('stage', filter.stage!);
+      final models = <StartupProfileModel>[];
+      for (final r in rows) {
+        final map = Map<String, dynamic>.from(r as Map);
+
+        // Exclude explicitly rejected profiles if approval_status column exists
+        final status = map['approval_status']?.toString().toLowerCase();
+        if (status == 'rejected') continue;
+
+        final model = StartupProfileModel.fromJson(map);
+
+        // Apply free-text search query across startup_name, business_name, description, industry, location
+        final q = filter.query?.trim().toLowerCase();
+        if (q != null && q.isNotEmpty) {
+          final nameMatches = model.startupName.toLowerCase().contains(q);
+          final descMatches = model.description.toLowerCase().contains(q);
+          final indMatches = model.industry.toLowerCase().contains(q);
+          final locMatches = model.location.toLowerCase().contains(q);
+          if (!nameMatches && !descMatches && !indMatches && !locMatches) {
+            continue;
+          }
+        }
+
+        // Apply industry filter
+        if (filter.industry != null && filter.industry!.trim().isNotEmpty) {
+          if (!model.industry
+              .toLowerCase()
+              .contains(filter.industry!.trim().toLowerCase())) {
+            continue;
+          }
+        }
+
+        // Apply funding stage filter
+        if (filter.stage != null && filter.stage!.trim().isNotEmpty) {
+          if (!model.fundingStage
+              .toLowerCase()
+              .contains(filter.stage!.trim().toLowerCase())) {
+            continue;
+          }
+        }
+
+        // Apply location filter
+        if (filter.location != null && filter.location!.trim().isNotEmpty) {
+          if (!model.location
+              .toLowerCase()
+              .contains(filter.location!.trim().toLowerCase())) {
+            continue;
+          }
+        }
+
+        // Apply funding target range filters
+        if (filter.minFundingTarget != null) {
+          if (model.fundingAmountNeeded < filter.minFundingTarget!) {
+            continue;
+          }
+        }
+        if (filter.maxFundingTarget != null) {
+          if (model.fundingAmountNeeded > filter.maxFundingTarget!) {
+            continue;
+          }
+        }
+
+        models.add(model);
       }
 
-      // Case-insensitive location substring match.
-      if (filter.location != null) {
-        filterQuery = filterQuery.ilike('location', '%${filter.location!}%');
-      }
-
-      // Funding-target range bounds (inclusive).
-      if (filter.minFundingTarget != null) {
-        filterQuery =
-            filterQuery.gte('funding_target', filter.minFundingTarget!);
-      }
-      if (filter.maxFundingTarget != null) {
-        filterQuery =
-            filterQuery.lte('funding_target', filter.maxFundingTarget!);
-      }
-
-      // ── TRANSFORM phase (PostgrestTransformBuilder) ──────────────────────
-      // .order() and .range() live on the parent PostgrestTransformBuilder.
-      // Calling them on filterQuery is valid because FilterBuilder extends
-      // TransformBuilder; we hold the result in the wider type.
+      // Apply pagination
       final from = filter.page * filter.pageSize;
-      final to = from + filter.pageSize - 1; // inclusive Supabase upper bound
-
-      final rows = await filterQuery
-          .order('created_at', ascending: false)
-          .range(from, to);
-
-      return (rows as List<dynamic>)
-          .cast<Map<String, dynamic>>()
-          .map(StartupProfileModel.fromJson)
-          .toList();
+      if (from >= models.length) {
+        return <StartupProfileModel>[];
+      }
+      final to = (from + filter.pageSize).clamp(0, models.length);
+      return models.sublist(from, to);
     } on PostgrestException catch (e) {
       debugPrint('[Startup] searchStartups error: ${e.message} (${e.code})');
       throw ServerException(
@@ -130,13 +157,14 @@ class StartupRemoteDataSourceImpl implements StartupRemoteDataSource {
     try {
       final data = await _client
           .from(_table)
-          .select(_listColumns)
+          .select()
           .eq('id', id)
-          .eq('status', 'published') // investors only see published profiles
           .maybeSingle();
 
       if (data == null) return null;
-      return StartupProfileModel.fromJson(data);
+      return StartupProfileModel.fromJson(
+        Map<String, dynamic>.from(data as Map),
+      );
     } on PostgrestException catch (e) {
       debugPrint('[Startup] getStartupById error: ${e.message} (${e.code})');
       throw ServerException(

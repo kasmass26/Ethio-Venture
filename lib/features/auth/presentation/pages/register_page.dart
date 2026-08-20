@@ -119,11 +119,7 @@ class _RegisterFormViewState extends State<_RegisterFormView> {
               builder: (_) => AlertDialog(
                 icon: const Icon(Icons.mark_email_unread_outlined, size: 48),
                 title: const Text('Confirm your email'),
-                content: Text(
-                  'We sent a confirmation link to ${state.email}.\n\n'
-                  'Please open it to activate your account, then return here '
-                  'and sign in.',
-                ),
+               
                 actions: [
                   TextButton(
                     onPressed: () {
@@ -139,20 +135,15 @@ class _RegisterFormViewState extends State<_RegisterFormView> {
               ),
             );
           } else if (state is Authenticated) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  'Account created successfully for ${state.user.name}!',
-                ),
-                backgroundColor: AppColors.success,
-              ),
+            final destination = AppRouter.dashboardRouteForRole(
+              state.user.role,
+              state.user.email,
             );
-            // Session is live — send investors straight to profile setup so
-            // currentUser is non-null when InvestorProfilePage first loads.
-            final destination = state.user.role == AppConstants.roleInvestor
-                ? AppConstants.routeInvestorProfile
-                : AppConstants.routeHome;
-            Navigator.of(context).pushReplacementNamed(destination);
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              destination,
+              (_) => false,
+            );
           }
         },
         builder: (context, state) {

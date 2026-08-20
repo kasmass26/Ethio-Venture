@@ -11,9 +11,11 @@ class PitchDeckSectionWidget extends StatelessWidget {
   const PitchDeckSectionWidget({
     super.key,
     required this.startupId,
+    this.isFounder = true,
   });
 
   final String startupId;
+  final bool isFounder;
 
   String _formatFileSize(int bytes) {
     if (bytes < 1024) return '$bytes B';
@@ -24,7 +26,9 @@ class PitchDeckSectionWidget extends StatelessWidget {
   void _showUploadDialog(BuildContext parentContext) {
     final documentCubit = parentContext.read<DocumentCubit>();
     final titleController = TextEditingController();
-    final fileNameController = TextEditingController(text: 'PitchDeck_EthioPay_2026.pdf');
+    final fileNameController = TextEditingController(
+      text: 'PitchDeck_EthioPay_2026.pdf',
+    );
     String? selectedFilePath;
     bool isPrivate = false;
 
@@ -49,7 +53,10 @@ class PitchDeckSectionWidget extends StatelessWidget {
                       final nameWithoutExt = file.name.contains('.')
                           ? file.name.substring(0, file.name.lastIndexOf('.'))
                           : file.name;
-                      titleController.text = nameWithoutExt.replaceAll('_', ' ');
+                      titleController.text = nameWithoutExt.replaceAll(
+                        '_',
+                        ' ',
+                      );
                     }
                   });
                 }
@@ -59,7 +66,7 @@ class PitchDeckSectionWidget extends StatelessWidget {
             return AlertDialog(
               title: const Row(
                 children: [
-                  Icon(Icons.upload_file, color: AppColors.emerald),
+                  Icon(Icons.upload_file, color: AppColors.primary),
                   SizedBox(width: AppSizes.xs),
                   Text('Upload Pitch Deck / Document'),
                 ],
@@ -72,18 +79,21 @@ class PitchDeckSectionWidget extends StatelessWidget {
                     // Native File Picker Trigger Button
                     OutlinedButton.icon(
                       onPressed: pickRealFile,
-                      icon: const Icon(Icons.folder_open, color: AppColors.emerald),
+                      icon: const Icon(
+                        Icons.folder_open,
+                        color: AppColors.primary,
+                      ),
                       label: Text(
                         selectedFilePath != null
                             ? 'Selected: ${fileNameController.text}'
                             : 'Choose File from Device (PDF / DOCX / PPTX)',
                         style: const TextStyle(
-                          color: AppColors.emerald,
+                          color: AppColors.primary,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: AppColors.emerald),
+                        side: const BorderSide(color: AppColors.primary),
                         padding: const EdgeInsets.symmetric(
                           horizontal: AppSizes.md,
                           vertical: AppSizes.sm,
@@ -94,8 +104,8 @@ class PitchDeckSectionWidget extends StatelessWidget {
                     Text(
                       'Document Title *',
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: AppSizes.xs),
                     TextField(
@@ -109,8 +119,8 @@ class PitchDeckSectionWidget extends StatelessWidget {
                     Text(
                       'File Name',
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: AppSizes.xs),
                     TextField(
@@ -118,15 +128,20 @@ class PitchDeckSectionWidget extends StatelessWidget {
                       decoration: const InputDecoration(
                         hintText: 'e.g. pitch_deck.pdf',
                         border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.picture_as_pdf, color: AppColors.coral),
+                        prefixIcon: Icon(
+                          Icons.picture_as_pdf,
+                          color: AppColors.coral,
+                        ),
                       ),
                     ),
                     const SizedBox(height: AppSizes.md),
                     SwitchListTile(
                       title: const Text('Private (Matched Investors Only)'),
-                      subtitle: const Text('Restrict visibility to verified investors'),
+                      subtitle: const Text(
+                        'Restrict visibility to verified investors',
+                      ),
                       value: isPrivate,
-                      activeThumbColor: AppColors.emerald,
+                      activeThumbColor: AppColors.primary,
                       onChanged: (val) {
                         setState(() {
                           isPrivate = val;
@@ -146,8 +161,8 @@ class PitchDeckSectionWidget extends StatelessWidget {
                     final title = titleController.text.trim().isNotEmpty
                         ? titleController.text.trim()
                         : (fileNameController.text.trim().isNotEmpty
-                            ? fileNameController.text.trim()
-                            : 'EthioPay Pitch Deck 2026');
+                              ? fileNameController.text.trim()
+                              : 'EthioPay Pitch Deck 2026');
                     final fileName = fileNameController.text.trim().isNotEmpty
                         ? fileNameController.text.trim()
                         : 'PitchDeck_EthioPay_2026.pdf';
@@ -165,7 +180,7 @@ class PitchDeckSectionWidget extends StatelessWidget {
                   icon: const Icon(Icons.cloud_upload),
                   label: const Text('Upload Document'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.emerald,
+                    backgroundColor: AppColors.primary,
                     foregroundColor: AppColors.white,
                   ),
                 ),
@@ -195,24 +210,30 @@ class PitchDeckSectionWidget extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.folder_special_outlined,
-                        size: 20, color: AppColors.emerald),
+                    const Icon(
+                      Icons.folder_special_outlined,
+                      size: 20,
+                      color: AppColors.primary,
+                    ),
                     const SizedBox(width: AppSizes.sm),
                     Text(
                       'Pitch Decks & Documents',
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.ink,
-                          ),
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.ink,
+                      ),
                     ),
                   ],
                 ),
-                IconButton(
-                  icon: const Icon(Icons.add_circle_outline,
-                      color: AppColors.emerald),
-                  tooltip: 'Upload New Document',
-                  onPressed: () => _showUploadDialog(context),
-                ),
+                if (isFounder)
+                  IconButton(
+                    icon: const Icon(
+                      Icons.add_circle_outline,
+                      color: AppColors.primary,
+                    ),
+                    tooltip: 'Upload New Document',
+                    onPressed: () => _showUploadDialog(context),
+                  ),
               ],
             ),
             const Divider(height: AppSizes.lg),
@@ -222,7 +243,7 @@ class PitchDeckSectionWidget extends StatelessWidget {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(state.message),
-                      backgroundColor: AppColors.emerald,
+                      backgroundColor: AppColors.primary,
                     ),
                   );
                 }
@@ -232,7 +253,9 @@ class PitchDeckSectionWidget extends StatelessWidget {
                   return const Center(
                     child: Padding(
                       padding: EdgeInsets.all(AppSizes.md),
-                      child: CircularProgressIndicator(color: AppColors.emerald),
+                      child: CircularProgressIndicator(
+                        color: AppColors.primary,
+                      ),
                     ),
                   );
                 }
@@ -278,14 +301,14 @@ class PitchDeckSectionWidget extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(AppSizes.sm),
             decoration: BoxDecoration(
-              color: AppColors.emeraldTint,
+              color: AppColors.primaryTint,
               borderRadius: BorderRadius.circular(AppSizes.radiusSm),
             ),
             child: Icon(
               doc.fileType.toLowerCase() == 'pdf'
                   ? Icons.picture_as_pdf
                   : Icons.description,
-              color: AppColors.emerald,
+              color: AppColors.primary,
               size: 24,
             ),
           ),
@@ -297,9 +320,9 @@ class PitchDeckSectionWidget extends StatelessWidget {
                 Text(
                   doc.title,
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.ink,
-                      ),
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.ink,
+                  ),
                 ),
                 const SizedBox(height: AppSizes.xs),
                 Wrap(
@@ -330,12 +353,12 @@ class PitchDeckSectionWidget extends StatelessWidget {
                           fontWeight: FontWeight.bold,
                           color: doc.isPrivate
                               ? AppColors.violet
-                              : AppColors.emerald,
+                              : AppColors.primary,
                         ),
                       ),
                       backgroundColor: doc.isPrivate
                           ? AppColors.violetTint
-                          : AppColors.emeraldTint,
+                          : AppColors.primaryTint,
                       visualDensity: VisualDensity.compact,
                       side: BorderSide.none,
                     ),
@@ -344,65 +367,86 @@ class PitchDeckSectionWidget extends StatelessWidget {
               ],
             ),
           ),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert, color: AppColors.slate),
-            onSelected: (action) {
-              if (action == 'view') {
+          if (isFounder)
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert, color: AppColors.slate),
+              onSelected: (action) {
+                if (action == 'view') {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Opening ${doc.fileName}...'),
+                      backgroundColor: AppColors.primary,
+                    ),
+                  );
+                } else if (action == 'toggle') {
+                  context.read<DocumentCubit>().toggleVisibility(
+                    documentId: doc.id,
+                    startupId: startupId,
+                    isPrivate: !doc.isPrivate,
+                  );
+                } else if (action == 'delete') {
+                  context.read<DocumentCubit>().deleteDocument(
+                    documentId: doc.id,
+                    startupId: startupId,
+                  );
+                }
+              },
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: 'view',
+                  child: Row(
+                    children: [
+                      Icon(Icons.remove_red_eye_outlined, size: 18),
+                      SizedBox(width: 8),
+                      Text('View / Download'),
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'toggle',
+                  child: Row(
+                    children: [
+                      Icon(
+                        doc.isPrivate ? Icons.lock_open : Icons.lock_outline,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(doc.isPrivate ? 'Make Public' : 'Make Private'),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'delete',
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.delete_outline,
+                        color: AppColors.coral,
+                        size: 18,
+                      ),
+                      SizedBox(width: 8),
+                      Text(
+                        'Remove Document',
+                        style: TextStyle(color: AppColors.coral),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            )
+          else
+            IconButton(
+              icon: const Icon(Icons.remove_red_eye_outlined, color: AppColors.primary),
+              tooltip: 'View / Download Document',
+              onPressed: () {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('Opening ${doc.fileName}...'),
-                    backgroundColor: AppColors.emerald,
+                    backgroundColor: AppColors.primary,
                   ),
                 );
-              } else if (action == 'toggle') {
-                context.read<DocumentCubit>().toggleVisibility(
-                      documentId: doc.id,
-                      startupId: startupId,
-                      isPrivate: !doc.isPrivate,
-                    );
-              } else if (action == 'delete') {
-                context.read<DocumentCubit>().deleteDocument(
-                      documentId: doc.id,
-                      startupId: startupId,
-                    );
-              }
-            },
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'view',
-                child: Row(
-                  children: [
-                    Icon(Icons.remove_red_eye_outlined, size: 18),
-                    SizedBox(width: 8),
-                    Text('View / Download'),
-                  ],
-                ),
-              ),
-              PopupMenuItem(
-                value: 'toggle',
-                child: Row(
-                  children: [
-                    Icon(
-                      doc.isPrivate ? Icons.lock_open : Icons.lock_outline,
-                      size: 18,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(doc.isPrivate ? 'Make Public' : 'Make Private'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'delete',
-                child: Row(
-                  children: [
-                    Icon(Icons.delete_outline, color: AppColors.coral, size: 18),
-                    SizedBox(width: 8),
-                    Text('Remove Document', style: TextStyle(color: AppColors.coral)),
-                  ],
-                ),
-              ),
-            ],
-          ),
+              },
+            ),
         ],
       ),
     );

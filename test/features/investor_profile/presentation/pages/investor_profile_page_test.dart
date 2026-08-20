@@ -1,5 +1,6 @@
 import 'package:ethioventure/core/di/injection_container.dart';
 import 'package:ethioventure/core/theme/app_theme.dart';
+import 'package:ethioventure/features/investor_profile/domain/entities/investor_discovery_entity.dart';
 import 'package:ethioventure/features/investor_profile/domain/entities/investor_profile_entity.dart';
 import 'package:ethioventure/features/investor_profile/domain/repositories/investor_profile_repository.dart';
 import 'package:ethioventure/features/investor_profile/domain/usecases/create_investor_profile.dart';
@@ -17,6 +18,11 @@ class FakeInvestorProfileRepository implements InvestorProfileRepository {
   @override
   Future<InvestorProfileEntity?> getInvestorProfile() async {
     return profile;
+  }
+
+  @override
+  Future<List<InvestorDiscoveryEntity>> getApprovedInvestors() async {
+    return [];
   }
 
   @override
