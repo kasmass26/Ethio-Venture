@@ -54,24 +54,30 @@ class MatchingRemoteDataSource {
 
   /// Fetches all startup profiles.
   ///
-  /// There is no `status` column on startup_profiles, so all rows are
+  /// There is no `status` column on startup_profiles, so all non-rejected rows are
   /// returned. The scorer will rank them; zero-score results appear last.
   Future<List<StartupProfileModel>> getStartupProfiles() async {
-    final rows = await _client
-        .from(ApiEndpoints.startupProfiles)
-        .select(
-          'id, user_id, business_name, startup_name, description, '
-          'industry, funding_stage, funding_amount_sought, '
-          'funding_amount_needed, location',
-        )
-        .order('created_at', ascending: false);
+    List<dynamic> rows = [];
+    try {
+      final data = await _client
+          .from(ApiEndpoints.startupProfiles)
+          .select()
+          .order('created_at', ascending: false);
+      rows = (data as List).cast<dynamic>();
+    } catch (e) {
+      final data = await _client
+          .from(ApiEndpoints.startupProfiles)
+          .select();
+      rows = (data as List).cast<dynamic>();
+    }
 
-    return (rows as List)
-        .map(
-          (r) => StartupProfileModel.fromJson(
-            Map<String, dynamic>.from(r as Map),
-          ),
-        )
-        .toList();
+    final models = <StartupProfileModel>[];
+    for (final r in rows) {
+      final map = Map<String, dynamic>.from(r as Map);
+      final status = map['approval_status']?.toString().toLowerCase();
+      if (status == 'rejected') continue;
+      models.add(StartupProfileModel.fromJson(map));
+    }
+    return models;
   }
 }
