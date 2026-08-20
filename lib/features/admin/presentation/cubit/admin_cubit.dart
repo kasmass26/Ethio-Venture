@@ -78,17 +78,17 @@ class AdminCubit extends Cubit<AdminState> {
 
     try {
       await approveProfile(profileId: profileId, role: role);
-      
+
       developer.log(
         'Approved profile: $profileId, role: $role',
         name: 'EthioVenture.Admin',
       );
 
-      // Refresh the list
-      await loadAllProfiles();
-      
+      // Emit success snackbar first
       emit(const AdminActionSuccess('Profile approved successfully'));
-      emit(currentState);
+
+      // Reload profiles in the background and restore state
+      await _reloadProfiles(currentState);
     } catch (error, stackTrace) {
       developer.log(
         'Failed to approve profile: $profileId',
@@ -97,12 +97,14 @@ class AdminCubit extends Cubit<AdminState> {
         stackTrace: stackTrace,
         level: 1000,
       );
-      emit(AdminError('Failed to approve profile: ${error.toString()}'));
+      emit(AdminError('Failed to approve: ${error.toString()}'));
+      // Restore list so UI doesn't get stuck
       emit(currentState);
     }
   }
 
-  Future<void> reject(String profileId, String role, String rejectionReason) async {
+  Future<void> reject(
+      String profileId, String role, String rejectionReason) async {
     final currentState = state;
     if (currentState is! AdminProfilesLoaded) return;
 
@@ -112,16 +114,17 @@ class AdminCubit extends Cubit<AdminState> {
         role: role,
         rejectionReason: rejectionReason,
       );
-      
+
       developer.log(
         'Rejected profile: $profileId, role: $role, reason: $rejectionReason',
         name: 'EthioVenture.Admin',
       );
 
-      // Refresh the list
-      await loadAllProfiles();
-      
+      // Emit success snackbar first
       emit(const AdminActionSuccess('Profile rejected successfully'));
+
+      // Reload profiles in the background and restore state
+      await _reloadProfiles(currentState);
     } catch (error, stackTrace) {
       developer.log(
         'Failed to reject profile: $profileId',
@@ -130,8 +133,40 @@ class AdminCubit extends Cubit<AdminState> {
         stackTrace: stackTrace,
         level: 1000,
       );
-      emit(AdminError('Failed to reject profile: ${error.toString()}'));
+      emit(AdminError('Failed to reject: ${error.toString()}'));
+      // Restore list so UI doesn't get stuck
       emit(currentState);
+    }
+  }
+
+  /// Silently reloads all profiles after an approve/reject action.
+  /// Does NOT emit AdminLoading to avoid replacing the UI with a spinner.
+  Future<void> _reloadProfiles(AdminProfilesLoaded previousState) async {
+    try {
+      final results = await Future.wait([
+        getPendingStartups(),
+        getPendingInvestors(),
+        getApprovedStartups(),
+        getApprovedInvestors(),
+        getRejectedProfiles(),
+      ]);
+
+      emit(AdminProfilesLoaded(
+        pendingStartups: results[0],
+        pendingInvestors: results[1],
+        approvedStartups: results[2],
+        approvedInvestors: results[3],
+        rejectedProfiles: results[4],
+      ));
+    } catch (error) {
+      // If reload fails, restore the previous state so the UI is still functional
+      developer.log(
+        'Failed to reload profiles after action',
+        name: 'EthioVenture.Admin',
+        error: error,
+        level: 900,
+      );
+      emit(previousState);
     }
   }
 }

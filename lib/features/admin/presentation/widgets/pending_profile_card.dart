@@ -57,14 +57,24 @@ class _PendingProfileCardState extends State<PendingProfileCard> {
       statusIcon = Icons.cancel_rounded;
     }
 
-    return Card(
+    return Container(
       margin: const EdgeInsets.only(bottom: AppSizes.md),
-      shape: RoundedRectangleBorder(
+      decoration: BoxDecoration(
+        color: AppColors.white,
         borderRadius: BorderRadius.circular(AppSizes.radiusLg),
-        side: BorderSide(
+        border: Border.all(
           color: _isExpanded ? AppColors.primary : AppColors.hairline,
-          width: _isExpanded ? 2 : 1,
+          width: _isExpanded ? 1.5 : 1.0,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: _isExpanded
+                ? AppColors.primary.withValues(alpha: 0.1)
+                : Colors.black.withValues(alpha: 0.03),
+            blurRadius: _isExpanded ? 12 : 6,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         children: [
@@ -97,10 +107,10 @@ class _PendingProfileCardState extends State<PendingProfileCard> {
                                 child: Image.network(
                                   widget.profile.logoUrl!,
                                   fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => Icon(
+                                  errorBuilder: (context, error, stackTrace) => Icon(
                                     isStartup
-                                        ? Icons.business
-                                        : Icons.account_balance,
+                                        ? Icons.business_rounded
+                                        : Icons.account_balance_rounded,
                                     color: isStartup
                                         ? AppColors.primary
                                         : AppColors.violet,
@@ -110,8 +120,8 @@ class _PendingProfileCardState extends State<PendingProfileCard> {
                               )
                             : Icon(
                                 isStartup
-                                    ? Icons.business
-                                    : Icons.account_balance,
+                                    ? Icons.business_rounded
+                                    : Icons.account_balance_rounded,
                                 color: isStartup
                                     ? AppColors.primary
                                     : AppColors.violet,
@@ -389,7 +399,7 @@ class _PendingProfileCardState extends State<PendingProfileCard> {
                     ),
                   ),
                   const SizedBox(height: AppSizes.lg),
-                  // Action Buttons based on status
+                  // Action Buttons based on status (Large, Prominent Buttons with Text)
                   if (isPending) ...[
                     Row(
                       children: [
@@ -398,15 +408,21 @@ class _PendingProfileCardState extends State<PendingProfileCard> {
                             onPressed: widget.onRejectWithReason != null
                                 ? _handleReject
                                 : null,
-                            icon: const Icon(Icons.cancel_outlined, size: 18),
-                            label: const Text('Reject with Reason'),
+                            icon: const Icon(Icons.cancel_rounded, size: 20),
+                            label: const Text(
+                              'Reject Application',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: AppColors.error,
-                              side: const BorderSide(color: AppColors.error),
-                              minimumSize: const Size.fromHeight(48),
+                              side: const BorderSide(color: AppColors.error, width: 1.5),
+                              minimumSize: const Size.fromHeight(52),
                               shape: RoundedRectangleBorder(
                                 borderRadius:
-                                    BorderRadius.circular(AppSizes.radiusMd),
+                                    BorderRadius.circular(AppSizes.radiusLg),
                               ),
                             ),
                           ),
@@ -416,16 +432,24 @@ class _PendingProfileCardState extends State<PendingProfileCard> {
                           flex: 2,
                           child: ElevatedButton.icon(
                             onPressed: widget.onApprove,
-                            icon: const Icon(Icons.check_circle, size: 18),
-                            label: const Text('Approve & Publish'),
+                            icon: const Icon(Icons.check_circle_rounded, size: 22),
+                            label: const Text(
+                              'Approve & Publish',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.success,
                               foregroundColor: AppColors.white,
-                              minimumSize: const Size.fromHeight(48),
-                              elevation: 0,
+                              minimumSize: const Size.fromHeight(52),
+                              elevation: 2,
+                              shadowColor: AppColors.success.withValues(alpha: 0.3),
                               shape: RoundedRectangleBorder(
                                 borderRadius:
-                                    BorderRadius.circular(AppSizes.radiusMd),
+                                    BorderRadius.circular(AppSizes.radiusLg),
                               ),
                             ),
                           ),
@@ -433,7 +457,6 @@ class _PendingProfileCardState extends State<PendingProfileCard> {
                       ],
                     ),
                   ] else if (isRejected) ...[
-                    // Option to re-approve a rejected profile if needed
                     Row(
                       children: [
                         Expanded(
@@ -441,12 +464,22 @@ class _PendingProfileCardState extends State<PendingProfileCard> {
                             onPressed: widget.onRejectWithReason != null
                                 ? _handleReject
                                 : null,
-                            icon: const Icon(Icons.edit_note, size: 18),
-                            label: const Text('Update Reason'),
+                            icon: const Icon(Icons.edit_note_rounded, size: 20),
+                            label: const Text(
+                              'Update Reason',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: AppColors.error,
-                              side: const BorderSide(color: AppColors.error),
-                              minimumSize: const Size.fromHeight(44),
+                              side: const BorderSide(color: AppColors.error, width: 1.5),
+                              minimumSize: const Size.fromHeight(48),
+                              shape: RoundedRectangleBorder(
+                                borderRadius:
+                                    BorderRadius.circular(AppSizes.radiusLg),
+                              ),
                             ),
                           ),
                         ),
@@ -454,31 +487,51 @@ class _PendingProfileCardState extends State<PendingProfileCard> {
                         Expanded(
                           child: ElevatedButton.icon(
                             onPressed: widget.onApprove,
-                            icon: const Icon(Icons.check_circle_outline, size: 18),
-                            label: const Text('Approve Now'),
+                            icon: const Icon(Icons.check_circle_rounded, size: 20),
+                            label: const Text(
+                              'Approve Now',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.success,
                               foregroundColor: AppColors.white,
-                              minimumSize: const Size.fromHeight(44),
-                              elevation: 0,
+                              minimumSize: const Size.fromHeight(48),
+                              elevation: 2,
+                              shape: RoundedRectangleBorder(
+                                borderRadius:
+                                    BorderRadius.circular(AppSizes.radiusLg),
+                              ),
                             ),
                           ),
                         ),
                       ],
                     ),
                   ] else if (isApproved) ...[
-                    // Option to revoke approval if needed
                     Align(
                       alignment: Alignment.centerRight,
                       child: OutlinedButton.icon(
                         onPressed: widget.onRejectWithReason != null
                             ? _handleReject
                             : null,
-                        icon: const Icon(Icons.cancel_outlined, size: 16),
-                        label: const Text('Revoke Approval'),
+                        icon: const Icon(Icons.cancel_outlined, size: 18),
+                        label: const Text(
+                          'Revoke Approval',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppColors.error,
                           side: const BorderSide(color: AppColors.hairline),
+                          minimumSize: const Size(160, 44),
+                          shape: RoundedRectangleBorder(
+                            borderRadius:
+                                BorderRadius.circular(AppSizes.radiusMd),
+                          ),
                         ),
                       ),
                     ),

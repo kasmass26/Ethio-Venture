@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/di/injection_container.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_sizes.dart';
 import 'admin_dashboard_page.dart';
@@ -158,22 +160,27 @@ class _AdminMainPageState extends State<AdminMainPage> {
   void _handleLogout(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Logout'),
-        content: const Text('Are you sure you want to logout?'),
+        content: const Text('Are you sure you want to log out of Admin Panel?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel'),
           ),
           FilledButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.pushNamedAndRemoveUntil(
-                context,
-                AppConstants.routeLogin,
-                (route) => false,
-              );
+            onPressed: () async {
+              Navigator.pop(dialogContext);
+              try {
+                await sl<SupabaseClient>().auth.signOut();
+              } catch (_) {}
+              if (context.mounted) {
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  AppConstants.routeLogin,
+                  (route) => false,
+                );
+              }
             },
             style: FilledButton.styleFrom(
               backgroundColor: AppColors.error,

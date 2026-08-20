@@ -202,11 +202,14 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
   @override
   Future<void> approveProfile(String profileId, String role) async {
     try {
-      final table = role == 'founder' ? 'startup_profiles' : 'investor_profiles';
+      final roleLower = role.toLowerCase();
+      final table = (roleLower == 'founder' || roleLower == 'startup')
+          ? 'startup_profiles'
+          : 'investor_profiles';
 
       await supabase
           .from(table)
-          .update({
+          .update(<String, dynamic>{
             'approval_status': 'approved',
             'rejection_reason': null,
             'approval_date': DateTime.now().toIso8601String(),
@@ -230,10 +233,15 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
   }
 
   @override
-  Future<void> rejectProfile(String profileId, String role, String rejectionReason) async {
+  Future<void> rejectProfile(
+      String profileId, String role, String rejectionReason) async {
     try {
-      final table = role == 'founder' ? 'startup_profiles' : 'investor_profiles';
+      final roleLower = role.toLowerCase();
+      final table = (roleLower == 'founder' || roleLower == 'startup')
+          ? 'startup_profiles'
+          : 'investor_profiles';
 
+      // Try to get current rejection_count and increment it
       int newCount = 1;
       try {
         final currentData = await supabase
@@ -242,23 +250,23 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
             .eq('id', profileId)
             .maybeSingle();
 
-        final currentCount = (currentData?['rejection_count'] as num?)?.toInt() ?? 0;
+        final currentCount =
+            (currentData?['rejection_count'] as num?)?.toInt() ?? 0;
         newCount = currentCount + 1;
       } catch (_) {
         // Fallback if rejection_count column doesn't exist
       }
 
-      final updateData = <String, dynamic>{
-        'approval_status': 'rejected',
-        'rejection_reason': rejectionReason,
-        'approval_date': DateTime.now().toIso8601String(),
-      };
+      final now = DateTime.now().toIso8601String();
 
+      // Try with rejection_count first, fall back to without if column missing
       try {
         await supabase
             .from(table)
-            .update({
-              ...updateData,
+            .update(<String, dynamic>{
+              'approval_status': 'rejected',
+              'rejection_reason': rejectionReason,
+              'approval_date': now,
               'rejection_count': newCount,
             })
             .eq('id', profileId);
@@ -267,9 +275,14 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
             (e.code == '42703' ||
                 e.message.contains('rejection_count') ||
                 e.message.contains('column'))) {
+          // rejection_count column doesn't exist — update without it
           await supabase
               .from(table)
-              .update(updateData)
+              .update(<String, dynamic>{
+                'approval_status': 'rejected',
+                'rejection_reason': rejectionReason,
+                'approval_date': now,
+              })
               .eq('id', profileId);
         } else {
           rethrow;
@@ -277,7 +290,8 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
       }
 
       developer.log(
-        'Rejected profile: $profileId in table: $table (new rejection_count: $newCount) with reason: $rejectionReason',
+        'Rejected profile: $profileId in table: $table '
+        '(rejection_count: $newCount) with reason: $rejectionReason',
         name: 'EthioVenture.Admin',
       );
     } catch (error, stackTrace) {
