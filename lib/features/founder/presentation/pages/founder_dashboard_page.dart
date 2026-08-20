@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/services/user_service.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../startup_profile/presentation/cubit/startup_profile_cubit.dart';
+import '../../../startup_profile/presentation/cubit/startup_profile_state.dart';
+import '../cubit/recommended_investors_cubit.dart';
 import '../widgets/dashboard_bottom_nav.dart';
+import '../widgets/recommended_investor_section.dart';
 
 class FounderDashboardPage extends StatefulWidget {
   const FounderDashboardPage({super.key});
@@ -27,7 +33,7 @@ class _FounderDashboardPageState extends State<FounderDashboardPage> {
     try {
       final userService = sl<UserService>();
       final user = await userService.getCurrentUser();
-      
+
       if (user != null && mounted) {
         setState(() {
           _userName = userService.getFirstName(user.name);
@@ -47,7 +53,7 @@ class _FounderDashboardPageState extends State<FounderDashboardPage> {
     }
   }
 
-  // --- Mock data (replace with real state from a Cubit/Bloc) ---------------
+  // --- Mock data (for momentum metrics & profile strength) ---------------
 
   static const _profileStrength = ProfileStrength(
     percent: 85,
@@ -89,27 +95,6 @@ class _FounderDashboardPageState extends State<FounderDashboardPage> {
     Icons.forum_outlined,
   ];
 
-  static const _investors = [
-    Investor(
-      id: 'inv-1',
-      name: 'Nile Capital',
-      location: 'Addis Ababa, ETH',
-      tags: ['Fintech', 'Seed'],
-    ),
-    Investor(
-      id: 'inv-2',
-      name: 'Rift Ventures',
-      location: 'Nairobi, KEN',
-      tags: ['Agritech', 'Series A'],
-    ),
-    Investor(
-      id: 'inv-3',
-      name: 'Horn Angels',
-      location: 'Addis Ababa, ETH',
-      tags: ['Healthtech', 'Pre-seed'],
-    ),
-  ];
-
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -123,56 +108,78 @@ class _FounderDashboardPageState extends State<FounderDashboardPage> {
       );
     }
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      bottomNavigationBar: DashboardBottomNav(
-        currentIndex: 0,
-        onTap: (index) {
-          if (index == 1) {
-            Navigator.of(context).pushReplacementNamed(
-              AppConstants.routeFounderInvestors,
-            );
-          } else if (index == 3) {
-            Navigator.of(context).pushReplacementNamed(
-              AppConstants.routeStartupProfile,
-            );
+    final currentUserId =
+        sl<SupabaseClient>().auth.currentUser?.id ?? '';
+
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<StartupProfileCubit>(
+          create: (_) => sl<StartupProfileCubit>()..loadProfile(currentUserId),
+        ),
+        BlocProvider<RecommendedInvestorsCubit>(
+          create: (_) => sl<RecommendedInvestorsCubit>()..load(),
+        ),
+      ],
+      child: BlocListener<StartupProfileCubit, StartupProfileState>(
+        listener: (context, startupState) {
+          if (startupState is StartupProfileLoaded) {
+            context
+                .read<RecommendedInvestorsCubit>()
+                .load(startupState.profile);
+          } else if (startupState is StartupProfileEmpty ||
+              startupState is StartupProfileError) {
+            context.read<RecommendedInvestorsCubit>().load();
           }
         },
-      ),
-      body: SafeArea(
-        bottom: false,
-        child: CustomScrollView(
-          slivers: [
-            _TopBar(userName: _userName),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _HeroWelcomeCard(
-                      userName: _userName,
-                      strength: _profileStrength,
+        child: Scaffold(
+          backgroundColor: AppColors.background,
+          bottomNavigationBar: DashboardBottomNav(
+            currentIndex: 0,
+            onTap: (index) {
+              if (index == 1) {
+                Navigator.of(context).pushReplacementNamed(
+                  AppConstants.routeFounderInvestors,
+                );
+              } else if (index == 3) {
+                Navigator.of(context).pushReplacementNamed(
+                  AppConstants.routeStartupProfile,
+                );
+              }
+            },
+          ),
+          body: SafeArea(
+            bottom: false,
+            child: CustomScrollView(
+              slivers: [
+                _TopBar(userName: _userName),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _HeroWelcomeCard(
+                          userName: _userName,
+                          strength: _profileStrength,
+                        ),
+                        const SizedBox(height: 24),
+                        const _SectionHeading(title: 'Your Momentum'),
+                        const SizedBox(height: 12),
+                        _MetricsGrid(metrics: _metrics, icons: _metricIcons),
+                      ],
                     ),
-                    const SizedBox(height: 24),
-                    const _SectionHeading(title: 'Your Momentum'),
-                    const SizedBox(height: 12),
-                    _MetricsGrid(metrics: _metrics, icons: _metricIcons),
-                  ],
+                  ),
                 ),
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: _RecommendedInvestorsRail(
-                  investors: _investors,
-                  onViewProfile: (investor) {},
+                const SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.only(top: 14),
+                    child: RecommendedInvestorsSection(),
+                  ),
                 ),
-              ),
+                const SliverToBoxAdapter(child: SizedBox(height: 32)),
+              ],
             ),
-            const SliverToBoxAdapter(child: SizedBox(height: 28)),
-          ],
+          ),
         ),
       ),
     );
@@ -520,7 +527,8 @@ class _MetricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color deltaFg = metric.isPositive ? AppColors.success : AppColors.warning;
+    final Color deltaFg =
+        metric.isPositive ? AppColors.success : AppColors.warning;
     final Color deltaBg =
         metric.isPositive ? AppColors.successSoft : AppColors.warningSoft;
 
@@ -625,169 +633,7 @@ class _DeltaChip extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Recommended investors — horizontal rail
-// ---------------------------------------------------------------------------
-class _RecommendedInvestorsRail extends StatelessWidget {
-  final List<Investor> investors;
-  final ValueChanged<Investor> onViewProfile;
-  const _RecommendedInvestorsRail({
-    required this.investors,
-    required this.onViewProfile,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20),
-          child: _SectionHeading(title: 'Recommended Investors'),
-        ),
-        const SizedBox(height: 12),
-        SizedBox(
-          height: 178,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            itemCount: investors.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 12),
-            itemBuilder: (context, i) {
-              final investor = investors[i];
-              return _InvestorCard(
-                investor: investor,
-                onTap: () => onViewProfile(investor),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _InvestorCard extends StatelessWidget {
-  final Investor investor;
-  final VoidCallback onTap;
-  const _InvestorCard({required this.investor, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 220,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: AppColors.primarySoft,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  investor.name.isNotEmpty ? investor.name[0] : '?',
-                  style: const TextStyle(
-                    color: AppColors.primaryDark,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 16,
-                  ),
-                ),
-              ),
-              const Spacer(),
-              const Icon(Icons.bookmark_border_rounded,
-                  size: 18, color: AppColors.textSecondary),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            investor.name,
-            style: const TextStyle(
-              color: AppColors.textPrimary,
-              fontSize: 14.5,
-              fontWeight: FontWeight.w700,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 3),
-          Row(
-            children: [
-              const Icon(Icons.place_outlined,
-                  size: 13, color: AppColors.textSecondary),
-              const SizedBox(width: 3),
-              Expanded(
-                child: Text(
-                  investor.location,
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 12,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: investor.tags
-                .map((tag) => Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppColors.secondarySoft,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        tag,
-                        style: const TextStyle(
-                          color: AppColors.secondary,
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ))
-                .toList(),
-          ),
-          const Spacer(),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton(
-              onPressed: onTap,
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.primaryDark,
-                side: const BorderSide(color: AppColors.primaryDark),
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              child: const Text('View Profile',
-                  style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// -
-
-// ---------------------------------------------------------------------------
-// Domain models — unchanged from your original file
+// Domain models for Dashboard
 // ---------------------------------------------------------------------------
 
 /// A single checklist item inside the "Profile Strength" card.
@@ -811,7 +657,7 @@ class DashboardMetric {
   final String label;
   final String value;
   final String deltaText;
-  final String iconAsset; // maps to an IconData via the widget layer
+  final String iconAsset;
   final bool isPositive;
 
   const DashboardMetric({
@@ -820,23 +666,5 @@ class DashboardMetric {
     required this.deltaText,
     required this.iconAsset,
     this.isPositive = true,
-  });
-}
-
-/// Plain domain entity — no Flutter/UI imports, so it can be reused by
-/// any data source (Supabase, REST, cache) without leaking framework details.
-class Investor {
-  final String id;
-  final String name;
-  final String location;
-  final List<String> tags;
-  final String? avatarUrl;
-
-  const Investor({
-    required this.id,
-    required this.name,
-    required this.location,
-    required this.tags,
-    this.avatarUrl,
   });
 }

@@ -13,9 +13,11 @@ import 'package:ethioventure/features/investor_profile/data/repositories/investo
 import 'package:ethioventure/features/investor_profile/domain/repositories/investor_profile_repository.dart';
 import 'package:ethioventure/features/investor_profile/domain/usecases/create_investor_profile.dart';
 import 'package:ethioventure/features/investor_profile/domain/usecases/delete_investor_profile.dart';
+import 'package:ethioventure/features/investor_profile/domain/usecases/get_approved_investors_usecase.dart';
 import 'package:ethioventure/features/investor_profile/domain/usecases/get_investor_profile.dart';
 import 'package:ethioventure/features/investor_profile/domain/usecases/update_investor_profile.dart';
 import 'package:ethioventure/features/investor_profile/presentation/cubit/investor_profile_cubit.dart';
+import 'package:ethioventure/features/founder/presentation/cubit/recommended_investors_cubit.dart';
 import 'package:ethioventure/features/startup_profile/data/datasources/startup_remote_data_source.dart';
 import 'package:ethioventure/features/startup_profile/data/repositories/startup_repository_impl.dart';
 import 'package:ethioventure/features/startup_profile/domain/repositories/startup_repository.dart';
@@ -180,6 +182,20 @@ Future<void> configureDependencies({SupabaseClient? supabaseClient}) async {
   if (!sl.isRegistered<DeleteInvestorProfile>()) {
     sl.registerLazySingleton<DeleteInvestorProfile>(
       () => DeleteInvestorProfile(sl<InvestorProfileRepository>()),
+    );
+  }
+
+  if (!sl.isRegistered<GetApprovedInvestorsUseCase>()) {
+    sl.registerLazySingleton<GetApprovedInvestorsUseCase>(
+      () => GetApprovedInvestorsUseCase(sl<InvestorProfileRepository>()),
+    );
+  }
+
+  if (!sl.isRegistered<RecommendedInvestorsCubit>()) {
+    sl.registerFactory<RecommendedInvestorsCubit>(
+      () => RecommendedInvestorsCubit(
+        getApprovedInvestorsUseCase: sl<GetApprovedInvestorsUseCase>(),
+      ),
     );
   }
 
