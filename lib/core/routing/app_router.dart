@@ -82,7 +82,7 @@ class AppRouter {
   }
 
   /// Returns the appropriate destination after a successful authentication.
-  static String dashboardRouteForRole(String role, [bool isApproved = true]) {
+  static String dashboardRouteForRole(String role, [dynamic emailOrApproved]) {
     if (role == AppConstants.roleAdmin) {
       return AppConstants.routeAdminDashboard;
     }
