@@ -1,6 +1,7 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:ethioventure/core/theme/app_colors.dart';
 import 'package:ethioventure/core/theme/app_sizes.dart';
 import '../cubit/document_cubit.dart';
@@ -16,6 +17,42 @@ class PitchDeckSectionWidget extends StatelessWidget {
 
   final String startupId;
   final bool isFounder;
+
+  Future<void> _openOrDownloadDocument(
+      BuildContext context, DocumentEntity doc) async {
+    if (doc.fileUrl.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Document download link is not available.'),
+          backgroundColor: AppColors.coral,
+        ),
+      );
+      return;
+    }
+
+    final uri = Uri.parse(doc.fileUrl);
+    try {
+      final launched = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+      if (!launched) {
+        final launchedInApp = await launchUrl(uri);
+        if (!launchedInApp) {
+          throw Exception('Could not launch document URL.');
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Could not open/download ${doc.fileName}: $e'),
+            backgroundColor: AppColors.coral,
+          ),
+        );
+      }
+    }
+  }
 
   String _formatFileSize(int bytes) {
     if (bytes < 1024) return '$bytes B';
@@ -385,11 +422,13 @@ class PitchDeckSectionWidget extends StatelessWidget {
 
                 if (state is DocumentsLoaded) {
                   if (state.documents.isEmpty) {
-                    return const Padding(
-                      padding: EdgeInsets.symmetric(vertical: AppSizes.sm),
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: AppSizes.sm),
                       child: Text(
-                        'No pitch decks uploaded yet. Click + to upload your business documents.',
-                        style: TextStyle(color: AppColors.slate),
+                        isFounder
+                            ? 'No pitch decks uploaded yet. Click + to upload your business documents.'
+                            : 'No pitch decks or business documents uploaded by this startup yet.',
+                        style: const TextStyle(color: AppColors.slate),
                       ),
                     );
                   }
@@ -413,165 +452,179 @@ class PitchDeckSectionWidget extends StatelessWidget {
   Widget _buildDocumentTile(BuildContext context, DocumentEntity doc) {
     return Container(
       margin: const EdgeInsets.only(bottom: AppSizes.sm),
-      padding: const EdgeInsets.all(AppSizes.md),
       decoration: BoxDecoration(
         color: AppColors.background,
         borderRadius: BorderRadius.circular(AppSizes.radiusMd),
         border: Border.all(color: AppColors.fog),
       ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(AppSizes.sm),
-            decoration: BoxDecoration(
-              color: AppColors.primaryTint,
-              borderRadius: BorderRadius.circular(AppSizes.radiusSm),
-            ),
-            child: Icon(
-              doc.fileType.toLowerCase() == 'pdf'
-                  ? Icons.picture_as_pdf
-                  : Icons.description,
-              color: AppColors.primary,
-              size: 24,
-            ),
-          ),
-          const SizedBox(width: AppSizes.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+          onTap: () => _openOrDownloadDocument(context, doc),
+          child: Padding(
+            padding: const EdgeInsets.all(AppSizes.md),
+            child: Row(
               children: [
-                Text(
-                  doc.title,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.ink,
+                Container(
+                  padding: const EdgeInsets.all(AppSizes.sm),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryTint,
+                    borderRadius: BorderRadius.circular(AppSizes.radiusSm),
+                  ),
+                  child: Icon(
+                    doc.fileType.toLowerCase() == 'pdf'
+                        ? Icons.picture_as_pdf
+                        : Icons.description,
+                    color: AppColors.primary,
+                    size: 24,
                   ),
                 ),
-                const SizedBox(height: AppSizes.xs),
-                Wrap(
-                  spacing: AppSizes.xs,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    Text(
-                      doc.fileName,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.slate,
+                const SizedBox(width: AppSizes.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        doc.title,
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.ink,
+                            ),
                       ),
-                    ),
-                    const Text('•', style: TextStyle(color: AppColors.slate)),
-                    Text(
-                      _formatFileSize(doc.fileSizeBytes),
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.slate,
+                      const SizedBox(height: AppSizes.xs),
+                      Wrap(
+                        spacing: AppSizes.xs,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Text(
+                            doc.fileName,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.slate,
+                            ),
+                          ),
+                          const Text('•', style: TextStyle(color: AppColors.slate)),
+                          Text(
+                            _formatFileSize(doc.fileSizeBytes),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.slate,
+                            ),
+                          ),
+                          const SizedBox(width: AppSizes.xs),
+                          Chip(
+                            label: Text(
+                              doc.isPrivate ? 'Private' : 'Public',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: doc.isPrivate
+                                    ? AppColors.violet
+                                    : AppColors.primary,
+                              ),
+                            ),
+                            backgroundColor: doc.isPrivate
+                                ? AppColors.violetTint
+                                : AppColors.primaryTint,
+                            visualDensity: VisualDensity.compact,
+                            side: BorderSide.none,
+                          ),
+                        ],
                       ),
-                    ),
-                    const SizedBox(width: AppSizes.xs),
-                    Chip(
-                      label: Text(
-                        doc.isPrivate ? 'Private' : 'Public',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: doc.isPrivate
-                              ? AppColors.violet
-                              : AppColors.primary,
+                    ],
+                  ),
+                ),
+                if (isFounder)
+                  PopupMenuButton<String>(
+                    icon: const Icon(Icons.more_vert, color: AppColors.slate),
+                    onSelected: (action) {
+                      if (action == 'view') {
+                        _openOrDownloadDocument(context, doc);
+                      } else if (action == 'toggle') {
+                        context.read<DocumentCubit>().toggleVisibility(
+                              documentId: doc.id,
+                              startupId: startupId,
+                              isPrivate: !doc.isPrivate,
+                            );
+                      } else if (action == 'delete') {
+                        context.read<DocumentCubit>().deleteDocument(
+                              documentId: doc.id,
+                              startupId: startupId,
+                            );
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: 'view',
+                        child: Row(
+                          children: [
+                            Icon(Icons.file_download_outlined, size: 18),
+                            SizedBox(width: 8),
+                            Text('View / Download'),
+                          ],
                         ),
                       ),
-                      backgroundColor: doc.isPrivate
-                          ? AppColors.violetTint
-                          : AppColors.primaryTint,
-                      visualDensity: VisualDensity.compact,
-                      side: BorderSide.none,
+                      PopupMenuItem(
+                        value: 'toggle',
+                        child: Row(
+                          children: [
+                            Icon(
+                              doc.isPrivate ? Icons.lock_open : Icons.lock_outline,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(doc.isPrivate ? 'Make Public' : 'Make Private'),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.delete_outline,
+                              color: AppColors.coral,
+                              size: 18,
+                            ),
+                            SizedBox(width: 8),
+                            Text(
+                              'Remove Document',
+                              style: TextStyle(color: AppColors.coral),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  )
+                else
+                  ElevatedButton.icon(
+                    onPressed: () => _openOrDownloadDocument(context, doc),
+                    icon: const Icon(Icons.file_download_outlined, size: 16, color: Colors.white),
+                    label: const Text(
+                      'Download',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
                     ),
-                  ],
-                ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      elevation: 0,
+                    ),
+                  ),
               ],
             ),
           ),
-          if (isFounder)
-            PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert, color: AppColors.slate),
-              onSelected: (action) {
-                if (action == 'view') {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Opening ${doc.fileName}...'),
-                      backgroundColor: AppColors.primary,
-                    ),
-                  );
-                } else if (action == 'toggle') {
-                  context.read<DocumentCubit>().toggleVisibility(
-                    documentId: doc.id,
-                    startupId: startupId,
-                    isPrivate: !doc.isPrivate,
-                  );
-                } else if (action == 'delete') {
-                  context.read<DocumentCubit>().deleteDocument(
-                    documentId: doc.id,
-                    startupId: startupId,
-                  );
-                }
-              },
-              itemBuilder: (context) => [
-                const PopupMenuItem(
-                  value: 'view',
-                  child: Row(
-                    children: [
-                      Icon(Icons.remove_red_eye_outlined, size: 18),
-                      SizedBox(width: 8),
-                      Text('View / Download'),
-                    ],
-                  ),
-                ),
-                PopupMenuItem(
-                  value: 'toggle',
-                  child: Row(
-                    children: [
-                      Icon(
-                        doc.isPrivate ? Icons.lock_open : Icons.lock_outline,
-                        size: 18,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(doc.isPrivate ? 'Make Public' : 'Make Private'),
-                    ],
-                  ),
-                ),
-                const PopupMenuItem(
-                  value: 'delete',
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.delete_outline,
-                        color: AppColors.coral,
-                        size: 18,
-                      ),
-                      SizedBox(width: 8),
-                      Text(
-                        'Remove Document',
-                        style: TextStyle(color: AppColors.coral),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            )
-          else
-            IconButton(
-              icon: const Icon(Icons.remove_red_eye_outlined, color: AppColors.primary),
-              tooltip: 'View / Download Document',
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Opening ${doc.fileName}...'),
-                    backgroundColor: AppColors.primary,
-                  ),
-                );
-              },
-            ),
-        ],
+        ),
       ),
     );
   }
 }
+

@@ -102,6 +102,7 @@ class StartupProfilePage extends StatelessWidget {
             },
           ),
           appBar: AppBar(
+            automaticallyImplyLeading: false,
             title: const Text(
               'Startup Profile',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
@@ -110,21 +111,6 @@ class StartupProfilePage extends StatelessWidget {
             foregroundColor: AppColors.ink,
             elevation: 0,
             actions: [
-              IconButton(
-                icon: const Icon(Icons.add_circle_outline),
-                tooltip: 'Create New Profile',
-                onPressed: () {
-                  Navigator.pushNamed(context, '/startup-profile-setup').then((
-                    _,
-                  ) {
-                    if (context.mounted) {
-                      context.read<StartupProfileCubit>().loadProfile(
-                        currentUserId,
-                      );
-                    }
-                  });
-                },
-              ),
               BlocBuilder<StartupProfileCubit, StartupProfileState>(
                 builder: (context, state) {
                   if (state is StartupProfileLoaded) {

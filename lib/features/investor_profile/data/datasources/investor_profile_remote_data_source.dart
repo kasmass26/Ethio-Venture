@@ -183,6 +183,18 @@ class InvestorProfileRemoteDataSourceImpl
       );
       return InvestorProfileModel.fromJson(data);
     } on PostgrestException catch (e, st) {
+      if (e.code == '42703' || e.message.contains('rejection_count') || e.message.contains('column')) {
+        try {
+          final fallbackPayload = Map<String, dynamic>.from(payload)..remove('rejection_count');
+          final data = await _client
+              .from(_tableName)
+              .update(fallbackPayload)
+              .eq('id', profile.id)
+              .select()
+              .single();
+          return InvestorProfileModel.fromJson(data);
+        } catch (_) {}
+      }
       developer.log(
         'PostgrestException during updateInvestorProfile: ${e.message} (code: ${e.code}, details: ${e.details}, hint: ${e.hint})',
         name: 'InvestorProfileRemoteDataSource.updateInvestorProfile',

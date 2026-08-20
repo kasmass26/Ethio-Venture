@@ -8,36 +8,133 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
 
   const AdminRemoteDataSourceImpl(this.supabase);
 
-  @override
-  Future<List<PendingApprovalModel>> getPendingStartups() async {
+  Future<List<dynamic>> _fetchStartupRaw(String status) async {
+    const primarySelect = '''
+      id,
+      user_id,
+      business_name:startup_name,
+      description,
+      industry,
+      funding_stage,
+      funding_amount_sought:funding_amount_needed,
+      location,
+      created_at,
+      approval_status,
+      rejection_reason,
+      approval_date,
+      rejection_count,
+      users!inner(full_name, email, account_type)
+    ''';
+    const fallbackSelect = '''
+      id,
+      user_id,
+      business_name:startup_name,
+      description,
+      industry,
+      funding_stage,
+      funding_amount_sought:funding_amount_needed,
+      location,
+      created_at,
+      approval_status,
+      rejection_reason,
+      approval_date,
+      users!inner(full_name, email, account_type)
+    ''';
+
     try {
       final response = await supabase
           .from('startup_profiles')
-          .select('''
-            id,
-            user_id,
-            business_name:startup_name,
-            description,
-            industry,
-            funding_stage,
-            funding_amount_sought:funding_amount_needed,
-            location,
-            created_at,
-            approval_status,
-            rejection_reason,
-            approval_date,
-            rejection_count,
-            users!inner(full_name, email, account_type)
-          ''')
-          .eq('approval_status', 'pending')
+          .select(primarySelect)
+          .eq('approval_status', status)
           .order('created_at', ascending: false);
+      return response as List;
+    } catch (e) {
+      if (e is PostgrestException &&
+          (e.code == '42703' ||
+              e.message.contains('rejection_count') ||
+              e.message.contains('column'))) {
+        final response = await supabase
+            .from('startup_profiles')
+            .select(fallbackSelect)
+            .eq('approval_status', status)
+            .order('created_at', ascending: false);
+        return response as List;
+      }
+      rethrow;
+    }
+  }
+
+  Future<List<dynamic>> _fetchInvestorRaw(String status) async {
+    const primarySelect = '''
+      id,
+      user_id,
+      organization_name,
+      bio,
+      investor_type,
+      preferred_industries,
+      preferred_stages,
+      ticket_size_min,
+      ticket_size_max,
+      geographic_focus,
+      created_at,
+      approval_status,
+      rejection_reason,
+      approval_date,
+      rejection_count,
+      users!inner(full_name, email, account_type)
+    ''';
+    const fallbackSelect = '''
+      id,
+      user_id,
+      organization_name,
+      bio,
+      investor_type,
+      preferred_industries,
+      preferred_stages,
+      ticket_size_min,
+      ticket_size_max,
+      geographic_focus,
+      created_at,
+      approval_status,
+      rejection_reason,
+      approval_date,
+      users!inner(full_name, email, account_type)
+    ''';
+
+    try {
+      final response = await supabase
+          .from('investor_profiles')
+          .select(primarySelect)
+          .eq('approval_status', status)
+          .order('created_at', ascending: false);
+      return response as List;
+    } catch (e) {
+      if (e is PostgrestException &&
+          (e.code == '42703' ||
+              e.message.contains('rejection_count') ||
+              e.message.contains('column'))) {
+        final response = await supabase
+            .from('investor_profiles')
+            .select(fallbackSelect)
+            .eq('approval_status', status)
+            .order('created_at', ascending: false);
+        return response as List;
+      }
+      rethrow;
+    }
+  }
+
+  @override
+  Future<List<PendingApprovalModel>> getPendingStartups() async {
+    try {
+      final response = await _fetchStartupRaw('pending');
 
       developer.log(
         'Fetched ${response.length} pending startups',
         name: 'EthioVenture.Admin',
       );
 
-      return (response as List)
+      return response
           .map((json) => PendingApprovalModel.fromJson({
                 ...json,
                 'name': json['users']['full_name'],
@@ -60,35 +157,14 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
   @override
   Future<List<PendingApprovalModel>> getPendingInvestors() async {
     try {
-      final response = await supabase
-          .from('investor_profiles')
-          .select('''
-            id,
-            user_id,
-            organization_name,
-            bio,
-            investor_type,
-            preferred_industries,
-            preferred_stages,
-            ticket_size_min,
-            ticket_size_max,
-            geographic_focus,
-            created_at,
-            approval_status,
-            rejection_reason,
-            approval_date,
-            rejection_count,
-            users!inner(full_name, email, account_type)
-          ''')
-          .eq('approval_status', 'pending')
-          .order('created_at', ascending: false);
+      final response = await _fetchInvestorRaw('pending');
 
       developer.log(
         'Fetched ${response.length} pending investors',
         name: 'EthioVenture.Admin',
       );
 
-      return (response as List)
+      return response
           .map((json) {
             return PendingApprovalModel.fromJson({
               'id': json['id'],
@@ -127,7 +203,7 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
   Future<void> approveProfile(String profileId, String role) async {
     try {
       final table = role == 'founder' ? 'startup_profiles' : 'investor_profiles';
-      
+
       await supabase
           .from(table)
           .update({
@@ -157,26 +233,48 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
   Future<void> rejectProfile(String profileId, String role, String rejectionReason) async {
     try {
       final table = role == 'founder' ? 'startup_profiles' : 'investor_profiles';
-      
-      // Fetch current rejection_count
-      final currentData = await supabase
-          .from(table)
-          .select('rejection_count')
-          .eq('id', profileId)
-          .maybeSingle();
 
-      final currentCount = (currentData?['rejection_count'] as num?)?.toInt() ?? 0;
-      final newCount = currentCount + 1;
+      int newCount = 1;
+      try {
+        final currentData = await supabase
+            .from(table)
+            .select('rejection_count')
+            .eq('id', profileId)
+            .maybeSingle();
 
-      await supabase
-          .from(table)
-          .update({
-            'approval_status': 'rejected',
-            'rejection_reason': rejectionReason,
-            'approval_date': DateTime.now().toIso8601String(),
-            'rejection_count': newCount,
-          })
-          .eq('id', profileId);
+        final currentCount = (currentData?['rejection_count'] as num?)?.toInt() ?? 0;
+        newCount = currentCount + 1;
+      } catch (_) {
+        // Fallback if rejection_count column doesn't exist
+      }
+
+      final updateData = <String, dynamic>{
+        'approval_status': 'rejected',
+        'rejection_reason': rejectionReason,
+        'approval_date': DateTime.now().toIso8601String(),
+      };
+
+      try {
+        await supabase
+            .from(table)
+            .update({
+              ...updateData,
+              'rejection_count': newCount,
+            })
+            .eq('id', profileId);
+      } catch (e) {
+        if (e is PostgrestException &&
+            (e.code == '42703' ||
+                e.message.contains('rejection_count') ||
+                e.message.contains('column'))) {
+          await supabase
+              .from(table)
+              .update(updateData)
+              .eq('id', profileId);
+        } else {
+          rethrow;
+        }
+      }
 
       developer.log(
         'Rejected profile: $profileId in table: $table (new rejection_count: $newCount) with reason: $rejectionReason',
@@ -197,28 +295,9 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
   @override
   Future<List<PendingApprovalModel>> getApprovedStartups() async {
     try {
-      final response = await supabase
-          .from('startup_profiles')
-          .select('''
-            id,
-            user_id,
-            business_name:startup_name,
-            description,
-            industry,
-            funding_stage,
-            funding_amount_sought:funding_amount_needed,
-            location,
-            created_at,
-            approval_status,
-            rejection_reason,
-            approval_date,
-            rejection_count,
-            users!inner(full_name, email, account_type)
-          ''')
-          .eq('approval_status', 'approved')
-          .order('created_at', ascending: false);
+      final response = await _fetchStartupRaw('approved');
 
-      return (response as List)
+      return response
           .map((json) => PendingApprovalModel.fromJson({
                 ...json,
                 'name': json['users']['full_name'],
@@ -241,30 +320,9 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
   @override
   Future<List<PendingApprovalModel>> getApprovedInvestors() async {
     try {
-      final response = await supabase
-          .from('investor_profiles')
-          .select('''
-            id,
-            user_id,
-            organization_name,
-            bio,
-            investor_type,
-            preferred_industries,
-            preferred_stages,
-            ticket_size_min,
-            ticket_size_max,
-            geographic_focus,
-            created_at,
-            approval_status,
-            rejection_reason,
-            approval_date,
-            rejection_count,
-            users!inner(full_name, email, account_type)
-          ''')
-          .eq('approval_status', 'approved')
-          .order('created_at', ascending: false);
+      final response = await _fetchInvestorRaw('approved');
 
-      return (response as List)
+      return response
           .map((json) {
             return PendingApprovalModel.fromJson({
               'id': json['id'],
@@ -302,58 +360,17 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
   @override
   Future<List<PendingApprovalModel>> getRejectedProfiles() async {
     try {
-      final startups = await supabase
-          .from('startup_profiles')
-          .select('''
-            id,
-            user_id,
-            business_name:startup_name,
-            description,
-            industry,
-            funding_stage,
-            funding_amount_sought:funding_amount_needed,
-            location,
-            created_at,
-            approval_status,
-            rejection_reason,
-            approval_date,
-            rejection_count,
-            users!inner(full_name, email, account_type)
-          ''')
-          .eq('approval_status', 'rejected')
-          .order('created_at', ascending: false);
-
-      final investors = await supabase
-          .from('investor_profiles')
-          .select('''
-            id,
-            user_id,
-            organization_name,
-            bio,
-            investor_type,
-            preferred_industries,
-            preferred_stages,
-            ticket_size_min,
-            ticket_size_max,
-            geographic_focus,
-            created_at,
-            approval_status,
-            rejection_reason,
-            approval_date,
-            rejection_count,
-            users!inner(full_name, email, account_type)
-          ''')
-          .eq('approval_status', 'rejected')
-          .order('created_at', ascending: false);
+      final startups = await _fetchStartupRaw('rejected');
+      final investors = await _fetchInvestorRaw('rejected');
 
       final allRejected = [
-        ...(startups as List).map((json) => PendingApprovalModel.fromJson({
+        ...startups.map((json) => PendingApprovalModel.fromJson({
               ...json,
               'name': json['users']['full_name'],
               'email': json['users']['email'],
               'role': 'founder',
             })),
-        ...(investors as List).map((json) {
+        ...investors.map((json) {
             return PendingApprovalModel.fromJson({
               'id': json['id'],
               'user_id': json['user_id'],
