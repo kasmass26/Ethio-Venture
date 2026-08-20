@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -98,112 +99,190 @@ class _StartupDetailPageState extends State<StartupDetailPage> {
   }
 
   void _showInterestDialog(BuildContext context, StartupProfileEntity startup) {
-    final messageController = TextEditingController();
+    final messageController = TextEditingController(
+      text: 'Hi ${startup.startupName}, I reviewed your profile on EthioVenture and would like to connect.',
+    );
+    bool isSubmitting = false;
+
     showDialog<void>(
       context: context,
-      builder: (dialogCtx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppSizes.radiusLg),
-        ),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppColors.primarySoft,
-                borderRadius: BorderRadius.circular(10),
+      barrierDismissible: !isSubmitting,
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+          ),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primarySoft,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.handshake_outlined, color: AppColors.primaryDark),
               ),
-              child: const Icon(Icons.handshake_outlined, color: AppColors.primaryDark),
-            ),
-            const SizedBox(width: 12),
-            const Expanded(
-              child: Text(
-                'Express Interest',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-              ),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Send a connection request to ${startup.startupName}. The founder will receive your contact details and message.',
-              style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: messageController,
-              maxLines: 3,
-              decoration: InputDecoration(
-                hintText: 'Add a brief note introducing your fund or investment thesis…',
-                hintStyle: const TextStyle(fontSize: 13),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: AppColors.border),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'Express Interest',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
                 ),
               ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Start a direct chat with the founder of ${startup.startupName}. You can customize your opening message below:',
+                style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: messageController,
+                enabled: !isSubmitting,
+                maxLines: 3,
+                decoration: InputDecoration(
+                  hintText: 'Add an introductory note or investment thesis…',
+                  hintStyle: const TextStyle(fontSize: 13),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.border),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: isSubmitting ? null : () => Navigator.pop(dialogCtx),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: isSubmitting
+                  ? null
+                  : () async {
+                      developer.log(
+                        'Express Interest clicked for startup "${startup.startupName}" (id: ${startup.id})',
+                        name: 'StartupDetailPage.ExpressInterest',
+                      );
+                      setDialogState(() {
+                        isSubmitting = true;
+                      });
+
+                      try {
+                        final messagingRepo = sl<MessagingRepository>();
+                        developer.log(
+                          'Step 1: Resolving investorProfileId...',
+                          name: 'StartupDetailPage.ExpressInterest',
+                        );
+                        final investorProfileId =
+                            await messagingRepo.resolveInvestorProfileId();
+
+                        developer.log(
+                          'Resolved investorProfileId: "$investorProfileId"',
+                          name: 'StartupDetailPage.ExpressInterest',
+                        );
+
+                        if (investorProfileId == null) {
+                          throw Exception('Unable to resolve or create your investor account profile.');
+                        }
+
+                        developer.log(
+                          'Step 2: Getting or creating conversation (startupProfileId: "${startup.id}", investorProfileId: "$investorProfileId")...',
+                          name: 'StartupDetailPage.ExpressInterest',
+                        );
+                        final conv = await messagingRepo.getOrCreateConversation(
+                          startupProfileId: startup.id,
+                          investorProfileId: investorProfileId,
+                        );
+
+                        developer.log(
+                          'Conversation ready: ID "${conv.id}"',
+                          name: 'StartupDetailPage.ExpressInterest',
+                        );
+
+                        final textToSend = messageController.text.trim();
+                        if (textToSend.isNotEmpty) {
+                          developer.log(
+                            'Step 3: Sending opening message: "$textToSend"...',
+                            name: 'StartupDetailPage.ExpressInterest',
+                          );
+                          await messagingRepo.sendMessage(
+                            conversationId: conv.id,
+                            content: textToSend,
+                          );
+                          developer.log(
+                            'Opening message sent successfully.',
+                            name: 'StartupDetailPage.ExpressInterest',
+                          );
+                        }
+
+                        if (dialogCtx.mounted) {
+                          Navigator.pop(dialogCtx);
+                        }
+
+                        if (context.mounted) {
+                          developer.log(
+                            'Step 4: Navigating to ChatPage (conversationId: "${conv.id}", participantName: "${startup.startupName}")...',
+                            name: 'StartupDetailPage.ExpressInterest',
+                          );
+                          Navigator.of(context).pushNamed(
+                            AppConstants.routeChat,
+                            arguments: {
+                              'conversationId': conv.id,
+                              'participantName': startup.startupName,
+                            },
+                          );
+                        }
+                      } catch (e, st) {
+                        developer.log(
+                          'ERROR in Express Interest flow: $e',
+                          name: 'StartupDetailPage.ExpressInterest',
+                          error: e,
+                          stackTrace: st,
+                          level: 1000,
+                        );
+                        setDialogState(() {
+                          isSubmitting = false;
+                        });
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              backgroundColor: AppColors.error,
+                              content: Text(
+                                'Could not start chat: ${e.toString().replaceAll('Exception: ', '')}',
+                              ),
+                            ),
+                          );
+                        }
+                      }
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.secondary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              child: isSubmitting
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : const Text(
+                      'Send & Start Chat',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogCtx),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(dialogCtx);
-              try {
-                final messagingRepo = sl<MessagingRepository>();
-                final investorProfileId =
-                    await messagingRepo.resolveInvestorProfileId();
-                if (investorProfileId != null && context.mounted) {
-                  final conv = await messagingRepo.getOrCreateConversation(
-                    startupProfileId: startup.id,
-                    investorProfileId: investorProfileId,
-                  );
-                  if (messageController.text.trim().isNotEmpty) {
-                    await messagingRepo.sendMessage(
-                      conversationId: conv.id,
-                      content: messageController.text.trim(),
-                    );
-                  }
-                  if (context.mounted) {
-                    Navigator.of(context).pushNamed(
-                      AppConstants.routeChat,
-                      arguments: {
-                        'conversationId': conv.id,
-                        'participantName': startup.startupName,
-                      },
-                    );
-                    return;
-                  }
-                }
-              } catch (_) {}
-
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    backgroundColor: AppColors.primaryDark,
-                    content: Text(
-                      'Interest sent to ${startup.startupName}! The founder has been notified.',
-                    ),
-                  ),
-                );
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryDark,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            child: const Text('Send Message'),
-          ),
-        ],
       ),
     );
   }

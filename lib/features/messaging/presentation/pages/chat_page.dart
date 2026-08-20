@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -235,13 +236,15 @@ class _ChatViewState extends State<_ChatView> {
 
                 if (item is _MessageItem) {
                   final msg = item.entity;
+                  final currentUid =
+                      Supabase.instance.client.auth.currentUser?.id;
                   return Padding(
-                    padding:
-                        const EdgeInsets.only(bottom: AppSizes.xs + 2),
+                    padding: const EdgeInsets.only(bottom: AppSizes.xs + 2),
                     child: MessageBubble(
                       content: msg.content,
                       sentAt: msg.sentAt,
-                      isOutgoing: msg.senderId == myProfileId,
+                      isOutgoing: msg.senderId == myProfileId ||
+                          (currentUid != null && msg.senderId == currentUid),
                     ),
                   );
                 }

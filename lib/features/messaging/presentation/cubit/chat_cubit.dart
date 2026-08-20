@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer' as developer;
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -19,7 +20,17 @@ class ChatCubit extends Cubit<ChatState> {
 
   Future<void> loadMessages(String conversationId) async {
     final user = Supabase.instance.client.auth.currentUser;
+    developer.log(
+      'ChatCubit.loadMessages called for conversationId: "$conversationId", auth uid: "${user?.id}"',
+      name: 'ChatCubit.loadMessages',
+    );
+
     if (user == null) {
+      developer.log(
+        'ChatCubit.loadMessages: User is unauthenticated.',
+        name: 'ChatCubit.loadMessages',
+        level: 900,
+      );
       emit(const ChatUnauthenticated());
       return;
     }
@@ -28,24 +39,31 @@ class ChatCubit extends Cubit<ChatState> {
     emit(const ChatLoading());
 
     try {
-      // Resolve the profile ID that matches messages.sender_id.
-      // auth.uid() == users.id, but sender_id == startup_profiles.id
-      // or investor_profiles.id.  We try startup first, then investor.
       final myProfileId = await _resolveProfileId(user.id);
+      developer.log(
+        'ChatCubit.loadMessages: Resolved myProfileId: "$myProfileId"',
+        name: 'ChatCubit.loadMessages',
+      );
 
       final messages = await _repository.getMessages(conversationId);
+      developer.log(
+        'ChatCubit.loadMessages: Received ${messages.length} message(s)',
+        name: 'ChatCubit.loadMessages',
+      );
       emit(ChatLoaded(messages: messages, myProfileId: myProfileId));
       _subscribeToNewMessages(conversationId);
-    } catch (e) {
+    } catch (e, st) {
+      developer.log(
+        'ChatCubit.loadMessages ERROR: $e',
+        name: 'ChatCubit.loadMessages',
+        error: e,
+        stackTrace: st,
+        level: 1000,
+      );
       emit(ChatError(e.toString().replaceAll('Exception: ', '')));
     }
   }
 
-  /// Returns the startup_profiles.id or investor_profiles.id for [userId].
-  ///
-  /// Uses [ApiEndpoints] constants for all table names.
-  /// Falls back to [userId] itself so the UI degrades gracefully rather
-  /// than crashing if neither profile exists yet.
   Future<String> _resolveProfileId(String userId) async {
     final client = Supabase.instance.client;
 
@@ -63,15 +81,21 @@ class ChatCubit extends Cubit<ChatState> {
         .maybeSingle();
     if (investorRow != null) return investorRow['id'].toString();
 
-    // No profile found — return auth user id as a last resort so the
-    // UI still renders rather than crashing.
     return userId;
   }
 
   void _subscribeToNewMessages(String conversationId) {
     _subscription?.cancel();
+    developer.log(
+      'ChatCubit: Subscribing to stream for conversation "$conversationId"',
+      name: 'ChatCubit.subscribe',
+    );
     _subscription =
         _repository.subscribeToMessages(conversationId).listen((newMsg) {
+      developer.log(
+        'ChatCubit: Received realtime message: "${newMsg.content}" (id: ${newMsg.id})',
+        name: 'ChatCubit.stream',
+      );
       final current = state;
       if (current is ChatLoaded) {
         final updated = List<MessageEntity>.from(current.messages);
@@ -80,15 +104,35 @@ class ChatCubit extends Cubit<ChatState> {
           emit(current.copyWith(messages: updated));
         }
       }
+    }, onError: (err, st) {
+      developer.log(
+        'ChatCubit: Stream error: $err',
+        name: 'ChatCubit.stream',
+        error: err,
+        stackTrace: st,
+        level: 900,
+      );
     });
   }
 
   Future<void> sendMessage(String content) async {
     final conversationId = _conversationId;
-    if (conversationId == null) return;
+    if (conversationId == null) {
+      developer.log(
+        'ChatCubit.sendMessage: conversationId is null, cannot send.',
+        name: 'ChatCubit.sendMessage',
+        level: 900,
+      );
+      return;
+    }
 
     final current = state;
     if (current is! ChatLoaded) return;
+
+    developer.log(
+      'ChatCubit.sendMessage: Sending message "$content" to conversation "$conversationId"',
+      name: 'ChatCubit.sendMessage',
+    );
 
     emit(current.copyWith(isSending: true));
     try {
@@ -96,13 +140,23 @@ class ChatCubit extends Cubit<ChatState> {
         conversationId: conversationId,
         content: content,
       );
+      developer.log(
+        'ChatCubit.sendMessage: Successfully sent message id "${msg.id}"',
+        name: 'ChatCubit.sendMessage',
+      );
       final updated = List<MessageEntity>.from(current.messages);
       if (!updated.any((m) => m.id == msg.id)) {
         updated.add(msg);
       }
       emit(current.copyWith(messages: updated, isSending: false));
-    } catch (e) {
-      // Emit transient error then restore loaded state so user can retry.
+    } catch (e, st) {
+      developer.log(
+        'ChatCubit.sendMessage ERROR: $e',
+        name: 'ChatCubit.sendMessage',
+        error: e,
+        stackTrace: st,
+        level: 1000,
+      );
       emit(ChatError(e.toString().replaceAll('Exception: ', '')));
       emit(current.copyWith(isSending: false));
     }

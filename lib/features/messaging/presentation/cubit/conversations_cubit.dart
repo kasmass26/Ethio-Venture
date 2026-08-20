@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -13,7 +15,17 @@ class ConversationsCubit extends Cubit<ConversationsState> {
 
   Future<void> loadConversations() async {
     final user = Supabase.instance.client.auth.currentUser;
+    developer.log(
+      'ConversationsCubit.loadConversations called. auth uid: "${user?.id}"',
+      name: 'ConversationsCubit.loadConversations',
+    );
+
     if (user == null) {
+      developer.log(
+        'ConversationsCubit.loadConversations: User is unauthenticated.',
+        name: 'ConversationsCubit.loadConversations',
+        level: 900,
+      );
       emit(const ConversationsUnauthenticated());
       return;
     }
@@ -21,8 +33,19 @@ class ConversationsCubit extends Cubit<ConversationsState> {
     emit(const ConversationsLoading());
     try {
       final list = await _repository.getConversations();
+      developer.log(
+        'ConversationsCubit.loadConversations: Loaded ${list.length} conversation(s)',
+        name: 'ConversationsCubit.loadConversations',
+      );
       emit(ConversationsLoaded(list));
-    } catch (e) {
+    } catch (e, st) {
+      developer.log(
+        'ConversationsCubit.loadConversations ERROR: $e',
+        name: 'ConversationsCubit.loadConversations',
+        error: e,
+        stackTrace: st,
+        level: 1000,
+      );
       emit(ConversationsError(e.toString().replaceAll('Exception: ', '')));
     }
   }

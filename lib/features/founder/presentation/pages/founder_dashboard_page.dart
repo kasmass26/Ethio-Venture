@@ -61,7 +61,9 @@ class _FounderDashboardPageState extends State<FounderDashboardPage> {
       ProfileChecklistItem(label: 'Basic Information', isComplete: true),
       ProfileChecklistItem(label: 'Team Members Added', isComplete: true),
       ProfileChecklistItem(
-          label: 'Upload Financial Projections', isComplete: false),
+        label: 'Upload Financial Projections',
+        isComplete: false,
+      ),
     ],
   );
 
@@ -108,8 +110,7 @@ class _FounderDashboardPageState extends State<FounderDashboardPage> {
       );
     }
 
-    final currentUserId =
-        sl<SupabaseClient>().auth.currentUser?.id ?? '';
+    final currentUserId = sl<SupabaseClient>().auth.currentUser?.id ?? '';
 
     return MultiBlocProvider(
       providers: [
@@ -123,9 +124,9 @@ class _FounderDashboardPageState extends State<FounderDashboardPage> {
       child: BlocListener<StartupProfileCubit, StartupProfileState>(
         listener: (context, startupState) {
           if (startupState is StartupProfileLoaded) {
-            context
-                .read<RecommendedInvestorsCubit>()
-                .load(startupState.profile);
+            context.read<RecommendedInvestorsCubit>().load(
+              startupState.profile,
+            );
           } else if (startupState is StartupProfileEmpty ||
               startupState is StartupProfileError) {
             context.read<RecommendedInvestorsCubit>().load();
@@ -137,17 +138,15 @@ class _FounderDashboardPageState extends State<FounderDashboardPage> {
             currentIndex: 0,
             onTap: (index) {
               if (index == 1) {
-                Navigator.of(context).pushReplacementNamed(
-                  AppConstants.routeFounderInvestors,
-                );
+                Navigator.of(
+                  context,
+                ).pushReplacementNamed(AppConstants.routeFounderInvestors);
               } else if (index == 2) {
-                Navigator.of(context).pushNamed(
-                  AppConstants.routeMessages,
-                );
+                Navigator.of(context).pushNamed(AppConstants.routeMessages);
               } else if (index == 3) {
-                Navigator.of(context).pushReplacementNamed(
-                  AppConstants.routeStartupProfile,
-                );
+                Navigator.of(
+                  context,
+                ).pushReplacementNamed(AppConstants.routeStartupProfile);
               }
             },
           ),
@@ -440,15 +439,17 @@ class _ChecklistRow extends StatelessWidget {
                 color: Colors.white.withOpacity(item.isComplete ? 0.7 : 1),
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
-                decoration:
-                    item.isComplete ? TextDecoration.lineThrough : null,
+                decoration: item.isComplete ? TextDecoration.lineThrough : null,
                 decorationColor: Colors.white54,
               ),
             ),
           ),
           if (!item.isComplete)
-            const Icon(Icons.chevron_right_rounded,
-                color: Colors.white70, size: 18),
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: Colors.white70,
+              size: 18,
+            ),
         ],
       ),
     );
@@ -485,8 +486,10 @@ class _SectionHeading extends StatelessWidget {
               minimumSize: const Size(0, 0),
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
-            child: const Text('See all',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+            child: const Text(
+              'See all',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+            ),
           ),
       ],
     );
@@ -507,9 +510,13 @@ class _MetricsGrid extends StatelessWidget {
       children: [
         Row(
           children: [
-            Expanded(child: _MetricCard(metric: metrics[0], icon: icons[0])),
+            Expanded(
+              child: _MetricCard(metric: metrics[0], icon: icons[0]),
+            ),
             const SizedBox(width: 12),
-            Expanded(child: _MetricCard(metric: metrics[1], icon: icons[1])),
+            Expanded(
+              child: _MetricCard(metric: metrics[1], icon: icons[1]),
+            ),
           ],
         ),
         const SizedBox(height: 12),
@@ -531,10 +538,12 @@ class _MetricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color deltaFg =
-        metric.isPositive ? AppColors.success : AppColors.warning;
-    final Color deltaBg =
-        metric.isPositive ? AppColors.successSoft : AppColors.warningSoft;
+    final Color deltaFg = metric.isPositive
+        ? AppColors.success
+        : AppColors.warning;
+    final Color deltaBg = metric.isPositive
+        ? AppColors.successSoft
+        : AppColors.warningSoft;
 
     final content = Container(
       padding: const EdgeInsets.all(16),
@@ -626,11 +635,7 @@ class _DeltaChip extends StatelessWidget {
       ),
       child: Text(
         text,
-        style: TextStyle(
-          color: fg,
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-        ),
+        style: TextStyle(color: fg, fontSize: 11, fontWeight: FontWeight.w700),
       ),
     );
   }

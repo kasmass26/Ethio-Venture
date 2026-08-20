@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/di/injection_container.dart';
@@ -457,40 +458,62 @@ class InvestorDetailSheet extends StatelessWidget {
             onPressed: () async {
               Navigator.of(context).pop();
               try {
+                developer.log(
+                  'Connect & Pitch clicked for investor "${investor.displayName}" (id: ${investor.id})',
+                  name: 'InvestorDetailSheet.ConnectPitch',
+                );
                 final messagingRepo = sl<MessagingRepository>();
                 final startupProfileId =
                     await messagingRepo.resolveStartupProfileId();
-                if (startupProfileId != null && context.mounted) {
-                  final conv = await messagingRepo.getOrCreateConversation(
-                    startupProfileId: startupProfileId,
-                    investorProfileId: investor.id,
-                  );
-                  if (context.mounted) {
-                    Navigator.of(context).pushNamed(
-                      AppConstants.routeChat,
-                      arguments: {
-                        'conversationId': conv.id,
-                        'participantName': investor.displayName,
-                      },
-                    );
-                    return;
-                  }
-                }
-              } catch (_) {}
-
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    backgroundColor: AppColors.secondary,
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    content: Text(
-                      'Direct contact initiated with ${investor.displayName}. Pitch deck ready to share!',
-                    ),
-                  ),
+                developer.log(
+                  'Resolved startupProfileId: "$startupProfileId"',
+                  name: 'InvestorDetailSheet.ConnectPitch',
                 );
+
+                if (startupProfileId == null) {
+                  throw Exception('Could not resolve your startup profile. Please complete startup setup.');
+                }
+
+                final conv = await messagingRepo.getOrCreateConversation(
+                  startupProfileId: startupProfileId,
+                  investorProfileId: investor.id,
+                );
+                developer.log(
+                  'Conversation ready: ID "${conv.id}"',
+                  name: 'InvestorDetailSheet.ConnectPitch',
+                );
+
+                if (context.mounted) {
+                  Navigator.of(context).pushNamed(
+                    AppConstants.routeChat,
+                    arguments: {
+                      'conversationId': conv.id,
+                      'participantName': investor.displayName,
+                    },
+                  );
+                }
+              } catch (e, st) {
+                developer.log(
+                  'ERROR in Connect & Pitch: $e',
+                  name: 'InvestorDetailSheet.ConnectPitch',
+                  error: e,
+                  stackTrace: st,
+                  level: 1000,
+                );
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      backgroundColor: AppColors.error,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      content: Text(
+                        'Could not connect with investor: ${e.toString().replaceAll('Exception: ', '')}',
+                      ),
+                    ),
+                  );
+                }
               }
             },
             icon: const Icon(Icons.send_rounded, size: 18, color: Colors.white),

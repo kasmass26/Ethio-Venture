@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/network/api_endpoints.dart';
@@ -24,7 +25,14 @@ class MessagingRemoteDataSource {
 
   String get _currentUserId {
     final uid = _client.auth.currentUser?.id;
-    if (uid == null) throw Exception('No authenticated user.');
+    if (uid == null) {
+      developer.log(
+        'ERROR: No authenticated user session found in SupabaseClient.',
+        name: 'MessagingRemoteDataSource',
+        level: 1000,
+      );
+      throw Exception('No authenticated user.');
+    }
     return uid;
   }
 
@@ -36,198 +44,454 @@ class MessagingRemoteDataSource {
   Future<({String? startupProfileId, String? investorProfileId})>
       _resolveProfileIds() async {
     final userId = _currentUserId;
-
-    // Run both lookups concurrently.
-    final results = await Future.wait([
-      _client
-          .from(ApiEndpoints.startupProfiles)
-          .select('id')
-          .eq('user_id', userId)
-          .maybeSingle(),
-      _client
-          .from(ApiEndpoints.investorProfiles)
-          .select('id')
-          .eq('user_id', userId)
-          .maybeSingle(),
-    ]);
-
-    final startupRow = results[0];
-    final investorRow = results[1];
-
-    return (
-      startupProfileId: startupRow?['id']?.toString(),
-      investorProfileId: investorRow?['id']?.toString(),
+    developer.log(
+      'Resolving profile IDs for auth user_id: $userId',
+      name: 'MessagingRemoteDataSource._resolveProfileIds',
     );
+
+    try {
+      // Run both lookups concurrently.
+      final results = await Future.wait([
+        _client
+            .from(ApiEndpoints.startupProfiles)
+            .select('id')
+            .eq('user_id', userId)
+            .maybeSingle(),
+        _client
+            .from(ApiEndpoints.investorProfiles)
+            .select('id')
+            .eq('user_id', userId)
+            .maybeSingle(),
+      ]);
+
+      String? startupId = results[0]?['id']?.toString();
+      String? investorId = results[1]?['id']?.toString();
+
+      developer.log(
+        'Initial lookup -> startupProfileId: $startupId, investorProfileId: $investorId',
+        name: 'MessagingRemoteDataSource._resolveProfileIds',
+      );
+
+      // If both are null, try to auto-provision based on account_type
+      if (startupId == null && investorId == null) {
+        developer.log(
+          'Neither profile found for user $userId. Checking users table for account_type...',
+          name: 'MessagingRemoteDataSource._resolveProfileIds',
+        );
+
+        final userRow = await _client
+            .from(ApiEndpoints.users)
+            .select('full_name, account_type')
+            .eq('id', userId)
+            .maybeSingle();
+
+        final accountType = userRow?['account_type']?.toString().toLowerCase() ??
+            _client.auth.currentUser?.userMetadata?['role']?.toString().toLowerCase();
+
+        final name = userRow?['full_name']?.toString() ??
+            _client.auth.currentUser?.userMetadata?['full_name']?.toString() ??
+            'User';
+
+        developer.log(
+          'User metadata -> name: "$name", accountType: "$accountType"',
+          name: 'MessagingRemoteDataSource._resolveProfileIds',
+        );
+
+        if (accountType == 'investor') {
+          developer.log(
+            'Creating baseline investor profile row for user $userId...',
+            name: 'MessagingRemoteDataSource._resolveProfileIds',
+          );
+          final inserted = await _client
+              .from(ApiEndpoints.investorProfiles)
+              .insert({
+                'user_id': userId,
+                'investor_type': 'Individual Angel',
+                'organization_name': name,
+              })
+              .select('id')
+              .single();
+          investorId = inserted['id']?.toString();
+          developer.log(
+            'Successfully created investor profile: $investorId',
+            name: 'MessagingRemoteDataSource._resolveProfileIds',
+          );
+        } else if (accountType == 'startup' || accountType == 'founder') {
+          developer.log(
+            'Creating baseline startup profile row for user $userId...',
+            name: 'MessagingRemoteDataSource._resolveProfileIds',
+          );
+          final inserted = await _client
+              .from(ApiEndpoints.startupProfiles)
+              .insert({
+                'user_id': userId,
+                'startup_name': '$name Startup',
+                'business_name': '$name Startup',
+                'industry': 'Technology',
+                'funding_stage': 'Pre-Seed',
+              })
+              .select('id')
+              .single();
+          startupId = inserted['id']?.toString();
+          developer.log(
+            'Successfully created startup profile: $startupId',
+            name: 'MessagingRemoteDataSource._resolveProfileIds',
+          );
+        }
+      }
+
+      developer.log(
+        'Final resolved profiles -> startupProfileId: $startupId, investorProfileId: $investorId',
+        name: 'MessagingRemoteDataSource._resolveProfileIds',
+      );
+
+      return (
+        startupProfileId: startupId,
+        investorProfileId: investorId,
+      );
+    } on PostgrestException catch (e, st) {
+      developer.log(
+        'PostgrestException in _resolveProfileIds: ${e.message} (code: ${e.code}, details: ${e.details}, hint: ${e.hint})',
+        name: 'MessagingRemoteDataSource._resolveProfileIds',
+        error: e,
+        stackTrace: st,
+        level: 1000,
+      );
+      rethrow;
+    } catch (e, st) {
+      developer.log(
+        'Unexpected exception in _resolveProfileIds: $e',
+        name: 'MessagingRemoteDataSource._resolveProfileIds',
+        error: e,
+        stackTrace: st,
+        level: 1000,
+      );
+      rethrow;
+    }
   }
 
   // ─── conversations ────────────────────────────────────────────────────────
 
   Future<List<ConversationModel>> getConversations() async {
-    final ids = await _resolveProfileIds();
-    final startupId = ids.startupProfileId;
-    final investorId = ids.investorProfileId;
+    developer.log(
+      'Fetching all conversations for current user...',
+      name: 'MessagingRemoteDataSource.getConversations',
+    );
 
-    if (startupId == null && investorId == null) {
-      throw Exception(
-        'No startup or investor profile found for this account.',
-      );
-    }
+    try {
+      final ids = await _resolveProfileIds();
+      final startupId = ids.startupProfileId;
+      final investorId = ids.investorProfileId;
 
-    // Build OR filter using whichever profile IDs this user has.
-    final orParts = <String>[];
-    if (startupId != null) orParts.add('startup_id.eq.$startupId');
-    if (investorId != null) orParts.add('investor_id.eq.$investorId');
-    final orFilter = orParts.join(',');
-
-    final rows = await _client
-        .from(ApiEndpoints.conversations)
-        .select('id, startup_id, investor_id, created_at')
-        .or(orFilter)
-        .order('created_at', ascending: false);
-
-    final List<ConversationModel> result = [];
-
-    for (final row in rows as List<dynamic>) {
-      final map = Map<String, dynamic>.from(row as Map);
-      final convId = map['id'].toString();
-      final convStartupId = map['startup_id']?.toString() ?? '';
-      final convInvestorId = map['investor_id']?.toString() ?? '';
-
-      // Determine whether the current user is the startup or investor side.
-      final bool isStartupSide = startupId != null && convStartupId == startupId;
-      final otherProfileId =
-          isStartupSide ? convInvestorId : convStartupId;
-
-      // Resolve the other participant's display name through their profile
-      // then through the users table.
-      String otherName = 'Unknown';
-      String? otherAvatar;
-
-      if (isStartupSide) {
-        // Other side is an investor — look up investor_profiles → users
-        final investorProfile = await _client
-            .from(ApiEndpoints.investorProfiles)
-            .select('user_id, organization_name')
-            .eq('id', otherProfileId)
-            .maybeSingle();
-
-        if (investorProfile != null) {
-          final otherUserId =
-              investorProfile['user_id']?.toString() ?? '';
-          final orgName =
-              investorProfile['organization_name']?.toString();
-
-          final userRow = await _client
-              .from(ApiEndpoints.users)
-              .select('full_name')
-              .eq('id', otherUserId)
-              .maybeSingle();
-
-          otherName = orgName?.isNotEmpty == true
-              ? orgName!
-              : (userRow?['full_name']?.toString() ?? 'Investor');
-        }
-      } else {
-        // Other side is a startup — look up startup_profiles → users
-        final startupProfile = await _client
-            .from(ApiEndpoints.startupProfiles)
-            .select('user_id, business_name, startup_name')
-            .eq('id', otherProfileId)
-            .maybeSingle();
-
-        if (startupProfile != null) {
-          final businessName =
-              startupProfile['business_name']?.toString();
-          final startupName =
-              startupProfile['startup_name']?.toString();
-          otherName = (businessName?.isNotEmpty == true)
-              ? businessName!
-              : (startupName?.isNotEmpty == true ? startupName! : 'Startup');
-        }
+      if (startupId == null && investorId == null) {
+        developer.log(
+          'ERROR: No startup or investor profile found for account $_currentUserId',
+          name: 'MessagingRemoteDataSource.getConversations',
+          level: 900,
+        );
+        throw Exception(
+          'No startup or investor profile found for this account.',
+        );
       }
 
-      // Fetch latest message for preview.
-      final msgs = await _client
-          .from(ApiEndpoints.messages)
-          .select('content, sent_at')
-          .eq('conversation_id', convId)
-          .order('sent_at', ascending: false)
-          .limit(1);
+      // Build OR filter using whichever profile IDs this user has.
+      final orParts = <String>[];
+      if (startupId != null) orParts.add('startup_id.eq.$startupId');
+      if (investorId != null) orParts.add('investor_id.eq.$investorId');
+      final orFilter = orParts.join(',');
 
-      String? latestContent;
-      String? latestAt;
-      if ((msgs as List).isNotEmpty) {
-        final latest = msgs.first as Map;
-        latestContent = latest['content']?.toString();
-        latestAt = latest['sent_at']?.toString();
+      developer.log(
+        'Executing conversations query with filter: "$orFilter"',
+        name: 'MessagingRemoteDataSource.getConversations',
+      );
+
+      final rows = await _client
+          .from(ApiEndpoints.conversations)
+          .select('id, startup_id, investor_id, created_at')
+          .or(orFilter)
+          .order('created_at', ascending: false);
+
+      developer.log(
+        'Found ${(rows as List).length} conversation row(s)',
+        name: 'MessagingRemoteDataSource.getConversations',
+      );
+
+      final List<ConversationModel> result = [];
+
+      for (final row in rows as List<dynamic>) {
+        final map = Map<String, dynamic>.from(row as Map);
+        final convId = map['id'].toString();
+        final convStartupId = map['startup_id']?.toString() ?? '';
+        final convInvestorId = map['investor_id']?.toString() ?? '';
+
+        // Determine whether the current user is the startup or investor side.
+        final bool isStartupSide = startupId != null && convStartupId == startupId;
+        final otherProfileId =
+            isStartupSide ? convInvestorId : convStartupId;
+
+        String otherName = 'Unknown';
+        String? otherAvatar;
+
+        try {
+          if (isStartupSide) {
+            // Other side is an investor — look up investor_profiles → users
+            final investorProfile = await _client
+                .from(ApiEndpoints.investorProfiles)
+                .select('user_id, organization_name')
+                .eq('id', otherProfileId)
+                .maybeSingle();
+
+            if (investorProfile != null) {
+              final otherUserId =
+                  investorProfile['user_id']?.toString() ?? '';
+              final orgName =
+                  investorProfile['organization_name']?.toString();
+
+              final userRow = await _client
+                  .from(ApiEndpoints.users)
+                  .select('full_name')
+                  .eq('id', otherUserId)
+                  .maybeSingle();
+
+              otherName = orgName?.isNotEmpty == true
+                  ? orgName!
+                  : (userRow?['full_name']?.toString() ?? 'Investor');
+            }
+          } else {
+            // Other side is a startup — look up startup_profiles → users
+            final startupProfile = await _client
+                .from(ApiEndpoints.startupProfiles)
+                .select('user_id, business_name, startup_name')
+                .eq('id', otherProfileId)
+                .maybeSingle();
+
+            if (startupProfile != null) {
+              final businessName =
+                  startupProfile['business_name']?.toString();
+              final startupName =
+                  startupProfile['startup_name']?.toString();
+              otherName = (businessName?.isNotEmpty == true)
+                  ? businessName!
+                  : (startupName?.isNotEmpty == true ? startupName! : 'Startup');
+            }
+          }
+        } catch (enrichError) {
+          developer.log(
+            'Non-fatal: could not enrich participant info for conv $convId: $enrichError',
+            name: 'MessagingRemoteDataSource.getConversations',
+          );
+        }
+
+        // Fetch latest message for preview.
+        String? latestContent;
+        String? latestAt;
+        try {
+          final msgs = await _client
+              .from(ApiEndpoints.messages)
+              .select('content, sent_at')
+              .eq('conversation_id', convId)
+              .order('sent_at', ascending: false)
+              .limit(1);
+
+          if ((msgs as List).isNotEmpty) {
+            final latest = msgs.first as Map;
+            latestContent = latest['content']?.toString();
+            latestAt = latest['sent_at']?.toString();
+          }
+        } catch (msgError) {
+          developer.log(
+            'Non-fatal: could not fetch latest message for conv $convId: $msgError',
+            name: 'MessagingRemoteDataSource.getConversations',
+          );
+        }
+
+        result.add(
+          ConversationModel.fromEnriched({
+            'id': convId,
+            'startup_id': convStartupId,
+            'investor_id': convInvestorId,
+            'created_at': map['created_at'],
+            'other_participant_profile_id': otherProfileId,
+            'other_participant_name': otherName,
+            'other_participant_avatar_url': otherAvatar,
+            'latest_message_content': latestContent,
+            'latest_message_at': latestAt,
+          }),
+        );
       }
 
-      result.add(
-        ConversationModel.fromEnriched({
-          'id': convId,
-          'startup_id': convStartupId,
-          'investor_id': convInvestorId,
-          'created_at': map['created_at'],
-          'other_participant_profile_id': otherProfileId,
-          'other_participant_name': otherName,
-          'other_participant_avatar_url': otherAvatar,
-          'latest_message_content': latestContent,
-          'latest_message_at': latestAt,
-        }),
+      // Sort by latest message time descending.
+      result.sort((a, b) {
+        final aTime = a.latestMessageAt ?? a.createdAt;
+        final bTime = b.latestMessageAt ?? b.createdAt;
+        return bTime.compareTo(aTime);
+      });
+
+      developer.log(
+        'Successfully loaded and enriched ${result.length} conversations.',
+        name: 'MessagingRemoteDataSource.getConversations',
       );
+      return result;
+    } on PostgrestException catch (e, st) {
+      developer.log(
+        'PostgrestException in getConversations: ${e.message} (code: ${e.code}, details: ${e.details}, hint: ${e.hint})',
+        name: 'MessagingRemoteDataSource.getConversations',
+        error: e,
+        stackTrace: st,
+        level: 1000,
+      );
+      rethrow;
+    } catch (e, st) {
+      developer.log(
+        'Unexpected exception in getConversations: $e',
+        name: 'MessagingRemoteDataSource.getConversations',
+        error: e,
+        stackTrace: st,
+        level: 1000,
+      );
+      rethrow;
     }
-
-    // Sort by latest message time descending.
-    result.sort((a, b) {
-      final aTime = a.latestMessageAt ?? a.createdAt;
-      final bTime = b.latestMessageAt ?? b.createdAt;
-      return bTime.compareTo(aTime);
-    });
-
-    return result;
   }
 
   // ─── messages ─────────────────────────────────────────────────────────────
 
   Future<List<MessageModel>> getMessages(String conversationId) async {
-    final rows = await _client
-        .from(ApiEndpoints.messages)
-        .select()
-        .eq('conversation_id', conversationId)
-        .order('sent_at', ascending: true);
+    developer.log(
+      'Fetching messages for conversationId: "$conversationId"',
+      name: 'MessagingRemoteDataSource.getMessages',
+    );
 
-    return (rows as List)
-        .map(
-          (r) => MessageModel.fromJson(Map<String, dynamic>.from(r as Map)),
-        )
-        .toList();
+    try {
+      final rows = await _client
+          .from(ApiEndpoints.messages)
+          .select()
+          .eq('conversation_id', conversationId)
+          .order('sent_at', ascending: true);
+
+      final list = (rows as List)
+          .map(
+            (r) => MessageModel.fromJson(Map<String, dynamic>.from(r as Map)),
+          )
+          .toList();
+
+      developer.log(
+        'Fetched ${list.length} message(s) for conversation "$conversationId"',
+        name: 'MessagingRemoteDataSource.getMessages',
+      );
+      return list;
+    } on PostgrestException catch (e, st) {
+      developer.log(
+        'PostgrestException in getMessages: ${e.message} (code: ${e.code}, details: ${e.details}, hint: ${e.hint})',
+        name: 'MessagingRemoteDataSource.getMessages',
+        error: e,
+        stackTrace: st,
+        level: 1000,
+      );
+      rethrow;
+    } catch (e, st) {
+      developer.log(
+        'Unexpected exception in getMessages: $e',
+        name: 'MessagingRemoteDataSource.getMessages',
+        error: e,
+        stackTrace: st,
+        level: 1000,
+      );
+      rethrow;
+    }
   }
 
   Future<MessageModel> sendMessage({
     required String conversationId,
     required String content,
   }) async {
-    // Resolve the correct sender profile ID (startup or investor).
-    final ids = await _resolveProfileIds();
-    final senderId = ids.startupProfileId ?? ids.investorProfileId;
-    if (senderId == null) {
-      throw Exception('No profile found. Cannot send message.');
+    final userId = _currentUserId;
+    developer.log(
+      'Sending message in conversation "$conversationId" with sender_id: "$userId", content: "$content"',
+      name: 'MessagingRemoteDataSource.sendMessage',
+    );
+
+    try {
+      final row = await _client
+          .from(ApiEndpoints.messages)
+          .insert({
+            'conversation_id': conversationId,
+            'sender_id': userId,
+            'content': content,
+          })
+          .select()
+          .single();
+
+      developer.log(
+        'Message sent successfully! Row id: "${row['id']}"',
+        name: 'MessagingRemoteDataSource.sendMessage',
+      );
+
+      return MessageModel.fromJson(Map<String, dynamic>.from(row as Map));
+    } on PostgrestException catch (e, st) {
+      developer.log(
+        'PostgrestException in sendMessage with sender_id = userId ($userId): ${e.message} (code: ${e.code}, details: ${e.details}, hint: ${e.hint})',
+        name: 'MessagingRemoteDataSource.sendMessage',
+        error: e,
+        stackTrace: st,
+        level: 900,
+      );
+
+      // Fallback: if inserting with userId failed, attempt with profileId
+      final ids = await _resolveProfileIds();
+      final profileSenderId = ids.startupProfileId ?? ids.investorProfileId;
+      if (profileSenderId != null && profileSenderId != userId) {
+        developer.log(
+          'Attempt 2 (Fallback): Trying with profileSenderId = "$profileSenderId"...',
+          name: 'MessagingRemoteDataSource.sendMessage',
+        );
+        try {
+          final fallbackRow = await _client
+              .from(ApiEndpoints.messages)
+              .insert({
+                'conversation_id': conversationId,
+                'sender_id': profileSenderId,
+                'content': content,
+              })
+              .select()
+              .single();
+
+          developer.log(
+            'Message sent successfully on attempt 2! Row id: "${fallbackRow['id']}"',
+            name: 'MessagingRemoteDataSource.sendMessage',
+          );
+          return MessageModel.fromJson(
+            Map<String, dynamic>.from(fallbackRow as Map),
+          );
+        } on PostgrestException catch (e2, st2) {
+          developer.log(
+            'Attempt 2 (with profileId) also failed: ${e2.message} (code: ${e2.code})',
+            name: 'MessagingRemoteDataSource.sendMessage',
+            error: e2,
+            stackTrace: st2,
+            level: 1000,
+          );
+          rethrow;
+        }
+      }
+      rethrow;
+    } catch (e, st) {
+      developer.log(
+        'Unexpected exception in sendMessage: $e',
+        name: 'MessagingRemoteDataSource.sendMessage',
+        error: e,
+        stackTrace: st,
+        level: 1000,
+      );
+      rethrow;
     }
-
-    final row = await _client
-        .from(ApiEndpoints.messages)
-        .insert({
-          'conversation_id': conversationId,
-          'sender_id': senderId,
-          'content': content,
-        })
-        .select()
-        .single();
-
-    return MessageModel.fromJson(Map<String, dynamic>.from(row as Map));
   }
 
   Stream<MessageModel> subscribeToMessages(String conversationId) {
+    developer.log(
+      'Subscribing to realtime messages for conversation "$conversationId"',
+      name: 'MessagingRemoteDataSource.subscribeToMessages',
+    );
+
     final seen = <String>{};
 
     return _client
@@ -251,84 +515,212 @@ class MessagingRemoteDataSource {
 
   /// Creates a new conversation between a startup profile and an investor
   /// profile, or returns the existing one if already present.
-  ///
-  /// [startupProfileId]  — `startup_profiles.id`
-  /// [investorProfileId] — `investor_profiles.id`
-  /// [startupName]       — display name of the startup (for the return model)
-  /// [investorName]      — display name of the investor (for the return model)
   Future<ConversationModel> getOrCreateConversation({
     required String startupProfileId,
     required String investorProfileId,
     String startupName = '',
     String investorName = '',
   }) async {
-    // Check for existing conversation between this exact pair.
-    final existing = await _client
-        .from(ApiEndpoints.conversations)
-        .select('id, startup_id, investor_id, created_at')
-        .eq('startup_id', startupProfileId)
-        .eq('investor_id', investorProfileId)
-        .maybeSingle();
+    developer.log(
+      'getOrCreateConversation called: startupProfileId="$startupProfileId", investorProfileId="$investorProfileId"',
+      name: 'MessagingRemoteDataSource.getOrCreateConversation',
+    );
 
-    // Determine which side the current user is on so we know who the
-    // "other" participant is for the returned model.
-    final ids = await _resolveProfileIds();
-    final bool currentUserIsStartup =
-        ids.startupProfileId == startupProfileId;
-    final otherName =
-        currentUserIsStartup ? investorName : startupName;
-    final otherProfileId =
-        currentUserIsStartup ? investorProfileId : startupProfileId;
+    try {
+      // Check for existing conversation between this exact pair.
+      final existing = await _client
+          .from(ApiEndpoints.conversations)
+          .select('id, startup_id, investor_id, created_at')
+          .eq('startup_id', startupProfileId)
+          .eq('investor_id', investorProfileId)
+          .maybeSingle();
 
-    if (existing != null) {
-      final map = Map<String, dynamic>.from(existing as Map);
+      final ids = await _resolveProfileIds();
+      final bool currentUserIsStartup =
+          ids.startupProfileId == startupProfileId;
+      final otherName =
+          currentUserIsStartup ? investorName : startupName;
+      final otherProfileId =
+          currentUserIsStartup ? investorProfileId : startupProfileId;
+
+      if (existing != null) {
+        developer.log(
+          'Found existing conversation id: "${existing['id']}"',
+          name: 'MessagingRemoteDataSource.getOrCreateConversation',
+        );
+        final map = Map<String, dynamic>.from(existing as Map);
+        return ConversationModel.fromEnriched({
+          ...map,
+          'other_participant_profile_id': otherProfileId,
+          'other_participant_name':
+              otherName.isNotEmpty ? otherName : 'Unknown',
+        });
+      }
+
+      developer.log(
+        'No existing conversation found. Inserting new conversation (startup_id: $startupProfileId, investor_id: $investorProfileId)...',
+        name: 'MessagingRemoteDataSource.getOrCreateConversation',
+      );
+
+      final row = await _client
+          .from(ApiEndpoints.conversations)
+          .insert({
+            'startup_id': startupProfileId,
+            'investor_id': investorProfileId,
+          })
+          .select()
+          .single();
+
+      developer.log(
+        'Created new conversation successfully! ID: "${row['id']}"',
+        name: 'MessagingRemoteDataSource.getOrCreateConversation',
+      );
+
+      final map = Map<String, dynamic>.from(row as Map);
       return ConversationModel.fromEnriched({
         ...map,
         'other_participant_profile_id': otherProfileId,
         'other_participant_name':
             otherName.isNotEmpty ? otherName : 'Unknown',
       });
+    } on PostgrestException catch (e, st) {
+      developer.log(
+        'PostgrestException in getOrCreateConversation: ${e.message} (code: ${e.code}, details: ${e.details}, hint: ${e.hint})',
+        name: 'MessagingRemoteDataSource.getOrCreateConversation',
+        error: e,
+        stackTrace: st,
+        level: 1000,
+      );
+      rethrow;
+    } catch (e, st) {
+      developer.log(
+        'Unexpected exception in getOrCreateConversation: $e',
+        name: 'MessagingRemoteDataSource.getOrCreateConversation',
+        error: e,
+        stackTrace: st,
+        level: 1000,
+      );
+      rethrow;
     }
-
-    final row = await _client
-        .from(ApiEndpoints.conversations)
-        .insert({
-          'startup_id': startupProfileId,
-          'investor_id': investorProfileId,
-        })
-        .select()
-        .single();
-
-    final map = Map<String, dynamic>.from(row as Map);
-    return ConversationModel.fromEnriched({
-      ...map,
-      'other_participant_profile_id': otherProfileId,
-      'other_participant_name':
-          otherName.isNotEmpty ? otherName : 'Unknown',
-    });
   }
 
   /// Returns the `investor_profiles.id` for the currently authenticated user,
-  /// or `null` if no investor profile exists.
+  /// creating a minimal profile if not yet initialized, or `null` on failure.
   Future<String?> resolveInvestorProfileId() async {
     final userId = _currentUserId;
-    final row = await _client
-        .from(ApiEndpoints.investorProfiles)
-        .select('id')
-        .eq('user_id', userId)
-        .maybeSingle();
-    return row?['id']?.toString();
+    developer.log(
+      'Resolving investor profile ID for user $userId...',
+      name: 'MessagingRemoteDataSource.resolveInvestorProfileId',
+    );
+
+    try {
+      final row = await _client
+          .from(ApiEndpoints.investorProfiles)
+          .select('id')
+          .eq('user_id', userId)
+          .maybeSingle();
+
+      if (row != null && row['id'] != null) {
+        final id = row['id'].toString();
+        developer.log(
+          'Found existing investor profile ID: "$id"',
+          name: 'MessagingRemoteDataSource.resolveInvestorProfileId',
+        );
+        return id;
+      }
+
+      developer.log(
+        'No investor profile found for user $userId. Auto-creating baseline record...',
+        name: 'MessagingRemoteDataSource.resolveInvestorProfileId',
+      );
+
+      final userRow = await _client
+          .from(ApiEndpoints.users)
+          .select('full_name, email')
+          .eq('id', userId)
+          .maybeSingle();
+
+      final name = userRow?['full_name']?.toString() ??
+          _client.auth.currentUser?.userMetadata?['full_name']?.toString() ??
+          'Investor';
+
+      final inserted = await _client
+          .from(ApiEndpoints.investorProfiles)
+          .insert({
+            'user_id': userId,
+            'investor_type': 'Individual Angel',
+            'organization_name': name,
+          })
+          .select('id')
+          .single();
+
+      final newId = inserted['id']?.toString();
+      developer.log(
+        'Auto-created investor profile with ID: "$newId"',
+        name: 'MessagingRemoteDataSource.resolveInvestorProfileId',
+      );
+      return newId;
+    } on PostgrestException catch (e, st) {
+      developer.log(
+        'PostgrestException in resolveInvestorProfileId: ${e.message} (code: ${e.code}, details: ${e.details}, hint: ${e.hint})',
+        name: 'MessagingRemoteDataSource.resolveInvestorProfileId',
+        error: e,
+        stackTrace: st,
+        level: 1000,
+      );
+      return null;
+    } catch (e, st) {
+      developer.log(
+        'Unexpected exception in resolveInvestorProfileId: $e',
+        name: 'MessagingRemoteDataSource.resolveInvestorProfileId',
+        error: e,
+        stackTrace: st,
+        level: 1000,
+      );
+      return null;
+    }
   }
 
   /// Returns the `startup_profiles.id` for the currently authenticated user,
   /// or `null` if no startup profile exists.
   Future<String?> resolveStartupProfileId() async {
     final userId = _currentUserId;
-    final row = await _client
-        .from(ApiEndpoints.startupProfiles)
-        .select('id')
-        .eq('user_id', userId)
-        .maybeSingle();
-    return row?['id']?.toString();
+    developer.log(
+      'Resolving startup profile ID for user $userId...',
+      name: 'MessagingRemoteDataSource.resolveStartupProfileId',
+    );
+
+    try {
+      final row = await _client
+          .from(ApiEndpoints.startupProfiles)
+          .select('id')
+          .eq('user_id', userId)
+          .maybeSingle();
+
+      final id = row?['id']?.toString();
+      developer.log(
+        'Resolved startup profile ID: "$id"',
+        name: 'MessagingRemoteDataSource.resolveStartupProfileId',
+      );
+      return id;
+    } on PostgrestException catch (e, st) {
+      developer.log(
+        'PostgrestException in resolveStartupProfileId: ${e.message} (code: ${e.code})',
+        name: 'MessagingRemoteDataSource.resolveStartupProfileId',
+        error: e,
+        stackTrace: st,
+        level: 1000,
+      );
+      return null;
+    } catch (e, st) {
+      developer.log(
+        'Unexpected exception in resolveStartupProfileId: $e',
+        name: 'MessagingRemoteDataSource.resolveStartupProfileId',
+        error: e,
+        stackTrace: st,
+        level: 1000,
+      );
+      return null;
+    }
   }
 }
