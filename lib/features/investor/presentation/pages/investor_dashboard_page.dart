@@ -390,67 +390,120 @@ class _PortfolioPulseStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 18, 16, 18),
-      decoration: BoxDecoration(
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
         borderRadius: BorderRadius.circular(22),
-        gradient: const LinearGradient(
-          colors: [AppColors.secondary, AppColors.secondaryLight],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+        onTap: () {
+          Navigator.of(context).pushNamed(AppConstants.routeRecommendations);
+        },
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(20, 18, 16, 18),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(22),
+            gradient: const LinearGradient(
+              colors: [AppColors.secondary, AppColors.secondaryLight],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Good to see you back, $userName',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16.5,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    BlocBuilder<RecommendationsCubit, RecommendationsState>(
+                      builder: (context, state) {
+                        final text = switch (state) {
+                          RecommendationsLoading() ||
+                          RecommendationsInitial() =>
+                            'Finding startups matching your thesis...',
+                          RecommendationsLoaded(:final results) ||
+                          RecommendationsOpeningConversation(:final results) =>
+                            _formatMatchCount(results),
+                          RecommendationsNotInvestor() =>
+                            'Set up your investor thesis to see matches',
+                          RecommendationsError() =>
+                            'Startups matching your investment thesis',
+                          RecommendationsUnauthenticated() =>
+                            'Sign in to see startup matches',
+                        };
+
+                        return Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                text,
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.85),
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Icon(
+                              Icons.arrow_forward_ios_rounded,
+                              size: 11,
+                              color: Colors.white.withValues(alpha: 0.6),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      activeDeals,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const Text(
+                      'active deals',
+                      style: TextStyle(color: Colors.white70, fontSize: 10.5),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Good to see you back, $userName',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16.5,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '3 startups match your thesis this week',
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.8),
-                    fontSize: 12.5,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.14),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Column(
-              children: [
-                Text(
-                  activeDeals,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const Text(
-                  'active deals',
-                  style: TextStyle(color: Colors.white70, fontSize: 10.5),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
+  }
+
+  String _formatMatchCount(List<MatchResultEntity> results) {
+    final matchingCount = results.where((r) => r.overallScore > 0).length;
+    if (matchingCount == 0) {
+      return 'No startups match your thesis yet';
+    } else if (matchingCount == 1) {
+      return '1 startup matches your thesis';
+    } else {
+      return '$matchingCount startups match your thesis';
+    }
   }
 }
 
@@ -712,7 +765,7 @@ class _RecommendedRail extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 20),
         itemCount: startups.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        separatorBuilder: (_, index) => const SizedBox(width: 12),
         itemBuilder: (context, i) {
           final match = startups[i];
           return _StartupCard(

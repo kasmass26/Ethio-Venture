@@ -26,9 +26,10 @@ class MatchingRepositoryImpl implements MatchingRepository {
     // 2. Fetch all startup profiles from Supabase.
     final startups = await _remote.getStartupProfiles();
 
-    // 3. Score each startup against the investor's preferences.
+    // 3. Score each startup against the investor's preferences and filter to matches only.
     final results = startups
         .map((startup) => _scorer.score(startup: startup, prefs: prefs))
+        .where((result) => result.overallScore > 0)
         .toList();
 
     // 4. Sort highest score first; break ties alphabetically by business name.
