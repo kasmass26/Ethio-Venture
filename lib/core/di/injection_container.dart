@@ -46,12 +46,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 final GetIt sl = GetIt.instance;
 
 /// Registers shared infrastructure and feature dependencies.
-///
-/// [supabaseClient] must be the already-initialised [SupabaseClient] returned
-/// by [Supabase.instance.client] after a successful [Supabase.initialize]
-/// call. When it is null (Supabase failed to initialise) the Supabase-dependent
-/// registrations are skipped — the app will show the config-error screen
-/// instead of crashing inside a cubit.
 Future<void> configureDependencies({SupabaseClient? supabaseClient}) async {
   // Shared infrastructure
   if (!sl.isRegistered<Connectivity>()) {
@@ -70,8 +64,6 @@ Future<void> configureDependencies({SupabaseClient? supabaseClient}) async {
   if (!sl.isRegistered<SupabaseClient>()) {
     sl.registerSingleton<SupabaseClient>(supabaseClient);
   }
-
-  // ── Auth Feature ─────────────────────────────────────────────────────────
 
   // ---------------------------------------------------------------------------
   // Auth Feature
@@ -205,7 +197,7 @@ Future<void> configureDependencies({SupabaseClient? supabaseClient}) async {
       () => StartupSearchCubit(searchStartups: sl<SearchStartups>()),
     );
   }
-}
+
   // ---------------------------------------------------------------------------
   // Pitch Deck & Document Feature
   // ---------------------------------------------------------------------------

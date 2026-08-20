@@ -371,7 +371,7 @@ class StartupProfilePage extends StatelessWidget {
                                   ),
                                   const SizedBox(width: AppSizes.xs),
                                   Text(
-                                    profile.location,
+                                    profile.location ?? 'Addis Ababa, Ethiopia',
                                     style: const TextStyle(
                                       color: AppColors.slate,
                                       fontWeight: FontWeight.w500,

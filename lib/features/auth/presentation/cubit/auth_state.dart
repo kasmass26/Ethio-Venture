@@ -18,10 +18,12 @@ class Authenticated extends AuthState {
   const Authenticated(this.user);
 }
 
-/// Supabase created the account, but email verification must finish before a
-/// session can be created.
+/// Emitted after signUp() when Supabase requires the user to confirm their
+/// email address before a live session is granted.
 class EmailConfirmationRequired extends AuthState {
-  const EmailConfirmationRequired();
+  final String email;
+
+  const EmailConfirmationRequired([this.email = '']);
 }
 
 class Unauthenticated extends AuthState {
@@ -32,15 +34,4 @@ class AuthFailureState extends AuthState {
   final String message;
 
   const AuthFailureState(this.message);
-}
-
-/// Emitted after signUp() when Supabase requires the user to confirm their
-/// email address before a live session is granted.  The account exists in
-/// auth.users but currentUser / currentSession will be null until the user
-/// clicks the confirmation link and signs in.
-class EmailConfirmationRequired extends AuthState {
-  /// Email address the confirmation was sent to.
-  final String email;
-
-  const EmailConfirmationRequired({required this.email});
 }

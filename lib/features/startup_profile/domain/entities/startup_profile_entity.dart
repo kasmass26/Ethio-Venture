@@ -20,6 +20,8 @@ class StartupProfileEntity {
     this.location,
     this.fundingTarget,
     this.status = StartupStatus.draft,
+    this.teamInformation = 'Core Founder Team',
+    this.contactInformation = 'contact@startup.et',
     required this.createdAt,
     required this.updatedAt,
   });
@@ -53,8 +55,21 @@ class StartupProfileEntity {
   /// visible to investors.
   final StartupStatus status;
 
+  /// Team information summary.
+  final String teamInformation;
+
+  /// Contact details.
+  final String contactInformation;
+
   final DateTime createdAt;
   final DateTime updatedAt;
+
+  // Backward-compatibility getters for feature widgets
+  String get userId => profileId;
+  String get startupName => name;
+  String get description => summary ?? '';
+  String get fundingStage => stage;
+  double get fundingAmountNeeded => fundingTarget ?? 0.0;
 
   @override
   bool operator ==(Object other) {
@@ -69,6 +84,8 @@ class StartupProfileEntity {
             location == other.location &&
             fundingTarget == other.fundingTarget &&
             status == other.status &&
+            teamInformation == other.teamInformation &&
+            contactInformation == other.contactInformation &&
             createdAt == other.createdAt &&
             updatedAt == other.updatedAt;
   }
@@ -84,6 +101,8 @@ class StartupProfileEntity {
         location,
         fundingTarget,
         status,
+        teamInformation,
+        contactInformation,
         createdAt,
         updatedAt,
       );

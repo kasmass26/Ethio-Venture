@@ -105,16 +105,16 @@ class _StartupProfileFormState extends State<StartupProfileForm> {
 
       final profile = StartupProfileEntity(
         id: widget.initialProfile?.id ?? '',
-        userId: widget.userId,
-        startupName: _nameController.text.trim(),
-        description: _descriptionController.text.trim(),
+        profileId: widget.userId,
+        name: _nameController.text.trim(),
+        summary: _descriptionController.text.trim(),
         industry: _selectedIndustry,
-        fundingStage: _selectedFundingStage,
-        fundingAmountNeeded: amount,
+        stage: _selectedFundingStage,
+        fundingTarget: amount,
         location: _locationController.text.trim(),
         teamInformation: _teamController.text.trim(),
         contactInformation: _contactController.text.trim(),
-        createdAt: widget.initialProfile?.createdAt,
+        createdAt: widget.initialProfile?.createdAt ?? DateTime.now(),
         updatedAt: DateTime.now(),
       );
 
