@@ -103,13 +103,6 @@ class _InvestorDashboardPageState extends State<InvestorDashboardPage> {
       tone: DeltaTone.neutral,
       icon: Icons.visibility_outlined,
     ),
-    InvestorMetric(
-      label: 'Unread Messages',
-      value: '5',
-      deltaText: 'Requires attention',
-      tone: DeltaTone.warning,
-      icon: Icons.chat_bubble_outline_rounded,
-    ),
   ];
 
 
@@ -682,17 +675,11 @@ class _MetricsGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return Row(
       children: [
-        Row(
-          children: [
-            Expanded(child: _MetricCard(metric: metrics[0])),
-            const SizedBox(width: 12),
-            Expanded(child: _MetricCard(metric: metrics[1])),
-          ],
-        ),
-        const SizedBox(height: 12),
-        _MetricCard(metric: metrics[2], wide: true),
+        Expanded(child: _MetricCard(metric: metrics[0])),
+        const SizedBox(width: 12),
+        Expanded(child: _MetricCard(metric: metrics[1])),
       ],
     );
   }
@@ -720,8 +707,7 @@ _ToneColors _toneColors(DeltaTone tone) {
 
 class _MetricCard extends StatelessWidget {
   final InvestorMetric metric;
-  final bool wide;
-  const _MetricCard({required this.metric, this.wide = false});
+  const _MetricCard({required this.metric});
 
   @override
   Widget build(BuildContext context) {
@@ -761,36 +747,18 @@ class _MetricCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.border),
       ),
-      child: wide
-          ? Row(
-              children: [
-                iconBadge,
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(metric.value, style: _valueStyle),
-                      const SizedBox(height: 2),
-                      Text(metric.label, style: _labelStyle),
-                    ],
-                  ),
-                ),
-                deltaChip,
-              ],
-            )
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                iconBadge,
-                const SizedBox(height: 12),
-                Text(metric.value, style: _valueStyle),
-                const SizedBox(height: 2),
-                Text(metric.label, style: _labelStyle),
-                const SizedBox(height: 10),
-                deltaChip,
-              ],
-            ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          iconBadge,
+          const SizedBox(height: 12),
+          Text(metric.value, style: _valueStyle),
+          const SizedBox(height: 2),
+          Text(metric.label, style: _labelStyle),
+          const SizedBox(height: 10),
+          deltaChip,
+        ],
+      ),
     );
   }
 

@@ -64,7 +64,8 @@ class _FounderDashboardPageState extends State<FounderDashboardPage> {
     if (isProfileEmpty || profile == null) {
       return const ProfileStrength(
         percent: 0,
-        subtitle: 'Setup your startup profile & upload pitch deck to attract investors.',
+        subtitle:
+            'Setup your startup profile & upload pitch deck to attract investors.',
         checklist: [
           ProfileChecklistItem(
             label: 'Basic Startup Info & Vision',
@@ -159,19 +160,11 @@ class _FounderDashboardPageState extends State<FounderDashboardPage> {
       iconAsset: 'interest',
       isPositive: true,
     ),
-    DashboardMetric(
-      label: 'Active Conversations',
-      value: '4',
-      deltaText: '1 pending reply',
-      iconAsset: 'conversations',
-      isPositive: false,
-    ),
   ];
 
   static const _metricIcons = [
     Icons.visibility_outlined,
     Icons.favorite_border_rounded,
-    Icons.forum_outlined,
   ];
 
   @override
@@ -197,9 +190,7 @@ class _FounderDashboardPageState extends State<FounderDashboardPage> {
         BlocProvider<RecommendedInvestorsCubit>(
           create: (_) => sl<RecommendedInvestorsCubit>()..load(),
         ),
-        BlocProvider<DocumentCubit>(
-          create: (_) => sl<DocumentCubit>(),
-        ),
+        BlocProvider<DocumentCubit>(create: (_) => sl<DocumentCubit>()),
       ],
       child: BlocListener<StartupProfileCubit, StartupProfileState>(
         listener: (context, startupState) {
@@ -256,9 +247,11 @@ class _FounderDashboardPageState extends State<FounderDashboardPage> {
 
                             return BlocBuilder<DocumentCubit, DocumentState>(
                               builder: (context, docState) {
-                                final hasDocuments = docState is DocumentsLoaded &&
+                                final hasDocuments =
+                                    docState is DocumentsLoaded &&
                                     docState.documents.isNotEmpty;
-                                final isDocLoading = docState is DocumentLoading;
+                                final isDocLoading =
+                                    docState is DocumentLoading;
 
                                 final strength = _calculateProfileStrength(
                                   profile,
@@ -272,30 +265,35 @@ class _FounderDashboardPageState extends State<FounderDashboardPage> {
                                   isLoading: isProfileLoading || isDocLoading,
                                   onTap: () {
                                     if (profile != null) {
-                                      Navigator.of(context).pushNamed(
-                                        AppConstants.routeStartupProfile,
-                                      ).then((_) {
-                                        if (context.mounted) {
-                                          context
-                                              .read<StartupProfileCubit>()
-                                              .loadProfile(currentUserId);
-                                          context
-                                              .read<DocumentCubit>()
-                                              .loadDocuments(
-                                                startupId: profile.id,
-                                              );
-                                        }
-                                      });
+                                      Navigator.of(context)
+                                          .pushNamed(
+                                            AppConstants.routeStartupProfile,
+                                          )
+                                          .then((_) {
+                                            if (context.mounted) {
+                                              context
+                                                  .read<StartupProfileCubit>()
+                                                  .loadProfile(currentUserId);
+                                              context
+                                                  .read<DocumentCubit>()
+                                                  .loadDocuments(
+                                                    startupId: profile.id,
+                                                  );
+                                            }
+                                          });
                                     } else {
-                                      Navigator.of(context).pushNamed(
-                                        AppConstants.routeStartupProfileSetup,
-                                      ).then((_) {
-                                        if (context.mounted) {
-                                          context
-                                              .read<StartupProfileCubit>()
-                                              .loadProfile(currentUserId);
-                                        }
-                                      });
+                                      Navigator.of(context)
+                                          .pushNamed(
+                                            AppConstants
+                                                .routeStartupProfileSetup,
+                                          )
+                                          .then((_) {
+                                            if (context.mounted) {
+                                              context
+                                                  .read<StartupProfileCubit>()
+                                                  .loadProfile(currentUserId);
+                                            }
+                                          });
                                     }
                                   },
                                 );
@@ -337,6 +335,7 @@ class _TopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SliverAppBar(
+      automaticallyImplyLeading: false,
       backgroundColor: AppColors.background,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
@@ -597,7 +596,9 @@ class _ChecklistRow extends StatelessWidget {
                   color: Colors.white.withOpacity(item.isComplete ? 0.7 : 1),
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
-                  decoration: item.isComplete ? TextDecoration.lineThrough : null,
+                  decoration: item.isComplete
+                      ? TextDecoration.lineThrough
+                      : null,
                   decorationColor: Colors.white54,
                 ),
               ),
@@ -666,21 +667,15 @@ class _MetricsGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return Row(
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: _MetricCard(metric: metrics[0], icon: icons[0]),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _MetricCard(metric: metrics[1], icon: icons[1]),
-            ),
-          ],
+        Expanded(
+          child: _MetricCard(metric: metrics[0], icon: icons[0]),
         ),
-        const SizedBox(height: 12),
-        _MetricCard(metric: metrics[2], icon: icons[2], wide: true),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _MetricCard(metric: metrics[1], icon: icons[1]),
+        ),
       ],
     );
   }
@@ -689,12 +684,7 @@ class _MetricsGrid extends StatelessWidget {
 class _MetricCard extends StatelessWidget {
   final DashboardMetric metric;
   final IconData icon;
-  final bool wide;
-  const _MetricCard({
-    required this.metric,
-    required this.icon,
-    this.wide = false,
-  });
+  const _MetricCard({required this.metric, required this.icon});
 
   @override
   Widget build(BuildContext context) {
@@ -705,46 +695,26 @@ class _MetricCard extends StatelessWidget {
         ? AppColors.successSoft
         : AppColors.warningSoft;
 
-    final content = Container(
+    return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.border),
       ),
-      child: wide
-          ? Row(
-              children: [
-                _MetricIconBadge(icon: icon),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(metric.value, style: _valueStyle),
-                      const SizedBox(height: 2),
-                      Text(metric.label, style: _labelStyle),
-                    ],
-                  ),
-                ),
-                _DeltaChip(text: metric.deltaText, fg: deltaFg, bg: deltaBg),
-              ],
-            )
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _MetricIconBadge(icon: icon),
-                const SizedBox(height: 12),
-                Text(metric.value, style: _valueStyle),
-                const SizedBox(height: 2),
-                Text(metric.label, style: _labelStyle),
-                const SizedBox(height: 10),
-                _DeltaChip(text: metric.deltaText, fg: deltaFg, bg: deltaBg),
-              ],
-            ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _MetricIconBadge(icon: icon),
+          const SizedBox(height: 12),
+          Text(metric.value, style: _valueStyle),
+          const SizedBox(height: 2),
+          Text(metric.label, style: _labelStyle),
+          const SizedBox(height: 10),
+          _DeltaChip(text: metric.deltaText, fg: deltaFg, bg: deltaBg),
+        ],
+      ),
     );
-
-    return content;
   }
 
   static const _valueStyle = TextStyle(
