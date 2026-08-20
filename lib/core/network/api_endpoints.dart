@@ -14,10 +14,12 @@ class ApiEndpoints {
   static const String conversations = 'conversations';
   static const String messages = 'messages';
   static const String notifications = 'notifications';
+  static const String documents = 'documents';
   static const String deviceTokens = 'device_tokens';
 
   // Storage buckets
-  static const String startupDocumentsBucket = 'startup-documents';
+  static const String documentsBucket = 'documents';
+  static const String startupDocumentsBucket = 'documents';
   static const String profileAssetsBucket = 'profile-assets';
 
   // Trusted server-side actions

@@ -1,5 +1,6 @@
+import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:ethioventure/core/config/app_config.dart';
+import 'package:ethioventure/core/network/api_endpoints.dart';
 import 'package:ethioventure/core/error/exceptions.dart';
 import '../models/document_model.dart';
 
@@ -30,10 +31,8 @@ class DocumentRemoteDataSourceImpl implements DocumentRemoteDataSource {
 
   final SupabaseClient _client;
 
-  static const String _tableName = 'startup_documents';
-
-  // Sample documents list for fallback - starts empty
-  static final List<DocumentModel> _sampleDocuments = [];
+  static const String _tableName = ApiEndpoints.documents;
+  static const String _bucketName = ApiEndpoints.documentsBucket;
 
   @override
   Future<DocumentModel> uploadDocument({
@@ -43,49 +42,132 @@ class DocumentRemoteDataSourceImpl implements DocumentRemoteDataSource {
     required String fileName,
     bool isPrivate = false,
   }) async {
-    final documentId = 'doc_${DateTime.now().millisecondsSinceEpoch}';
-
-    final fileType = fileName.split('.').last.toLowerCase();
-    final dummyUrl = 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf';
-
-    final model = DocumentModel(
-      id: documentId,
-      startupId: startupId,
-      title: title,
-      fileUrl: dummyUrl,
-      fileName: fileName,
-      fileType: fileType.isEmpty ? 'pdf' : fileType,
-      fileSizeBytes: 2450000,
-      isPrivate: isPrivate,
-      uploadedAt: DateTime.now(),
-    );
-
     try {
-      await _client.from(_tableName).insert(model.toJson());
-    } catch (_) {}
+      final file = File(filePath);
+      if (!await file.exists()) {
+        throw const ServerException(message: 'Selected document file does not exist on device.');
+      }
 
-    _sampleDocuments.add(model);
-    return model;
+      final fileSize = await file.length();
+      final timeStamp = DateTime.now().millisecondsSinceEpoch;
+      final sanitizeName = fileName.replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '_');
+      final storagePath = '$startupId/${timeStamp}_$sanitizeName';
+
+      // 1. Upload file to Supabase Storage bucket 'documents'
+      await _client.storage.from(_bucketName).upload(
+            storagePath,
+            file,
+            fileOptions: const FileOptions(upsert: true),
+          );
+
+      // 2. Get Public Download / Access URL
+      final publicUrl = _client.storage.from(_bucketName).getPublicUrl(storagePath);
+
+      // 3. Map to PostgreSQL document_type ENUM ('pitch_deck', 'business_doc', 'other')
+      final lowerTitle = title.toLowerCase();
+      final lowerName = fileName.toLowerCase();
+      String docTypeEnum = 'other';
+      if (lowerTitle.contains('pitch') ||
+          lowerName.contains('pitch') ||
+          lowerTitle.contains('deck') ||
+          lowerName.contains('deck')) {
+        docTypeEnum = 'pitch_deck';
+      } else if (lowerTitle.contains('business') ||
+          lowerTitle.contains('plan') ||
+          lowerTitle.contains('financial') ||
+          lowerTitle.contains('legal') ||
+          lowerName.contains('doc')) {
+        docTypeEnum = 'business_doc';
+      } else {
+        docTypeEnum = 'pitch_deck';
+      }
+
+      Map<String, dynamic> responseData;
+
+      // 4. Insert into public.documents table with auto-fallback for schema fields
+      try {
+        responseData = await _client.from(_tableName).insert({
+          'startup_id': startupId,
+          'file_url': publicUrl,
+          'file_type': docTypeEnum,
+          'title': title,
+          'file_name': fileName,
+          'file_size_bytes': fileSize,
+          'is_private': isPrivate,
+          'uploaded_at': DateTime.now().toIso8601String(),
+        }).select().single();
+      } catch (e) {
+        if (e is PostgrestException &&
+            (e.code == '42703' || e.message.contains('column'))) {
+          responseData = await _client.from(_tableName).insert({
+            'startup_id': startupId,
+            'file_url': publicUrl,
+            'file_type': docTypeEnum,
+            'uploaded_at': DateTime.now().toIso8601String(),
+          }).select().single();
+        } else {
+          rethrow;
+        }
+      }
+
+      final createdModel = DocumentModel.fromJson(responseData);
+      return DocumentModel(
+        id: createdModel.id,
+        startupId: createdModel.startupId,
+        title: title.isNotEmpty ? title : createdModel.title,
+        fileUrl: publicUrl,
+        fileName: fileName.isNotEmpty ? fileName : createdModel.fileName,
+        fileType: createdModel.fileType,
+        fileSizeBytes: fileSize > 0 ? fileSize : createdModel.fileSizeBytes,
+        isPrivate: isPrivate,
+        uploadedAt: createdModel.uploadedAt ?? DateTime.now(),
+      );
+    } on PostgrestException catch (e) {
+      throw ServerException(
+        message: e.message,
+        statusCode: int.tryParse(e.code ?? ''),
+      );
+    } on StorageException catch (e) {
+      throw ServerException(message: 'Storage Upload Error: ${e.message}');
+    } catch (e) {
+      throw ServerException(message: 'Failed to upload document: $e');
+    }
   }
 
   @override
   Future<List<DocumentModel>> getStartupDocuments({required String startupId}) async {
     try {
-      final response = await _client
-          .from(_tableName)
-          .select()
-          .eq('startup_id', startupId)
-          .order('created_at', ascending: false);
-
-      if (response.isNotEmpty) {
-        return response
-            .map((json) => DocumentModel.fromJson(json))
-            .toList();
+      List<dynamic> response;
+      try {
+        response = await _client
+            .from(_tableName)
+            .select()
+            .eq('startup_id', startupId)
+            .order('uploaded_at', ascending: false);
+      } catch (e) {
+        if (e is PostgrestException &&
+            (e.code == '42703' || e.message.contains('column'))) {
+          response = await _client
+              .from(_tableName)
+              .select()
+              .eq('startup_id', startupId)
+              .order('created_at', ascending: false);
+        } else {
+          rethrow;
+        }
       }
-    } catch (_) {}
 
-    // Return only sample documents that match the current startup
-    return _sampleDocuments.where((doc) => doc.startupId == startupId).toList();
+      return response
+          .map((json) => DocumentModel.fromJson(json as Map<String, dynamic>))
+          .toList();
+    } on PostgrestException catch (e) {
+      throw ServerException(
+        message: e.message,
+        statusCode: int.tryParse(e.code ?? ''),
+      );
+    } catch (e) {
+      throw ServerException(message: 'Failed to retrieve documents: $e');
+    }
   }
 
   @override
@@ -94,10 +176,34 @@ class DocumentRemoteDataSourceImpl implements DocumentRemoteDataSource {
     required String startupId,
   }) async {
     try {
-      await _client.from(_tableName).delete().eq('id', documentId);
-    } catch (_) {}
+      // Fetch file_url to clean up storage object
+      final row = await _client
+          .from(_tableName)
+          .select('file_url')
+          .eq('id', documentId)
+          .maybeSingle();
 
-    _sampleDocuments.removeWhere((doc) => doc.id == documentId);
+      if (row != null && row['file_url'] != null) {
+        final fileUrl = row['file_url'].toString();
+        try {
+          final uri = Uri.parse(fileUrl);
+          if (uri.pathSegments.contains(_bucketName)) {
+            final bucketIdx = uri.pathSegments.indexOf(_bucketName);
+            final storagePath = uri.pathSegments.sublist(bucketIdx + 1).join('/');
+            await _client.storage.from(_bucketName).remove([storagePath]);
+          }
+        } catch (_) {}
+      }
+
+      await _client.from(_tableName).delete().eq('id', documentId);
+    } on PostgrestException catch (e) {
+      throw ServerException(
+        message: e.message,
+        statusCode: int.tryParse(e.code ?? ''),
+      );
+    } catch (e) {
+      throw ServerException(message: 'Failed to delete document: $e');
+    }
   }
 
   @override
@@ -105,32 +211,46 @@ class DocumentRemoteDataSourceImpl implements DocumentRemoteDataSource {
     required String documentId,
     required bool isPrivate,
   }) async {
-    final index = _sampleDocuments.indexWhere((doc) => doc.id == documentId);
-    if (index != -1) {
-      final existing = _sampleDocuments[index];
-      final updated = DocumentModel(
-        id: existing.id,
-        startupId: existing.startupId,
-        title: existing.title,
-        fileUrl: existing.fileUrl,
-        fileName: existing.fileName,
-        fileType: existing.fileType,
-        fileSizeBytes: existing.fileSizeBytes,
-        isPrivate: isPrivate,
-        uploadedAt: existing.uploadedAt,
-      );
-      _sampleDocuments[index] = updated;
-
+    try {
       try {
-        await _client
+        final response = await _client
             .from(_tableName)
             .update({'is_private': isPrivate})
-            .eq('id', documentId);
-      } catch (_) {}
+            .eq('id', documentId)
+            .select()
+            .single();
 
-      return updated;
+        return DocumentModel.fromJson(response);
+      } catch (e) {
+        if (e is PostgrestException &&
+            (e.code == '42703' || e.message.contains('column'))) {
+          final row = await _client
+              .from(_tableName)
+              .select()
+              .eq('id', documentId)
+              .single();
+          final doc = DocumentModel.fromJson(row);
+          return DocumentModel(
+            id: doc.id,
+            startupId: doc.startupId,
+            title: doc.title,
+            fileUrl: doc.fileUrl,
+            fileName: doc.fileName,
+            fileType: doc.fileType,
+            fileSizeBytes: doc.fileSizeBytes,
+            isPrivate: isPrivate,
+            uploadedAt: doc.uploadedAt,
+          );
+        }
+        rethrow;
+      }
+    } on PostgrestException catch (e) {
+      throw ServerException(
+        message: e.message,
+        statusCode: int.tryParse(e.code ?? ''),
+      );
+    } catch (e) {
+      throw ServerException(message: 'Failed to toggle document visibility: $e');
     }
-
-    throw const ServerException(message: 'Document not found');
   }
 }

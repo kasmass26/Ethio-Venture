@@ -362,6 +362,13 @@ class PitchDeckSectionWidget extends StatelessWidget {
                       backgroundColor: AppColors.primary,
                     ),
                   );
+                } else if (state is DocumentError) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(state.message),
+                      backgroundColor: AppColors.coral,
+                    ),
+                  );
                 }
               },
               builder: (context, state) {
