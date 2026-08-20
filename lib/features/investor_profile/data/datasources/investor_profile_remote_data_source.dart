@@ -164,9 +164,10 @@ class InvestorProfileRemoteDataSourceImpl
       name: 'InvestorProfileRemoteDataSource.getApprovedInvestors',
     );
     try {
-      dynamic data;
+      List<dynamic> rows = [];
       try {
-        data = await _client
+        // Attempt 1: Join with users table
+        final data = await _client
             .from(_tableName)
             .select('''
               id,
@@ -183,22 +184,77 @@ class InvestorProfileRemoteDataSourceImpl
               approval_status,
               users(full_name, email, account_type)
             ''')
-            .neq('approval_status', 'rejected')
             .order('created_at', ascending: false);
+        rows = (data as List).cast<dynamic>();
       } catch (e) {
         developer.log(
           'Join query failed, falling back to direct table query: $e',
           name: 'InvestorProfileRemoteDataSource.getApprovedInvestors',
         );
-        data = await _client
-            .from(_tableName)
-            .select()
-            .neq('approval_status', 'rejected')
-            .order('created_at', ascending: false);
+        try {
+          final data = await _client
+              .from(_tableName)
+              .select()
+              .order('created_at', ascending: false);
+          rows = (data as List).cast<dynamic>();
+        } catch (e2) {
+          developer.log(
+            'Direct query without order failed: $e2',
+            name: 'InvestorProfileRemoteDataSource.getApprovedInvestors',
+          );
+          final data = await _client.from(_tableName).select();
+          rows = (data as List).cast<dynamic>();
+        }
       }
 
-      final list = (data as List)
-          .map((json) => InvestorDiscoveryModel.fromJson(json as Map<String, dynamic>))
+      // If user info is missing in rows, attempt to fetch user names
+      final List<Map<String, dynamic>> processedRows = [];
+      final List<String> userIdsToFetch = [];
+
+      for (final r in rows) {
+        final map = Map<String, dynamic>.from(r as Map);
+        // Only exclude explicitly rejected profiles if approval_status column exists
+        final status = map['approval_status']?.toString().toLowerCase();
+        if (status == 'rejected') continue;
+
+        if (map['users'] == null && map['user_id'] != null) {
+          final uid = map['user_id'].toString();
+          if (uid.isNotEmpty && !userIdsToFetch.contains(uid)) {
+            userIdsToFetch.add(uid);
+          }
+        }
+        processedRows.add(map);
+      }
+
+      if (userIdsToFetch.isNotEmpty) {
+        try {
+          final usersData = await _client
+              .from('users')
+              .select('id, full_name, email')
+              .inFilter('id', userIdsToFetch);
+
+          final userMap = <String, Map<String, dynamic>>{};
+          for (final u in usersData as List) {
+            final um = Map<String, dynamic>.from(u as Map);
+            userMap[um['id'].toString()] = um;
+          }
+
+          for (final row in processedRows) {
+            final uid = row['user_id']?.toString();
+            if (uid != null && userMap.containsKey(uid)) {
+              row['users'] = userMap[uid];
+            }
+          }
+        } catch (e) {
+          developer.log(
+            'Failed to fetch user profiles for investors: $e',
+            name: 'InvestorProfileRemoteDataSource.getApprovedInvestors',
+          );
+        }
+      }
+
+      final list = processedRows
+          .map((json) => InvestorDiscoveryModel.fromJson(json))
           .toList();
 
       developer.log(
@@ -216,13 +272,12 @@ class InvestorProfileRemoteDataSourceImpl
       throw ServerException(message: e.message);
     } catch (e, st) {
       developer.log(
-        'Unexpected exception in getApprovedInvestors',
+        'Unexpected exception in getApprovedInvestors: $e',
         name: 'InvestorProfileRemoteDataSource.getApprovedInvestors',
         error: e,
         stackTrace: st,
       );
-      rethrow;
+      throw ServerException(message: 'Failed to load investors: $e');
     }
   }
 }
-

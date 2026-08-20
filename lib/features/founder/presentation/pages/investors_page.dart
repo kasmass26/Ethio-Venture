@@ -241,6 +241,58 @@ class _InvestorsPageState extends State<InvestorsPage> {
           );
         }
 
+        if (state is RecommendedInvestorsEmpty) {
+          return SliverFillRemaining(
+            hasScrollBody: false,
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(18),
+                      decoration: const BoxDecoration(
+                        color: AppColors.primarySoft,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.person_search_rounded,
+                        size: 36,
+                        color: AppColors.primaryDark,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'No investors in directory yet',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Investors will appear here once they create and configure their investment thesis.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      onPressed: () => context.read<RecommendedInvestorsCubit>().load(),
+                      icon: const Icon(Icons.refresh_rounded, size: 18),
+                      label: const Text('Refresh'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+
         if (state is RecommendedInvestorsLoaded) {
           final filtered = _filterInvestors(state.investors);
 
