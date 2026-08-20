@@ -5,7 +5,7 @@ import '../../../../core/constants/app_constants.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_sizes.dart';
-import '../../../messaging/presentation/pages/chat_page.dart';
+import '../../../investor/presentation/widgets/app_bottom_nav.dart';
 import '../cubit/recommendations_cubit.dart';
 import '../cubit/recommendations_state.dart';
 import '../widgets/recommendation_card.dart';
@@ -40,13 +40,12 @@ class _RecommendationsView extends StatelessWidget {
           // Consume the payload so we don't re-navigate on rebuild.
           context.read<RecommendationsCubit>().clearPendingConversation();
 
-          Navigator.of(context).push(
-            MaterialPageRoute<void>(
-              builder: (_) => ChatPage(
-                conversationId: payload.conversationId,
-                participantName: payload.participantName,
-              ),
-            ),
+          Navigator.of(context).pushNamed(
+            AppConstants.routeChat,
+            arguments: {
+              'conversationId': payload.conversationId,
+              'participantName': payload.participantName,
+            },
           );
         }
 
@@ -68,7 +67,15 @@ class _RecommendationsView extends StatelessWidget {
           scrolledUnderElevation: 0,
           leading: IconButton(
             icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
-            onPressed: () => Navigator.of(context).maybePop(),
+            onPressed: () {
+              if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pop();
+              } else {
+                Navigator.of(context).pushReplacementNamed(
+                  AppConstants.routeInvestorDashboard,
+                );
+              }
+            },
           ),
           title: const Text(
             'Recommendations',
@@ -132,7 +139,29 @@ class _RecommendationsView extends StatelessWidget {
           ],
         ),
 
-        bottomNavigationBar: _BottomNavBar(currentIndex: 1),
+        bottomNavigationBar: AppBottomNav(
+          items: AppBottomNav.investorNavItems,
+          currentIndex: 1,
+          onTap: (index) {
+            if (index == 0) {
+              Navigator.of(context).pushReplacementNamed(
+                AppConstants.routeInvestorDashboard,
+              );
+            } else if (index == 1) {
+              Navigator.of(context).pushReplacementNamed(
+                AppConstants.routeStartupSearch,
+              );
+            } else if (index == 2) {
+              Navigator.of(context).pushNamed(
+                AppConstants.routeMessages,
+              );
+            } else if (index == 3) {
+              Navigator.of(context).pushReplacementNamed(
+                AppConstants.routeInvestorProfile,
+              );
+            }
+          },
+        ),
       ),
     );
   }
@@ -210,6 +239,12 @@ class _RecommendationsView extends StatelessWidget {
                   result: r,
                   isOpeningConversation:
                       openingForId == r.startup.id,
+                  onViewDetails: () {
+                    Navigator.of(context).pushNamed(
+                      AppConstants.routeStartupDetail,
+                      arguments: r.startup.id,
+                    );
+                  },
                   onMessageTap: () =>
                       context
                           .read<RecommendationsCubit>()
@@ -281,106 +316,6 @@ class _FullScreenMessage extends StatelessWidget {
                 child: Text(actionLabel!),
               ),
             ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ── Bottom navigation bar (shared pattern) ────────────────────────────────
-
-class _BottomNavBar extends StatelessWidget {
-  const _BottomNavBar({required this.currentIndex});
-  final int currentIndex;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(top: BorderSide(color: AppColors.divider)),
-      ),
-      child: SafeArea(
-        top: false,
-        child: SizedBox(
-          height: 64,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _NavItem(
-                icon: Icons.grid_view_rounded,
-                label: 'Dashboard',
-                selected: currentIndex == 0,
-                onTap: () => Navigator.of(context)
-                    .pushReplacementNamed(AppConstants.routeHome),
-              ),
-              _NavItem(
-                icon: Icons.search_rounded,
-                label: 'Discover',
-                selected: currentIndex == 1,
-                onTap: () {},
-              ),
-              _NavItem(
-                icon: Icons.chat_bubble_rounded,
-                label: 'Messages',
-                selected: currentIndex == 2,
-                onTap: () => Navigator.of(context)
-                    .pushNamed(AppConstants.routeMessages),
-              ),
-              _NavItem(
-                icon: Icons.person_outline_rounded,
-                label: 'Profile',
-                selected: currentIndex == 3,
-                onTap: () {},
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _NavItem extends StatelessWidget {
-  const _NavItem({
-    required this.icon,
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final color =
-        selected ? AppColors.secondary : AppColors.textSecondary;
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(AppSizes.radiusMd),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSizes.md,
-          vertical: AppSizes.xs,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: color, size: 26),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight:
-                    selected ? FontWeight.w700 : FontWeight.normal,
-                color: color,
-              ),
-            ),
           ],
         ),
       ),

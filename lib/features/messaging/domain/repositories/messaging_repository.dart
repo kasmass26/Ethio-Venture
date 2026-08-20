@@ -35,4 +35,8 @@ abstract class MessagingRepository {
   /// Used by the presentation layer to resolve the investor side of a
   /// conversation without bypassing the repository layer.
   Future<String?> resolveInvestorProfileId();
+
+  /// Returns the `startup_profiles.id` for the currently authenticated user,
+  /// or `null` if the user has no startup profile.
+  Future<String?> resolveStartupProfileId();
 }

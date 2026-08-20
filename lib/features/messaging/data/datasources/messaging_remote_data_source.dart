@@ -319,4 +319,16 @@ class MessagingRemoteDataSource {
         .maybeSingle();
     return row?['id']?.toString();
   }
+
+  /// Returns the `startup_profiles.id` for the currently authenticated user,
+  /// or `null` if no startup profile exists.
+  Future<String?> resolveStartupProfileId() async {
+    final userId = _currentUserId;
+    final row = await _client
+        .from(ApiEndpoints.startupProfiles)
+        .select('id')
+        .eq('user_id', userId)
+        .maybeSingle();
+    return row?['id']?.toString();
+  }
 }

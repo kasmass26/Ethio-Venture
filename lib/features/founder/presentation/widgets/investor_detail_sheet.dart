@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import '../../../../core/constants/app_constants.dart';
+import '../../../../core/di/injection_container.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../investor_profile/domain/entities/investor_discovery_entity.dart';
+import '../../../messaging/domain/repositories/messaging_repository.dart';
 
 /// Rich, interactive bottom sheet modal displaying an investor's full thesis and criteria.
 class InvestorDetailSheet extends StatelessWidget {
@@ -451,18 +454,44 @@ class InvestorDetailSheet extends StatelessWidget {
       children: [
         Expanded(
           child: ElevatedButton.icon(
-            onPressed: () {
+            onPressed: () async {
               Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  backgroundColor: AppColors.secondary,
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  content: Text(
-                    'Direct contact initiated with ${investor.displayName}. Pitch deck ready to share!',
+              try {
+                final messagingRepo = sl<MessagingRepository>();
+                final startupProfileId =
+                    await messagingRepo.resolveStartupProfileId();
+                if (startupProfileId != null && context.mounted) {
+                  final conv = await messagingRepo.getOrCreateConversation(
+                    startupProfileId: startupProfileId,
+                    investorProfileId: investor.id,
+                  );
+                  if (context.mounted) {
+                    Navigator.of(context).pushNamed(
+                      AppConstants.routeChat,
+                      arguments: {
+                        'conversationId': conv.id,
+                        'participantName': investor.displayName,
+                      },
+                    );
+                    return;
+                  }
+                }
+              } catch (_) {}
+
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    backgroundColor: AppColors.secondary,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    content: Text(
+                      'Direct contact initiated with ${investor.displayName}. Pitch deck ready to share!',
+                    ),
                   ),
-                ),
-              );
+                );
+              }
             },
             icon: const Icon(Icons.send_rounded, size: 18, color: Colors.white),
             label: const Text(

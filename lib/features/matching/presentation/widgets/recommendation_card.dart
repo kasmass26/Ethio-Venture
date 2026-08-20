@@ -15,11 +15,13 @@ class RecommendationCard extends StatefulWidget {
     super.key,
     required this.result,
     this.onMessageTap,
+    this.onViewDetails,
     this.isOpeningConversation = false,
   });
 
   final MatchResultEntity result;
   final VoidCallback? onMessageTap;
+  final VoidCallback? onViewDetails;
 
   /// When true, the Message button shows a loading spinner — set while the
   /// cubit is calling getOrCreateConversation for this specific card.
@@ -172,6 +174,27 @@ class _RecommendationCardState extends State<RecommendationCard> {
             const SizedBox(height: AppSizes.sm),
             Row(
               children: [
+                if (widget.onViewDetails != null) ...[
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        side: const BorderSide(color: AppColors.border),
+                        shape: RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.circular(AppSizes.radiusMd),
+                        ),
+                      ),
+                      icon: const Icon(Icons.open_in_new_rounded, size: 15),
+                      label: const Text(
+                        'Profile',
+                        style: TextStyle(fontSize: 13),
+                      ),
+                      onPressed: widget.onViewDetails,
+                    ),
+                  ),
+                  const SizedBox(width: AppSizes.xs),
+                ],
                 Expanded(
                   child: OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(
@@ -182,16 +205,21 @@ class _RecommendationCardState extends State<RecommendationCard> {
                             BorderRadius.circular(AppSizes.radiusMd),
                       ),
                     ),
-                    icon: const Icon(Icons.info_outline, size: 16),
+                    icon: Icon(
+                      _expanded
+                          ? Icons.keyboard_arrow_up_rounded
+                          : Icons.info_outline,
+                      size: 16,
+                    ),
                     label: Text(
-                      _expanded ? 'Less' : 'Details',
+                      _expanded ? 'Less' : 'Breakdown',
                       style: const TextStyle(fontSize: 13),
                     ),
                     onPressed: () =>
                         setState(() => _expanded = !_expanded),
                   ),
                 ),
-                const SizedBox(width: AppSizes.sm),
+                const SizedBox(width: AppSizes.xs),
                 Expanded(
                   child: ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(

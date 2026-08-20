@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_sizes.dart';
+import '../../../messaging/domain/repositories/messaging_repository.dart';
 import '../../../pitch_deck/presentation/cubit/document_cubit.dart';
 import '../../../pitch_deck/presentation/widgets/pitch_deck_section_widget.dart';
 import '../../domain/entities/startup_profile_entity.dart';
@@ -151,16 +153,46 @@ class _StartupDetailPageState extends State<StartupDetailPage> {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(dialogCtx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  backgroundColor: AppColors.primaryDark,
-                  content: Text(
-                    'Interest sent to ${startup.startupName}! The founder has been notified.',
+              try {
+                final messagingRepo = sl<MessagingRepository>();
+                final investorProfileId =
+                    await messagingRepo.resolveInvestorProfileId();
+                if (investorProfileId != null && context.mounted) {
+                  final conv = await messagingRepo.getOrCreateConversation(
+                    startupProfileId: startup.id,
+                    investorProfileId: investorProfileId,
+                  );
+                  if (messageController.text.trim().isNotEmpty) {
+                    await messagingRepo.sendMessage(
+                      conversationId: conv.id,
+                      content: messageController.text.trim(),
+                    );
+                  }
+                  if (context.mounted) {
+                    Navigator.of(context).pushNamed(
+                      AppConstants.routeChat,
+                      arguments: {
+                        'conversationId': conv.id,
+                        'participantName': startup.startupName,
+                      },
+                    );
+                    return;
+                  }
+                }
+              } catch (_) {}
+
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    backgroundColor: AppColors.primaryDark,
+                    content: Text(
+                      'Interest sent to ${startup.startupName}! The founder has been notified.',
+                    ),
                   ),
-                ),
-              );
+                );
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primaryDark,

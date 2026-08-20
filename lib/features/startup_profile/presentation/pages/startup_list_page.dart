@@ -304,7 +304,85 @@ class _StartupListViewState extends State<_StartupListView> {
             },
           ),
 
-          const SizedBox(height: AppSizes.sm),
+          // ── AI Recommendations Banner ────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSizes.pageHorizontal,
+              AppSizes.xs,
+              AppSizes.pageHorizontal,
+              AppSizes.xs,
+            ),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+              onTap: () => Navigator.of(context).pushNamed(
+                AppConstants.routeRecommendations,
+              ),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSizes.md,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: isDark
+                        ? [AppColors.surfaceDark, AppColors.backgroundDark]
+                        : [AppColors.primarySoft, AppColors.secondarySoft],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+                  border: Border.all(
+                    color: AppColors.secondary.withValues(alpha: 0.2),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: const BoxDecoration(
+                        color: AppColors.secondary,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.auto_awesome_rounded,
+                        size: 14,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'AI Matched Recommendations',
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                          Text(
+                            'Personalized based on your investment thesis',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: AppColors.textSecondary,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      size: 13,
+                      color: AppColors.secondary,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: AppSizes.xs),
           const Divider(height: 1),
 
           // ── Results area ─────────────────────────────────────────────────

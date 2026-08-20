@@ -224,6 +224,7 @@ class _DashboardScaffold extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         backgroundColor: AppColors.surface,
         title: const Text(
           'Investor Dashboard',
@@ -292,7 +293,7 @@ class _DashboardScaffold extends StatelessWidget {
                   state: state,
                   onViewAll: () {
                     Navigator.of(context).pushNamed(
-                      AppConstants.routeStartupSearch,
+                      AppConstants.routeRecommendations,
                     );
                   },
                   onViewProfile: (recommendedItem) {

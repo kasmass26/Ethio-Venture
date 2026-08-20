@@ -41,4 +41,8 @@ class MessagingRepositoryImpl implements MessagingRepository {
   @override
   Future<String?> resolveInvestorProfileId() =>
       _remote.resolveInvestorProfileId();
+
+  @override
+  Future<String?> resolveStartupProfileId() =>
+      _remote.resolveStartupProfileId();
 }
