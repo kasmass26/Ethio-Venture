@@ -201,6 +201,18 @@ class NotificationService {
         },
         onConflict: 'token',
       );
+    } on PostgrestException catch (e) {
+      if (e.code == 'PGRST205' || e.message.contains('device_tokens')) {
+        developer.log(
+          'Notice: Supabase table "device_tokens" does not exist yet. Please run the SQL schema migration in Supabase SQL Editor.',
+          name: 'NotificationService.registerDeviceTokenInSupabase',
+        );
+      } else {
+        developer.log(
+          'PostgrestException registering FCM token: ${e.message} (code: ${e.code})',
+          name: 'NotificationService.registerDeviceTokenInSupabase',
+        );
+      }
     } catch (e) {
       developer.log(
         'Error registering FCM token in Supabase: $e',
@@ -208,6 +220,7 @@ class NotificationService {
       );
     }
   }
+
 
   void _onNotificationTap(NotificationResponse response) {
     if (response.payload != null && response.payload!.isNotEmpty) {
