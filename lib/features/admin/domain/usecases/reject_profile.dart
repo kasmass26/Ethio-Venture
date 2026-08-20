@@ -9,7 +9,8 @@ class RejectProfile {
   Future<void> call({
     required String profileId,
     required String role,
+    required String rejectionReason,
   }) async {
-    return await repository.rejectProfile(profileId, role);
+    return await repository.rejectProfile(profileId, role, rejectionReason);
   }
 }

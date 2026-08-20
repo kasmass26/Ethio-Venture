@@ -15,6 +15,8 @@ class PendingApprovalEntity {
     this.logoUrl,
     required this.createdAt,
     required this.approvalStatus,
+    this.rejectionReason,
+    this.approvalDate,
   });
 
   final String id;
@@ -31,6 +33,8 @@ class PendingApprovalEntity {
   final String? logoUrl;
   final DateTime createdAt;
   final String approvalStatus; // 'pending', 'approved', 'rejected'
+  final String? rejectionReason;
+  final DateTime? approvalDate;
 
   PendingApprovalEntity copyWith({
     String? id,
@@ -47,6 +51,8 @@ class PendingApprovalEntity {
     String? logoUrl,
     DateTime? createdAt,
     String? approvalStatus,
+    String? rejectionReason,
+    DateTime? approvalDate,
   }) {
     return PendingApprovalEntity(
       id: id ?? this.id,
@@ -63,6 +69,8 @@ class PendingApprovalEntity {
       logoUrl: logoUrl ?? this.logoUrl,
       createdAt: createdAt ?? this.createdAt,
       approvalStatus: approvalStatus ?? this.approvalStatus,
+      rejectionReason: rejectionReason ?? this.rejectionReason,
+      approvalDate: approvalDate ?? this.approvalDate,
     );
   }
 }

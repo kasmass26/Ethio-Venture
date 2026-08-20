@@ -1,5 +1,4 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:ethioventure/core/config/app_config.dart';
 import 'package:ethioventure/core/error/exceptions.dart';
 import '../models/startup_profile_model.dart';
 
@@ -26,7 +25,6 @@ class StartupProfileRemoteDataSourceImpl
   final SupabaseClient _client;
 
   static const String _tableName = 'startup_profiles';
-  static const String _defaultSeedUserId = '71c17916-032d-47fb-b3f5-a9a097036716';
 
   @override
   Future<StartupProfileModel> createProfile(StartupProfileModel profile) async {

@@ -13,9 +13,21 @@ class InvestorProfileModel extends InvestorProfileEntity {
     super.ticketSizeMax,
     super.geographicFocus,
     required super.createdAt,
+    super.approvalStatus = 'pending',
+    super.rejectionReason,
+    super.approvalDate,
   });
 
   factory InvestorProfileModel.fromJson(Map<String, dynamic> json) {
+    DateTime? parsedApprovalDate;
+    if (json['approval_date'] != null) {
+      try {
+        parsedApprovalDate = DateTime.parse(json['approval_date'].toString());
+      } catch (_) {
+        parsedApprovalDate = null;
+      }
+    }
+
     return InvestorProfileModel(
       id: json['id'] as String,
       userId: json['user_id'] as String,
@@ -28,6 +40,9 @@ class InvestorProfileModel extends InvestorProfileEntity {
       ticketSizeMax: _parseDouble(json['ticket_size_max']),
       geographicFocus: _parseStringList(json['geographic_focus']),
       createdAt: DateTime.parse(json['created_at'] as String),
+      approvalStatus: json['approval_status'] as String? ?? 'pending',
+      rejectionReason: json['rejection_reason'] as String?,
+      approvalDate: parsedApprovalDate,
     );
   }
 
@@ -43,6 +58,9 @@ class InvestorProfileModel extends InvestorProfileEntity {
       'ticket_size_max': ticketSizeMax,
       'geographic_focus': geographicFocus,
       'created_at': createdAt.toIso8601String(),
+      'approval_status': approvalStatus,
+      'rejection_reason': rejectionReason,
+      'approval_date': approvalDate?.toIso8601String(),
     };
     if (id.isNotEmpty) {
       map['id'] = id;

@@ -696,6 +696,9 @@ class _InvestorsPageState extends State<InvestorsPage> {
   List<InvestorDiscoveryEntity> _filterInvestors(
       List<InvestorDiscoveryEntity> list) {
     return list.where((inv) {
+      // 0. Ensure strictly approved profiles only
+      if (!inv.isApproved) return false;
+
       // 1. Text Search query
       if (_searchQuery.isNotEmpty) {
         final nameMatch = inv.displayName.toLowerCase().contains(_searchQuery);

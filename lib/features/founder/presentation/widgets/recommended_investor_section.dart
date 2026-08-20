@@ -104,7 +104,8 @@ class RecommendedInvestorsSection extends StatelessWidget {
             }
 
             if (state is RecommendedInvestorsLoaded) {
-              final investors = state.investors;
+              final investors =
+                  state.investors.where((i) => i.isApproved).toList();
               if (investors.isEmpty) {
                 return _buildEmptyCard(context);
               }

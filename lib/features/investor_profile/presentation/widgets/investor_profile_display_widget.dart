@@ -120,6 +120,108 @@ class InvestorProfileDisplayWidget extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        // ── Approval Status Notice Banner ────────────────────────────────────
+        if (profile.isRejected) ...[
+          Container(
+            margin: const EdgeInsets.only(bottom: AppSizes.md),
+            padding: const EdgeInsets.all(AppSizes.md),
+            decoration: BoxDecoration(
+              color: AppColors.error.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+              border: Border.all(color: AppColors.error.withOpacity(0.4)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.cancel, color: AppColors.error, size: 22),
+                    const SizedBox(width: 10),
+                    const Expanded(
+                      child: Text(
+                        'Investor Application Not Approved',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15,
+                          color: AppColors.error,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Admin Feedback: ${profile.rejectionReason != null && profile.rejectionReason!.isNotEmpty ? profile.rejectionReason : "Please update your profile details to meet requirements."}',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: isDark ? AppColors.white : AppColors.ink,
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: ElevatedButton.icon(
+                    onPressed: onEdit,
+                    icon: const Icon(Icons.edit, size: 16),
+                    label: const Text('Edit & Resubmit'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.error,
+                      foregroundColor: AppColors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ] else if (profile.isPending) ...[
+          Container(
+            margin: const EdgeInsets.only(bottom: AppSizes.md),
+            padding: const EdgeInsets.all(AppSizes.md),
+            decoration: BoxDecoration(
+              color: AppColors.warning.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+              border: Border.all(color: AppColors.warning.withOpacity(0.4)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.hourglass_top_rounded, color: AppColors.warning, size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Application Pending Admin Approval',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                          color: isDark ? AppColors.white : AppColors.ink,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Your investor profile is currently under review by our admin team. Once approved, it will go live and become discoverable on the platform.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isDark ? Colors.white70 : AppColors.slate,
+                          height: 1.3,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+
         // ── Glassmorphic Hero Header ─────────────────────────────────────────
         _HeroHeader(
           orgName: orgName,

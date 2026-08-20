@@ -26,14 +26,16 @@ class RecommendedInvestorsCubit extends Cubit<RecommendedInvestorsState> {
     emit(const RecommendedInvestorsLoading());
     try {
       final investors = await _getApprovedInvestorsUseCase();
-      _allCachedInvestors = investors;
+      // Ensure only strictly approved profiles are visible to startups
+      final approvedInvestors = investors.where((i) => i.isApproved).toList();
+      _allCachedInvestors = approvedInvestors;
 
-      if (investors.isEmpty) {
+      if (approvedInvestors.isEmpty) {
         emit(const RecommendedInvestorsEmpty());
         return;
       }
 
-      final scored = _scoreAndSort(investors, startupProfile);
+      final scored = _scoreAndSort(approvedInvestors, startupProfile);
       emit(RecommendedInvestorsLoaded(scored));
     } catch (e) {
       debugPrint('[RecommendedInvestorsCubit] error: $e');

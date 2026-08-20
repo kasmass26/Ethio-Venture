@@ -75,7 +75,7 @@ class MatchingRemoteDataSource {
     for (final r in rows) {
       final map = Map<String, dynamic>.from(r as Map);
       final status = map['approval_status']?.toString().toLowerCase();
-      if (status == 'rejected') continue;
+      if (status != 'approved') continue;
       models.add(StartupProfileModel.fromJson(map));
     }
     return models;

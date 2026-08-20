@@ -32,6 +32,9 @@ class StartupProfileModel extends StartupProfileEntity {
     required super.contactInformation,
     required super.createdAt,
     required super.updatedAt,
+    super.approvalStatus = 'pending',
+    super.rejectionReason,
+    super.approvalDate,
   });
 
   factory StartupProfileModel.fromJson(Map<String, dynamic> json) {
@@ -86,6 +89,15 @@ class StartupProfileModel extends StartupProfileEntity {
       parsedUpdated = DateTime.now();
     }
 
+    DateTime? parsedApprovalDate;
+    if (json['approval_date'] != null) {
+      try {
+        parsedApprovalDate = DateTime.parse(json['approval_date'].toString());
+      } catch (_) {
+        parsedApprovalDate = null;
+      }
+    }
+
     return StartupProfileModel(
       id: json['id']?.toString() ?? '',
       userId: json['user_id']?.toString() ?? '',
@@ -99,6 +111,9 @@ class StartupProfileModel extends StartupProfileEntity {
       contactInformation: contactInfo,
       createdAt: parsedCreated,
       updatedAt: parsedUpdated,
+      approvalStatus: json['approval_status']?.toString() ?? 'pending',
+      rejectionReason: json['rejection_reason']?.toString(),
+      approvalDate: parsedApprovalDate,
     );
   }
 
@@ -116,6 +131,9 @@ class StartupProfileModel extends StartupProfileEntity {
       contactInformation: entity.contactInformation,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
+      approvalStatus: entity.approvalStatus,
+      rejectionReason: entity.rejectionReason,
+      approvalDate: entity.approvalDate,
     );
   }
 
@@ -133,6 +151,9 @@ class StartupProfileModel extends StartupProfileEntity {
       'contact_information': contactInformation,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
+      'approval_status': approvalStatus,
+      'rejection_reason': rejectionReason,
+      'approval_date': approvalDate?.toIso8601String(),
     };
   }
 
@@ -149,6 +170,9 @@ class StartupProfileModel extends StartupProfileEntity {
       'contact_information': contactInformation,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
+      'approval_status': approvalStatus,
+      'rejection_reason': rejectionReason,
+      'approval_date': approvalDate?.toIso8601String(),
     };
   }
 
@@ -163,6 +187,9 @@ class StartupProfileModel extends StartupProfileEntity {
       'team_information': teamInformation,
       'contact_information': contactInformation,
       'updated_at': updatedAt.toIso8601String(),
+      'approval_status': approvalStatus,
+      'rejection_reason': rejectionReason,
+      'approval_date': approvalDate?.toIso8601String(),
     };
   }
 

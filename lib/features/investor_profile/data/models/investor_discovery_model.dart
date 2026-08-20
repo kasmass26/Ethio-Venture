@@ -54,7 +54,8 @@ class InvestorDiscoveryModel extends InvestorDiscoveryEntity {
       ticketSizeMin: _parseDouble(json['ticket_size_min']),
       ticketSizeMax: _parseDouble(json['ticket_size_max']),
       geographicFocus: _parseStringList(json['geographic_focus']),
-      approvalStatus: json['approval_status']?.toString() ?? 'approved',
+      approvalStatus:
+          json['approval_status']?.toString().toLowerCase().trim() ?? 'pending',
       createdAt: parsedCreated,
     );
   }

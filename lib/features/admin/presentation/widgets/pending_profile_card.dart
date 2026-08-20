@@ -3,17 +3,18 @@ import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_sizes.dart';
 import '../../domain/entities/pending_approval_entity.dart';
+import 'rejection_reason_dialog.dart';
 
 class PendingProfileCard extends StatefulWidget {
   final PendingApprovalEntity profile;
-  final VoidCallback onApprove;
-  final VoidCallback onReject;
+  final VoidCallback? onApprove;
+  final Function(String reason)? onRejectWithReason;
 
   const PendingProfileCard({
     super.key,
     required this.profile,
-    required this.onApprove,
-    required this.onReject,
+    this.onApprove,
+    this.onRejectWithReason,
   });
 
   @override
@@ -23,10 +24,38 @@ class PendingProfileCard extends StatefulWidget {
 class _PendingProfileCardState extends State<PendingProfileCard> {
   bool _isExpanded = false;
 
+  Future<void> _handleReject() async {
+    final reason = await RejectionReasonDialog.show(
+      context,
+      profile: widget.profile,
+    );
+    if (reason != null && reason.trim().isNotEmpty) {
+      widget.onRejectWithReason?.call(reason.trim());
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final dateFormat = DateFormat('MMM dd, yyyy');
     final isStartup = widget.profile.role == 'founder';
+    final status = widget.profile.approvalStatus.toLowerCase();
+    final isPending = status == 'pending';
+    final isApproved = status == 'approved';
+    final isRejected = status == 'rejected';
+
+    Color statusColor = AppColors.warning;
+    String statusLabel = 'Pending Review';
+    IconData statusIcon = Icons.hourglass_top_rounded;
+
+    if (isApproved) {
+      statusColor = AppColors.success;
+      statusLabel = 'Approved';
+      statusIcon = Icons.check_circle_rounded;
+    } else if (isRejected) {
+      statusColor = AppColors.error;
+      statusLabel = 'Rejected';
+      statusIcon = Icons.cancel_rounded;
+    }
 
     return Card(
       margin: const EdgeInsets.only(bottom: AppSizes.md),
@@ -49,6 +78,7 @@ class _PendingProfileCardState extends State<PendingProfileCard> {
                 children: [
                   // Header Row
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Logo/Icon
                       Container(
@@ -89,7 +119,7 @@ class _PendingProfileCardState extends State<PendingProfileCard> {
                               ),
                       ),
                       const SizedBox(width: AppSizes.md),
-                      // Business Name & Type
+                      // Business Name & Badges
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -97,7 +127,7 @@ class _PendingProfileCardState extends State<PendingProfileCard> {
                             Text(
                               widget.profile.businessName,
                               style: const TextStyle(
-                                fontSize: 18,
+                                fontSize: 17,
                                 fontWeight: FontWeight.w700,
                                 color: AppColors.ink,
                               ),
@@ -105,12 +135,16 @@ class _PendingProfileCardState extends State<PendingProfileCard> {
                               overflow: TextOverflow.ellipsis,
                             ),
                             const SizedBox(height: AppSizes.xs),
-                            Row(
+                            Wrap(
+                              spacing: AppSizes.xs + 2,
+                              runSpacing: 4,
+                              crossAxisAlignment: WrapCrossAlignment.center,
                               children: [
+                                // Role Tag
                                 Container(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: AppSizes.sm,
-                                    vertical: 4,
+                                    vertical: 3,
                                   ),
                                   decoration: BoxDecoration(
                                     color: isStartup
@@ -130,16 +164,58 @@ class _PendingProfileCardState extends State<PendingProfileCard> {
                                     ),
                                   ),
                                 ),
-                                const SizedBox(width: AppSizes.sm),
-                                Icon(Icons.access_time,
-                                    size: 14, color: AppColors.slate),
-                                const SizedBox(width: 4),
-                                Text(
-                                  dateFormat.format(widget.profile.createdAt),
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: AppColors.slate,
+                                // Status Tag
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: AppSizes.sm,
+                                    vertical: 3,
                                   ),
+                                  decoration: BoxDecoration(
+                                    color: statusColor.withOpacity(0.12),
+                                    borderRadius: BorderRadius.circular(
+                                        AppSizes.radiusSm),
+                                    border: Border.all(
+                                      color: statusColor.withOpacity(0.4),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        statusIcon,
+                                        size: 12,
+                                        color: statusColor,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        statusLabel,
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color: statusColor,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                // Created date
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(
+                                      Icons.access_time,
+                                      size: 13,
+                                      color: AppColors.slate,
+                                    ),
+                                    const SizedBox(width: 3),
+                                    Text(
+                                      dateFormat.format(widget.profile.createdAt),
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        color: AppColors.slate,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
@@ -163,11 +239,15 @@ class _PendingProfileCardState extends State<PendingProfileCard> {
                     children: [
                       _buildInfoChip(
                         Icons.category,
-                        widget.profile.industry,
+                        widget.profile.industry.isNotEmpty
+                            ? widget.profile.industry
+                            : 'General',
                       ),
                       _buildInfoChip(
                         Icons.location_on,
-                        widget.profile.location,
+                        widget.profile.location.isNotEmpty
+                            ? widget.profile.location
+                            : 'Ethiopia',
                       ),
                       if (widget.profile.fundingStage.isNotEmpty)
                         _buildInfoChip(
@@ -176,6 +256,58 @@ class _PendingProfileCardState extends State<PendingProfileCard> {
                         ),
                     ],
                   ),
+
+                  // Show rejection callout if rejected even in summary
+                  if (isRejected &&
+                      widget.profile.rejectionReason != null &&
+                      widget.profile.rejectionReason!.isNotEmpty) ...[
+                    const SizedBox(height: AppSizes.sm),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(AppSizes.sm + 2),
+                      decoration: BoxDecoration(
+                        color: AppColors.error.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+                        border: Border.all(
+                          color: AppColors.error.withOpacity(0.3),
+                        ),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(
+                            Icons.error_outline,
+                            size: 16,
+                            color: AppColors.error,
+                          ),
+                          const SizedBox(width: AppSizes.xs + 2),
+                          Expanded(
+                            child: RichText(
+                              text: TextSpan(
+                                children: [
+                                  const TextSpan(
+                                    text: 'Rejection Reason: ',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.error,
+                                    ),
+                                  ),
+                                  TextSpan(
+                                    text: widget.profile.rejectionReason!,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: AppColors.ink,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -201,10 +333,18 @@ class _PendingProfileCardState extends State<PendingProfileCard> {
                   ),
                   const SizedBox(height: AppSizes.sm),
                   _buildDetailRow(
-                    'Funding Sought',
+                    isStartup ? 'Funding Sought' : 'Target Ticket Size',
                     '\$${NumberFormat('#,##0').format(widget.profile.fundingAmountSought)}',
                     Icons.attach_money,
                   ),
+                  if (widget.profile.approvalDate != null) ...[
+                    const SizedBox(height: AppSizes.sm),
+                    _buildDetailRow(
+                      isApproved ? 'Approved Date' : 'Action Date',
+                      dateFormat.format(widget.profile.approvalDate!),
+                      Icons.calendar_today,
+                    ),
+                  ],
                   const SizedBox(height: AppSizes.md),
                   const Text(
                     'Description',
@@ -226,36 +366,100 @@ class _PendingProfileCardState extends State<PendingProfileCard> {
                     ),
                   ),
                   const SizedBox(height: AppSizes.lg),
-                  // Action Buttons
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: widget.onReject,
-                          icon: const Icon(Icons.close),
-                          label: const Text('Reject'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: AppColors.error,
-                            side: const BorderSide(color: AppColors.error),
-                            minimumSize: const Size.fromHeight(48),
+                  // Action Buttons based on status
+                  if (isPending) ...[
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: widget.onRejectWithReason != null
+                                ? _handleReject
+                                : null,
+                            icon: const Icon(Icons.cancel_outlined, size: 18),
+                            label: const Text('Reject with Reason'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.error,
+                              side: const BorderSide(color: AppColors.error),
+                              minimumSize: const Size.fromHeight(48),
+                              shape: RoundedRectangleBorder(
+                                borderRadius:
+                                    BorderRadius.circular(AppSizes.radiusMd),
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: AppSizes.md),
-                      Expanded(
-                        flex: 2,
-                        child: ElevatedButton.icon(
-                          onPressed: widget.onApprove,
-                          icon: const Icon(Icons.check_circle),
-                          label: const Text('Approve'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.success,
-                            minimumSize: const Size.fromHeight(48),
+                        const SizedBox(width: AppSizes.md),
+                        Expanded(
+                          flex: 2,
+                          child: ElevatedButton.icon(
+                            onPressed: widget.onApprove,
+                            icon: const Icon(Icons.check_circle, size: 18),
+                            label: const Text('Approve & Publish'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.success,
+                              foregroundColor: AppColors.white,
+                              minimumSize: const Size.fromHeight(48),
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius:
+                                    BorderRadius.circular(AppSizes.radiusMd),
+                              ),
+                            ),
                           ),
                         ),
+                      ],
+                    ),
+                  ] else if (isRejected) ...[
+                    // Option to re-approve a rejected profile if needed
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: widget.onRejectWithReason != null
+                                ? _handleReject
+                                : null,
+                            icon: const Icon(Icons.edit_note, size: 18),
+                            label: const Text('Update Reason'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.error,
+                              side: const BorderSide(color: AppColors.error),
+                              minimumSize: const Size.fromHeight(44),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: AppSizes.md),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: widget.onApprove,
+                            icon: const Icon(Icons.check_circle_outline, size: 18),
+                            label: const Text('Approve Now'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.success,
+                              foregroundColor: AppColors.white,
+                              minimumSize: const Size.fromHeight(44),
+                              elevation: 0,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ] else if (isApproved) ...[
+                    // Option to revoke approval if needed
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: OutlinedButton.icon(
+                        onPressed: widget.onRejectWithReason != null
+                            ? _handleReject
+                            : null,
+                        icon: const Icon(Icons.cancel_outlined, size: 16),
+                        label: const Text('Revoke Approval'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.error,
+                          side: const BorderSide(color: AppColors.hairline),
+                        ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ],
               ),
             ),

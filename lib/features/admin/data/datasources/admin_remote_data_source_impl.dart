@@ -24,6 +24,8 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
             location,
             created_at,
             approval_status,
+            rejection_reason,
+            approval_date,
             users!inner(full_name, email, account_type)
           ''')
           .eq('approval_status', 'pending')
@@ -72,6 +74,8 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
             geographic_focus,
             created_at,
             approval_status,
+            rejection_reason,
+            approval_date,
             users!inner(full_name, email, account_type)
           ''')
           .eq('approval_status', 'pending')
@@ -84,7 +88,6 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
 
       return (response as List)
           .map((json) {
-            // Map investor_profiles to match our PendingApprovalEntity structure
             return PendingApprovalModel.fromJson({
               'id': json['id'],
               'user_id': json['user_id'],
@@ -100,6 +103,8 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
               'logo_url': null,
               'created_at': json['created_at'],
               'approval_status': json['approval_status'],
+              'rejection_reason': json['rejection_reason'],
+              'approval_date': json['approval_date'],
             });
           })
           .toList();
@@ -122,7 +127,11 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
       
       await supabase
           .from(table)
-          .update({'approval_status': 'approved'})
+          .update({
+            'approval_status': 'approved',
+            'rejection_reason': null,
+            'approval_date': DateTime.now().toIso8601String(),
+          })
           .eq('id', profileId);
 
       developer.log(
@@ -142,17 +151,21 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
   }
 
   @override
-  Future<void> rejectProfile(String profileId, String role) async {
+  Future<void> rejectProfile(String profileId, String role, String rejectionReason) async {
     try {
       final table = role == 'founder' ? 'startup_profiles' : 'investor_profiles';
       
       await supabase
           .from(table)
-          .update({'approval_status': 'rejected'})
+          .update({
+            'approval_status': 'rejected',
+            'rejection_reason': rejectionReason,
+            'approval_date': DateTime.now().toIso8601String(),
+          })
           .eq('id', profileId);
 
       developer.log(
-        'Rejected profile: $profileId in table: $table',
+        'Rejected profile: $profileId in table: $table with reason: $rejectionReason',
         name: 'EthioVenture.Admin',
       );
     } catch (error, stackTrace) {
@@ -183,6 +196,8 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
             location,
             created_at,
             approval_status,
+            rejection_reason,
+            approval_date,
             users!inner(full_name, email, account_type)
           ''')
           .eq('approval_status', 'approved')
@@ -226,6 +241,8 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
             geographic_focus,
             created_at,
             approval_status,
+            rejection_reason,
+            approval_date,
             users!inner(full_name, email, account_type)
           ''')
           .eq('approval_status', 'approved')
@@ -248,6 +265,8 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
               'logo_url': null,
               'created_at': json['created_at'],
               'approval_status': json['approval_status'],
+              'rejection_reason': json['rejection_reason'],
+              'approval_date': json['approval_date'],
             });
           })
           .toList();
@@ -279,6 +298,8 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
             location,
             created_at,
             approval_status,
+            rejection_reason,
+            approval_date,
             users!inner(full_name, email, account_type)
           ''')
           .eq('approval_status', 'rejected')
@@ -299,6 +320,8 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
             geographic_focus,
             created_at,
             approval_status,
+            rejection_reason,
+            approval_date,
             users!inner(full_name, email, account_type)
           ''')
           .eq('approval_status', 'rejected')
@@ -327,6 +350,8 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
               'logo_url': null,
               'created_at': json['created_at'],
               'approval_status': json['approval_status'],
+              'rejection_reason': json['rejection_reason'],
+              'approval_date': json['approval_date'],
             });
           }),
       ];

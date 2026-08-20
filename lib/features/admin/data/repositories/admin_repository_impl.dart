@@ -23,8 +23,8 @@ class AdminRepositoryImpl implements AdminRepository {
   }
 
   @override
-  Future<void> rejectProfile(String profileId, String role) async {
-    return await remoteDataSource.rejectProfile(profileId, role);
+  Future<void> rejectProfile(String profileId, String role, String rejectionReason) async {
+    return await remoteDataSource.rejectProfile(profileId, role, rejectionReason);
   }
 
   @override
