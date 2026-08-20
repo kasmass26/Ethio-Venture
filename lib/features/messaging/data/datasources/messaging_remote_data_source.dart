@@ -98,45 +98,54 @@ class MessagingRemoteDataSource {
           name: 'MessagingRemoteDataSource._resolveProfileIds',
         );
 
-        if (accountType == 'investor') {
+        try {
+          if (accountType == 'investor') {
+            developer.log(
+              'Creating baseline investor profile row for user $userId...',
+              name: 'MessagingRemoteDataSource._resolveProfileIds',
+            );
+            final inserted = await _client
+                .from(ApiEndpoints.investorProfiles)
+                .insert({
+                  'user_id': userId,
+                  'investor_type': 'angel',
+                  'organization_name': name,
+                })
+                .select('id')
+                .single();
+            investorId = inserted['id']?.toString();
+            developer.log(
+              'Successfully created investor profile: $investorId',
+              name: 'MessagingRemoteDataSource._resolveProfileIds',
+            );
+          } else if (accountType == 'startup' || accountType == 'founder') {
+            developer.log(
+              'Creating baseline startup profile row for user $userId...',
+              name: 'MessagingRemoteDataSource._resolveProfileIds',
+            );
+            final inserted = await _client
+                .from(ApiEndpoints.startupProfiles)
+                .insert({
+                  'user_id': userId,
+                  'startup_name': '$name Startup',
+                  'business_name': '$name Startup',
+                  'industry': 'Technology',
+                  'funding_stage': 'Pre-Seed',
+                })
+                .select('id')
+                .single();
+            startupId = inserted['id']?.toString();
+            developer.log(
+              'Successfully created startup profile: $startupId',
+              name: 'MessagingRemoteDataSource._resolveProfileIds',
+            );
+          }
+        } catch (e, st) {
           developer.log(
-            'Creating baseline investor profile row for user $userId...',
+            'Auto-provisioning profile failed for user $userId: $e',
             name: 'MessagingRemoteDataSource._resolveProfileIds',
-          );
-          final inserted = await _client
-              .from(ApiEndpoints.investorProfiles)
-              .insert({
-                'user_id': userId,
-                'investor_type': 'Individual Angel',
-                'organization_name': name,
-              })
-              .select('id')
-              .single();
-          investorId = inserted['id']?.toString();
-          developer.log(
-            'Successfully created investor profile: $investorId',
-            name: 'MessagingRemoteDataSource._resolveProfileIds',
-          );
-        } else if (accountType == 'startup' || accountType == 'founder') {
-          developer.log(
-            'Creating baseline startup profile row for user $userId...',
-            name: 'MessagingRemoteDataSource._resolveProfileIds',
-          );
-          final inserted = await _client
-              .from(ApiEndpoints.startupProfiles)
-              .insert({
-                'user_id': userId,
-                'startup_name': '$name Startup',
-                'business_name': '$name Startup',
-                'industry': 'Technology',
-                'funding_stage': 'Pre-Seed',
-              })
-              .select('id')
-              .single();
-          startupId = inserted['id']?.toString();
-          developer.log(
-            'Successfully created startup profile: $startupId',
-            name: 'MessagingRemoteDataSource._resolveProfileIds',
+            error: e,
+            stackTrace: st,
           );
         }
       }
