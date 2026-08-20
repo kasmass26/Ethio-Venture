@@ -208,6 +208,10 @@ class _InvestorProfileViewState extends State<_InvestorProfileView>
             Navigator.of(context).pushReplacementNamed(
               AppConstants.routeStartupSearch,
             );
+          } else if (index == 2) {
+            Navigator.of(context).pushNamed(
+              AppConstants.routeMessages,
+            );
           }
         },
       ),

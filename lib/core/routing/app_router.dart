@@ -70,14 +70,18 @@ class AppRouter {
       AppConstants.routeStartupSearch => const StartupListPage(),
       AppConstants.routeRecommendations => const RecommendationsPage(),
       AppConstants.routeMessages => const ConversationsPage(),
-      AppConstants.routeChat => settings.arguments is Map<String, dynamic>
+      AppConstants.routeChat => settings.arguments is Map
           ? ChatPage(
-              conversationId: (settings.arguments
-                  as Map<String, dynamic>)['conversationId'] as String,
-              participantName: (settings.arguments
-                  as Map<String, dynamic>)['participantName'] as String,
+              conversationId: ((settings.arguments
+                      as Map)['conversationId'] ??
+                  '')
+                  .toString(),
+              participantName: ((settings.arguments
+                      as Map)['participantName'] ??
+                  'Chat')
+                  .toString(),
               participantAvatarUrl: (settings.arguments
-                  as Map<String, dynamic>)['participantAvatarUrl'] as String?,
+                  as Map)['participantAvatarUrl'] as String?,
             )
           : _UnknownRoutePage(routeName: settings.name),
       _ => _UnknownRoutePage(routeName: settings.name),

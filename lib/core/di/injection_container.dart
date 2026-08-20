@@ -66,6 +66,8 @@ import 'package:ethioventure/features/messaging/domain/repositories/messaging_re
 import 'package:ethioventure/features/messaging/presentation/cubit/chat_cubit.dart';
 import 'package:ethioventure/features/messaging/presentation/cubit/conversations_cubit.dart';
 
+import 'package:ethioventure/core/services/user_service.dart';
+
 import 'package:get_it/get_it.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -105,6 +107,15 @@ Future<void> configureDependencies({SupabaseClient? supabaseClient}) async {
 
   if (!sl.isRegistered<SupabaseClient>()) {
     return;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Core Services
+  // ---------------------------------------------------------------------------
+  if (!sl.isRegistered<UserService>()) {
+    sl.registerLazySingleton<UserService>(
+      () => UserService(sl<SupabaseClient>()),
+    );
   }
 
   // ---------------------------------------------------------------------------

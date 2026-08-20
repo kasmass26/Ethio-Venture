@@ -75,6 +75,14 @@ class StartupProfilePage extends StatelessWidget {
               Navigator.of(
                 context,
               ).pushReplacementNamed(AppConstants.routeFounderDashboard);
+            } else if (index == 1) {
+              Navigator.of(
+                context,
+              ).pushReplacementNamed(AppConstants.routeFounderInvestors);
+            } else if (index == 2) {
+              Navigator.of(
+                context,
+              ).pushNamed(AppConstants.routeMessages);
             }
           },
         ),

@@ -252,6 +252,10 @@ class _DashboardScaffold extends StatelessWidget {
             Navigator.of(context).pushReplacementNamed(
               AppConstants.routeStartupSearch,
             );
+          } else if (index == 2) {
+            Navigator.of(context).pushNamed(
+              AppConstants.routeMessages,
+            );
           } else if (index == 3) {
             Navigator.of(context).pushReplacementNamed(
               AppConstants.routeInvestorProfile,

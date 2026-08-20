@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/di/injection_container.dart';
+import '../../../../core/services/user_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_sizes.dart';
+import '../../../founder/presentation/widgets/dashboard_bottom_nav.dart';
+import '../../../investor/presentation/widgets/app_bottom_nav.dart';
 import '../cubit/conversations_cubit.dart';
 import '../cubit/conversations_state.dart';
 import '../widgets/conversation_tile.dart';
-import 'chat_page.dart';
 
 /// The Messages inbox screen — matches the reference design:
 ///
@@ -33,8 +36,52 @@ class ConversationsPage extends StatelessWidget {
   }
 }
 
-class _ConversationsView extends StatelessWidget {
+class _ConversationsView extends StatefulWidget {
   const _ConversationsView();
+
+  @override
+  State<_ConversationsView> createState() => _ConversationsViewState();
+}
+
+class _ConversationsViewState extends State<_ConversationsView> {
+  bool _isInvestor = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _detectRole();
+  }
+
+  Future<void> _detectRole() async {
+    try {
+      final userService = sl<UserService>();
+      final user = await userService.getCurrentUser();
+      if (mounted && user != null) {
+        setState(() {
+          _isInvestor = user.role.toLowerCase() == 'investor';
+        });
+      }
+    } catch (_) {
+      final metaRole = Supabase.instance.client.auth.currentUser?.userMetadata?['role']?.toString().toLowerCase();
+      if (mounted && metaRole != null) {
+        setState(() {
+          _isInvestor = metaRole == 'investor';
+        });
+      }
+    }
+  }
+
+  void _handleBack() {
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+    } else {
+      Navigator.of(context).pushReplacementNamed(
+        _isInvestor
+            ? AppConstants.routeInvestorDashboard
+            : AppConstants.routeFounderDashboard,
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,7 +95,7 @@ class _ConversationsView extends StatelessWidget {
         scrolledUnderElevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
-          onPressed: () => Navigator.of(context).maybePop(),
+          onPressed: _handleBack,
         ),
         title: const Text(
           AppConstants.appName,
@@ -113,7 +160,44 @@ class _ConversationsView extends StatelessWidget {
       ),
 
       // ── Bottom navigation bar ───────────────────────────────────────────
-      bottomNavigationBar: _BottomNavBar(currentIndex: 2),
+      bottomNavigationBar: _isInvestor
+          ? AppBottomNav(
+              items: AppBottomNav.investorNavItems,
+              currentIndex: 2,
+              onTap: (index) {
+                if (index == 0) {
+                  Navigator.of(context).pushReplacementNamed(
+                    AppConstants.routeInvestorDashboard,
+                  );
+                } else if (index == 1) {
+                  Navigator.of(context).pushReplacementNamed(
+                    AppConstants.routeStartupSearch,
+                  );
+                } else if (index == 3) {
+                  Navigator.of(context).pushReplacementNamed(
+                    AppConstants.routeInvestorProfile,
+                  );
+                }
+              },
+            )
+          : DashboardBottomNav(
+              currentIndex: 2,
+              onTap: (index) {
+                if (index == 0) {
+                  Navigator.of(context).pushReplacementNamed(
+                    AppConstants.routeFounderDashboard,
+                  );
+                } else if (index == 1) {
+                  Navigator.of(context).pushReplacementNamed(
+                    AppConstants.routeFounderInvestors,
+                  );
+                } else if (index == 3) {
+                  Navigator.of(context).pushReplacementNamed(
+                    AppConstants.routeStartupProfile,
+                  );
+                }
+              },
+            ),
     );
   }
 
@@ -175,15 +259,14 @@ class _ConversationsView extends StatelessWidget {
                 return ConversationTile(
                   conversation: conv,
                   onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => ChatPage(
-                          conversationId: conv.id,
-                          participantName: conv.otherParticipantName,
-                          participantAvatarUrl:
-                              conv.otherParticipantAvatarUrl,
-                        ),
-                      ),
+                    Navigator.of(context).pushNamed(
+                      AppConstants.routeChat,
+                      arguments: {
+                        'conversationId': conv.id,
+                        'participantName': conv.otherParticipantName,
+                        'participantAvatarUrl':
+                            conv.otherParticipantAvatarUrl,
+                      },
                     );
                   },
                 );
@@ -251,107 +334,6 @@ class _EmptyState extends StatelessWidget {
                 child: Text(actionLabel!),
               ),
             ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ── Bottom navigation bar ──────────────────────────────────────────────────
-
-class _BottomNavBar extends StatelessWidget {
-  const _BottomNavBar({required this.currentIndex});
-
-  final int currentIndex;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(top: BorderSide(color: AppColors.divider)),
-      ),
-      child: SafeArea(
-        top: false,
-        child: SizedBox(
-          height: 64,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _NavItem(
-                icon: Icons.grid_view_rounded,
-                label: 'Dashboard',
-                selected: currentIndex == 0,
-                onTap: () => Navigator.of(context)
-                    .pushReplacementNamed(AppConstants.routeHome),
-              ),
-              _NavItem(
-                icon: Icons.search_rounded,
-                label: 'Discover',
-                selected: currentIndex == 1,
-                onTap: () {},
-              ),
-              _NavItem(
-                icon: Icons.chat_bubble_rounded,
-                label: 'Messages',
-                selected: currentIndex == 2,
-                onTap: () {},
-              ),
-              _NavItem(
-                icon: Icons.person_outline_rounded,
-                label: 'Profile',
-                selected: currentIndex == 3,
-                onTap: () {},
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _NavItem extends StatelessWidget {
-  const _NavItem({
-    required this.icon,
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final color =
-        selected ? AppColors.secondary : AppColors.textSecondary;
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(AppSizes.radiusMd),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSizes.md,
-          vertical: AppSizes.xs,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: color, size: 26),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight:
-                    selected ? FontWeight.w700 : FontWeight.normal,
-                color: color,
-              ),
-            ),
           ],
         ),
       ),

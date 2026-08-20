@@ -143,6 +143,10 @@ class _StartupListViewState extends State<_StartupListView> {
             Navigator.of(context).pushReplacementNamed(
               AppConstants.routeInvestorDashboard,
             );
+          } else if (index == 2) {
+            Navigator.of(context).pushNamed(
+              AppConstants.routeMessages,
+            );
           } else if (index == 3) {
             Navigator.of(context).pushReplacementNamed(
               AppConstants.routeInvestorProfile,

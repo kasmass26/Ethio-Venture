@@ -140,6 +140,10 @@ class _FounderDashboardPageState extends State<FounderDashboardPage> {
                 Navigator.of(context).pushReplacementNamed(
                   AppConstants.routeFounderInvestors,
                 );
+              } else if (index == 2) {
+                Navigator.of(context).pushNamed(
+                  AppConstants.routeMessages,
+                );
               } else if (index == 3) {
                 Navigator.of(context).pushReplacementNamed(
                   AppConstants.routeStartupProfile,
