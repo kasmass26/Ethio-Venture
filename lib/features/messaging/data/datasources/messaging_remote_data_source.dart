@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:developer' as developer;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -492,25 +493,114 @@ class MessagingRemoteDataSource {
       name: 'MessagingRemoteDataSource.subscribeToMessages',
     );
 
+    // Use a StreamController so we can switch between realtime and polling.
+    late StreamController<MessageModel> controller;
+    Timer? pollTimer;
     final seen = <String>{};
+    bool realtimeFailed = false;
 
-    return _client
-        .from(ApiEndpoints.messages)
-        .stream(primaryKey: ['id'])
-        .eq('conversation_id', conversationId)
-        .order('sent_at', ascending: true)
-        .expand((rows) {
-          final newRows = <Map<String, dynamic>>[];
-          for (final row in rows) {
-            final id = row['id']?.toString() ?? '';
-            if (!seen.contains(id)) {
-              seen.add(id);
-              newRows.add(Map<String, dynamic>.from(row));
+    Future<void> fetchAndEmit() async {
+      try {
+        final rows = await _client
+            .from(ApiEndpoints.messages)
+            .select()
+            .eq('conversation_id', conversationId)
+            .order('sent_at', ascending: true);
+
+        for (final row in rows as List) {
+          final map = Map<String, dynamic>.from(row as Map);
+          final id = map['id']?.toString() ?? '';
+          if (!seen.contains(id)) {
+            seen.add(id);
+            if (!controller.isClosed) {
+              controller.add(MessageModel.fromJson(map));
             }
           }
-          return newRows;
-        })
-        .map((row) => MessageModel.fromJson(row));
+        }
+      } catch (e) {
+        developer.log(
+          'Poll fetch error: $e',
+          name: 'MessagingRemoteDataSource.subscribeToMessages',
+          level: 900,
+        );
+      }
+    }
+
+    void startPolling() {
+      if (realtimeFailed) return;
+      realtimeFailed = true;
+      developer.log(
+        'Realtime unavailable for conversation "$conversationId". Falling back to 3-second polling.',
+        name: 'MessagingRemoteDataSource.subscribeToMessages',
+        level: 900,
+      );
+      // Do an immediate fetch, then poll every 3 seconds.
+      fetchAndEmit();
+      pollTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+        fetchAndEmit();
+      });
+    }
+
+    // Try Supabase Realtime via .stream()
+    StreamSubscription<MessageModel>? realtimeSub;
+
+    controller = StreamController<MessageModel>(
+      onListen: () {
+        try {
+          final realtimeStream = _client
+              .from(ApiEndpoints.messages)
+              .stream(primaryKey: ['id'])
+              .eq('conversation_id', conversationId)
+              .order('sent_at', ascending: true)
+              .map((rows) => rows as List)
+              .expand((rows) {
+                final newRows = <Map<String, dynamic>>[];
+                for (final row in rows) {
+                  final map = Map<String, dynamic>.from(row as Map);
+                  final id = map['id']?.toString() ?? '';
+                  if (!seen.contains(id)) {
+                    seen.add(id);
+                    newRows.add(map);
+                  }
+                }
+                return newRows;
+              })
+              .map((row) => MessageModel.fromJson(row));
+
+          realtimeSub = realtimeStream.listen(
+            (msg) {
+              if (!controller.isClosed) controller.add(msg);
+            },
+            onError: (err, st) {
+              developer.log(
+                'Realtime stream error, switching to polling: $err',
+                name: 'MessagingRemoteDataSource.subscribeToMessages',
+                error: err,
+                stackTrace: st,
+                level: 900,
+              );
+              realtimeSub?.cancel();
+              startPolling();
+            },
+          );
+        } catch (e, st) {
+          developer.log(
+            'Failed to create realtime stream, switching to polling: $e',
+            name: 'MessagingRemoteDataSource.subscribeToMessages',
+            error: e,
+            stackTrace: st,
+            level: 900,
+          );
+          startPolling();
+        }
+      },
+      onCancel: () {
+        realtimeSub?.cancel();
+        pollTimer?.cancel();
+      },
+    );
+
+    return controller.stream;
   }
 
   /// Creates a new conversation between a startup profile and an investor

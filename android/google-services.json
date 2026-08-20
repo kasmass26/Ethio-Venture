@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "611164325071",
+    "project_id": "ethio-venture",
+    "storage_bucket": "ethio-venture.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:611164325071:android:bf6e7fe31d4c9ea1f163ba",
+        "android_client_info": {
+          "package_name": "com.example.ethioventure"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAfYGRhbDzWM6krtJ9AK_WhNag7lWwT2UQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
