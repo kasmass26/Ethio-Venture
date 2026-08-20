@@ -65,6 +65,11 @@ import 'package:ethioventure/features/messaging/domain/repositories/messaging_re
 import 'package:ethioventure/features/messaging/presentation/cubit/chat_cubit.dart';
 import 'package:ethioventure/features/messaging/presentation/cubit/conversations_cubit.dart';
 
+import 'package:ethioventure/features/notifications/data/datasources/notification_remote_data_source.dart';
+import 'package:ethioventure/features/notifications/data/repositories/notification_repository_impl.dart';
+import 'package:ethioventure/features/notifications/domain/repositories/notification_repository.dart';
+import 'package:ethioventure/features/notifications/presentation/cubit/notifications_cubit.dart';
+
 import 'package:ethioventure/core/services/user_service.dart';
 
 import 'package:get_it/get_it.dart';
@@ -497,4 +502,32 @@ Future<void> configureDependencies({SupabaseClient? supabaseClient}) async {
       ),
     );
   }
+
+  // ---------------------------------------------------------------------------
+  // Notifications Feature
+  // ---------------------------------------------------------------------------
+  if (!sl.isRegistered<NotificationRemoteDataSource>()) {
+    sl.registerLazySingleton<NotificationRemoteDataSource>(
+      () => NotificationRemoteDataSource(
+        supabaseClient: sl<SupabaseClient>(),
+      ),
+    );
+  }
+
+  if (!sl.isRegistered<NotificationRepository>()) {
+    sl.registerLazySingleton<NotificationRepository>(
+      () => NotificationRepositoryImpl(
+        remoteDataSource: sl<NotificationRemoteDataSource>(),
+      ),
+    );
+  }
+
+  if (!sl.isRegistered<NotificationsCubit>()) {
+    sl.registerFactory<NotificationsCubit>(
+      () => NotificationsCubit(
+        repository: sl<NotificationRepository>(),
+      ),
+    );
+  }
 }
+

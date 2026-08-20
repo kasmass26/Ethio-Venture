@@ -427,7 +427,13 @@ class MessagingRemoteDataSource {
         name: 'MessagingRemoteDataSource.sendMessage',
       );
 
-      return MessageModel.fromJson(Map<String, dynamic>.from(row as Map));
+      final msg = MessageModel.fromJson(Map<String, dynamic>.from(row as Map));
+      unawaited(_notifyRecipientOfMessage(
+        conversationId: conversationId,
+        content: content,
+        senderId: userId,
+      ));
+      return msg;
     } on PostgrestException catch (e, st) {
       developer.log(
         'PostgrestException in sendMessage with sender_id = userId ($userId): ${e.message} (code: ${e.code}, details: ${e.details}, hint: ${e.hint})',
@@ -813,4 +819,100 @@ class MessagingRemoteDataSource {
       return null;
     }
   }
+
+  Future<void> _notifyRecipientOfMessage({
+    required String conversationId,
+    required String content,
+    required String senderId,
+  }) async {
+    try {
+      final conv = await _client
+          .from(ApiEndpoints.conversations)
+          .select('startup_id, investor_id')
+          .eq('id', conversationId)
+          .maybeSingle();
+
+      if (conv == null) return;
+
+      final startupId = conv['startup_id']?.toString();
+      final investorId = conv['investor_id']?.toString();
+
+      String? recipientUserId;
+
+      final ids = await _resolveProfileIds();
+      final currentStartupId = ids.startupProfileId;
+      final currentInvestorId = ids.investorProfileId;
+
+      if (currentStartupId != null && currentStartupId == startupId) {
+        final investorRow = await _client
+            .from(ApiEndpoints.investorProfiles)
+            .select('user_id')
+            .eq('id', investorId ?? '')
+            .maybeSingle();
+        recipientUserId = investorRow?['user_id']?.toString();
+      } else if (currentInvestorId != null && currentInvestorId == investorId) {
+        final startupRow = await _client
+            .from(ApiEndpoints.startupProfiles)
+            .select('user_id')
+            .eq('id', startupId ?? '')
+            .maybeSingle();
+        recipientUserId = startupRow?['user_id']?.toString();
+      } else {
+        final investorRow = await _client
+            .from(ApiEndpoints.investorProfiles)
+            .select('user_id')
+            .eq('id', investorId ?? '')
+            .maybeSingle();
+        final startupRow = await _client
+            .from(ApiEndpoints.startupProfiles)
+            .select('user_id')
+            .eq('id', startupId ?? '')
+            .maybeSingle();
+
+        final invUserId = investorRow?['user_id']?.toString();
+        final stUserId = startupRow?['user_id']?.toString();
+
+        if (senderId == invUserId) {
+          recipientUserId = stUserId;
+        } else {
+          recipientUserId = invUserId;
+        }
+      }
+
+      if (recipientUserId != null && recipientUserId.isNotEmpty) {
+        await _client.from(ApiEndpoints.notifications).insert({
+          'user_id': recipientUserId,
+          'title': 'New Message',
+          'body': content,
+          'type': 'message',
+          'is_read': false,
+          'data': {
+            'conversation_id': conversationId,
+            'sender_id': senderId,
+          },
+        });
+
+        try {
+          await _client.functions.invoke(
+            ApiEndpoints.sendNotificationFunction,
+            body: {
+              'user_id': recipientUserId,
+              'title': 'New Message',
+              'body': content,
+              'data': {
+                'conversation_id': conversationId,
+                'sender_id': senderId,
+              },
+            },
+          );
+        } catch (_) {}
+      }
+    } catch (e) {
+      developer.log(
+        'Non-fatal notification error: $e',
+        name: 'MessagingRemoteDataSource._notifyRecipientOfMessage',
+      );
+    }
+  }
 }
+

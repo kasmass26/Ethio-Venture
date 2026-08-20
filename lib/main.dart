@@ -1,3 +1,4 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -8,6 +9,7 @@ import 'core/config/app_config.dart';
 import 'core/constants/app_constants.dart';
 import 'core/di/injection_container.dart';
 import 'core/routing/app_router.dart';
+import 'core/services/notification_service.dart';
 import 'core/theme/app_theme.dart';
 
 Future<void> main() async {
@@ -17,6 +19,13 @@ Future<void> main() async {
   // Null until Supabase.initialize() completes successfully.
   SupabaseClient? supabaseClient;
   String? initError;
+
+  // Initialize Firebase
+  try {
+    await Firebase.initializeApp();
+  } catch (error, stackTrace) {
+    debugPrint('Firebase initialization warning: $error\n$stackTrace');
+  }
 
   // Step 1: Load config and initialise Supabase.
   try {
@@ -36,11 +45,13 @@ Future<void> main() async {
     debugPrint('Supabase initialisation error: $error\n$stackTrace');
   }
 
-  // Step 2: Register GetIt dependencies.
+  // Step 2: Register GetIt dependencies and Notification Service.
   try {
     if (supabaseClient != null) {
       await configureDependencies(supabaseClient: supabaseClient);
       Bloc.observer = const AppBlocObserver();
+      await NotificationService.instance
+          .initialize(supabaseClient: supabaseClient);
     } else {
       initError ??=
           'Supabase client is not initialized. Please check your .env configuration.';

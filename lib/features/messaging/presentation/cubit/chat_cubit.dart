@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:developer' as developer;
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/network/api_endpoints.dart';
+import '../../../../core/services/notification_service.dart';
 import '../../domain/entities/message_entity.dart';
 import '../../domain/repositories/messaging_repository.dart';
 import 'chat_state.dart';
@@ -102,6 +104,17 @@ class ChatCubit extends Cubit<ChatState> {
         if (!updated.any((m) => m.id == newMsg.id)) {
           updated.add(newMsg);
           emit(current.copyWith(messages: updated));
+
+          final currentUserId = Supabase.instance.client.auth.currentUser?.id;
+          if (newMsg.senderId != current.myProfileId &&
+              newMsg.senderId != currentUserId) {
+            NotificationService.instance.showLocalNotification(
+              id: newMsg.id.hashCode,
+              title: 'New Message',
+              body: newMsg.content,
+              payload: jsonEncode({'conversation_id': conversationId}),
+            );
+          }
         }
       }
     }, onError: (err, st) {
