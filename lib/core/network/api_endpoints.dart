@@ -16,6 +16,7 @@ class ApiEndpoints {
   static const String notifications = 'notifications';
   static const String documents = 'documents';
   static const String deviceTokens = 'device_tokens';
+  static const String connectionRequests = 'connection_requests';
 
   // Storage buckets
   static const String documentsBucket = 'documents';

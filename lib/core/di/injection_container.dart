@@ -70,6 +70,11 @@ import 'package:ethioventure/features/notifications/data/repositories/notificati
 import 'package:ethioventure/features/notifications/domain/repositories/notification_repository.dart';
 import 'package:ethioventure/features/notifications/presentation/cubit/notifications_cubit.dart';
 
+import 'package:ethioventure/features/connection_requests/data/datasources/connection_request_remote_data_source.dart';
+import 'package:ethioventure/features/connection_requests/data/repositories/connection_request_repository_impl.dart';
+import 'package:ethioventure/features/connection_requests/domain/repositories/connection_request_repository.dart';
+import 'package:ethioventure/features/connection_requests/presentation/cubit/connection_request_cubit.dart';
+
 import 'package:ethioventure/core/services/user_service.dart';
 
 import 'package:get_it/get_it.dart';
@@ -526,6 +531,33 @@ Future<void> configureDependencies({SupabaseClient? supabaseClient}) async {
     sl.registerFactory<NotificationsCubit>(
       () => NotificationsCubit(
         repository: sl<NotificationRepository>(),
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Connection Requests Feature
+  // ---------------------------------------------------------------------------
+  if (!sl.isRegistered<ConnectionRequestRemoteDataSource>()) {
+    sl.registerLazySingleton<ConnectionRequestRemoteDataSource>(
+      () => ConnectionRequestRemoteDataSource(
+        supabaseClient: sl<SupabaseClient>(),
+      ),
+    );
+  }
+
+  if (!sl.isRegistered<ConnectionRequestRepository>()) {
+    sl.registerLazySingleton<ConnectionRequestRepository>(
+      () => ConnectionRequestRepositoryImpl(
+        remoteDataSource: sl<ConnectionRequestRemoteDataSource>(),
+      ),
+    );
+  }
+
+  if (!sl.isRegistered<ConnectionRequestCubit>()) {
+    sl.registerFactory<ConnectionRequestCubit>(
+      () => ConnectionRequestCubit(
+        repository: sl<ConnectionRequestRepository>(),
       ),
     );
   }

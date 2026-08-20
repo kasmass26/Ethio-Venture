@@ -6,6 +6,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../connection_requests/domain/entities/connection_request_entity.dart';
+import '../../../connection_requests/domain/repositories/connection_request_repository.dart';
 import '../../../investor_profile/domain/entities/investor_discovery_entity.dart';
 import '../../../messaging/domain/repositories/messaging_repository.dart';
 import '../../../startup_profile/presentation/cubit/startup_profile_cubit.dart';
@@ -111,12 +113,30 @@ class _InvestorsPageState extends State<InvestorsPage> {
       ),
       actions: [
         Builder(
-          builder: (context) => IconButton(
-            icon: const Icon(Icons.refresh_rounded, color: AppColors.textPrimary),
-            onPressed: () => context.read<RecommendedInvestorsCubit>().load(),
+          builder: (context) => TextButton.icon(
+            onPressed: () => Navigator.of(context)
+                .pushNamed(AppConstants.routeFounderRequests),
+            icon: const Icon(Icons.swap_horiz_rounded,
+                size: 16, color: AppColors.primaryDark),
+            label: const Text(
+              'My Requests',
+              style: TextStyle(
+                color: AppColors.primaryDark,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
         ),
-        const SizedBox(width: 14),
+        Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.refresh_rounded,
+                color: AppColors.textPrimary),
+            onPressed: () =>
+                context.read<RecommendedInvestorsCubit>().load(),
+          ),
+        ),
+        const SizedBox(width: 6),
       ],
     );
   }
@@ -713,47 +733,76 @@ class _InvestorsPageState extends State<InvestorsPage> {
     }).toList();
   }
 
+  /// Handles the Connect button tap — sends a connection request (or opens
+  /// chat if already accepted).
   Future<void> _connectAndPitch(
       BuildContext context, InvestorDiscoveryEntity investor) async {
     try {
       developer.log(
-        'Connecting with investor ${investor.displayName} (ID: ${investor.id}) from InvestorsPage',
+        'Connect tapped for investor ${investor.displayName}',
         name: 'InvestorsPage.ConnectPitch',
       );
-      final messagingRepo = sl<MessagingRepository>();
-      final startupProfileId = await messagingRepo.resolveStartupProfileId();
 
-      if (startupProfileId == null) {
+      final requestRepo = sl<ConnectionRequestRepository>();
+      final existing = await requestRepo.getRequestBetween(
+        otherUserId: investor.userId,
+      );
+
+      if (!context.mounted) return;
+
+      // Already accepted → go directly to chat
+      if (existing != null && existing.isAccepted) {
+        final messagingRepo = sl<MessagingRepository>();
+        final startupProfileId =
+            await messagingRepo.resolveStartupProfileId();
+        if (startupProfileId == null) return;
+        final conv = await messagingRepo.getOrCreateConversation(
+          startupProfileId: startupProfileId,
+          investorProfileId: investor.id,
+        );
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Please complete your startup profile first to connect with investors.',
-              ),
-              backgroundColor: AppColors.warning,
-            ),
+          Navigator.of(context).pushNamed(
+            AppConstants.routeChat,
+            arguments: {
+              'conversationId': conv.id,
+              'participantName': investor.displayName,
+            },
           );
         }
         return;
       }
 
-      final conv = await messagingRepo.getOrCreateConversation(
-        startupProfileId: startupProfileId,
-        investorProfileId: investor.id,
-      );
-
-      if (context.mounted) {
-        Navigator.of(context).pushNamed(
-          AppConstants.routeChat,
-          arguments: {
-            'conversationId': conv.id,
-            'participantName': investor.displayName,
-          },
+      // Pending → inform user
+      if (existing != null && existing.isPending) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              '⏳ Your connection request is pending. Please wait for the investor to respond.',
+            ),
+            backgroundColor: AppColors.warning,
+          ),
         );
+        return;
       }
+
+      // Declined → inform user
+      if (existing != null && existing.isDeclined) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Your previous request was declined by this investor.',
+            ),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        return;
+      }
+
+      // No existing request → show send-request dialog
+      await _showSendRequestDialog(context, investor);
     } catch (e, st) {
       developer.log(
-        'Error connecting with investor: $e',
+        'Error in _connectAndPitch: $e',
         name: 'InvestorsPage.ConnectPitch',
         error: e,
         stackTrace: st,
@@ -763,8 +812,147 @@ class _InvestorsPageState extends State<InvestorsPage> {
           SnackBar(
             backgroundColor: AppColors.error,
             content: Text(
-              'Could not connect with investor: ${e.toString().replaceAll('Exception: ', '')}',
+              'Error: ${e.toString().replaceAll('Exception: ', '')}',
             ),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _showSendRequestDialog(
+      BuildContext context, InvestorDiscoveryEntity investor) async {
+    final messageController = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.primarySoft,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(
+                Icons.connect_without_contact_rounded,
+                color: AppColors.primaryDark,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Text(
+                'Send Connection Request',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'You are requesting to connect with ${investor.displayName}.',
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 13.5,
+              ),
+            ),
+            const SizedBox(height: 14),
+            const Text(
+              'Add an intro message (optional)',
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: messageController,
+              maxLines: 3,
+              maxLength: 300,
+              decoration: InputDecoration(
+                hintText:
+                    'Briefly introduce yourself and why you want to connect…',
+                hintStyle: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 13,
+                ),
+                filled: true,
+                fillColor: AppColors.surfaceVariant,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.all(12),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel',
+                style: TextStyle(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton.icon(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            icon: const Icon(Icons.send_rounded, size: 15),
+            label: const Text('Send Request'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.secondary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !context.mounted) return;
+
+    try {
+      final requestRepo = sl<ConnectionRequestRepository>();
+      await requestRepo.sendRequest(
+        investorUserId: investor.userId,
+        investorProfileId: investor.id,
+        message: messageController.text.trim().isEmpty
+            ? null
+            : messageController.text.trim(),
+      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '✅ Connection request sent to ${investor.displayName}!',
+            ),
+            backgroundColor: AppColors.success,
+          ),
+        );
+        // Refresh the list so button states update
+        setState(() {});
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Failed to send request: ${e.toString().replaceAll('Exception: ', '')}',
+            ),
+            backgroundColor: AppColors.error,
           ),
         );
       }
@@ -805,7 +993,7 @@ class _ProfileChip extends StatelessWidget {
   }
 }
 
-class _InvestorCatalogCard extends StatelessWidget {
+class _InvestorCatalogCard extends StatefulWidget {
   const _InvestorCatalogCard({
     required this.investor,
     required this.onTap,
@@ -817,7 +1005,30 @@ class _InvestorCatalogCard extends StatelessWidget {
   final VoidCallback onConnectTap;
 
   @override
+  State<_InvestorCatalogCard> createState() => _InvestorCatalogCardState();
+}
+
+class _InvestorCatalogCardState extends State<_InvestorCatalogCard> {
+  Future<ConnectionRequestEntity?>? _statusFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStatus();
+  }
+
+  void _loadStatus() {
+    final repo = sl<ConnectionRequestRepository>();
+    _statusFuture =
+        repo.getRequestBetween(otherUserId: widget.investor.userId);
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final investor = widget.investor;
+    final onTap = widget.onTap;
+    final onConnectTap = widget.onConnectTap;
+
     return Material(
       color: AppColors.surface,
       borderRadius: BorderRadius.circular(20),
@@ -1025,7 +1236,7 @@ class _InvestorCatalogCard extends StatelessWidget {
 
               const SizedBox(height: 14),
 
-              // Bottom info & action bar: Ticket size + Connect & Pitch button
+              // Bottom info & action bar
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -1081,29 +1292,166 @@ class _InvestorCatalogCard extends StatelessWidget {
                           ),
                         ),
                       ),
-                      ElevatedButton.icon(
-                        onPressed: onConnectTap,
-                        icon: const Icon(Icons.send_rounded,
-                            size: 13, color: Colors.white),
-                        label: const Text(
-                          'Connect',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                          ),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.secondary,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 8),
-                          minimumSize: const Size(0, 34),
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          elevation: 0,
-                        ),
+                      // Dynamic connect button based on request status
+                      FutureBuilder<ConnectionRequestEntity?>(
+                        future: _statusFuture,
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return const SizedBox(
+                              width: 90,
+                              height: 34,
+                              child: Center(
+                                child: SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                              ),
+                            );
+                          }
+
+                          final req = snapshot.data;
+
+                          // ── Accepted → Message button ──────────────────
+                          if (req != null && req.isAccepted) {
+                            return ElevatedButton.icon(
+                              onPressed: () {
+                                onConnectTap();
+                                setState(_loadStatus);
+                              },
+                              icon: const Icon(Icons.chat_bubble_outline_rounded,
+                                  size: 13, color: Colors.white),
+                              label: const Text(
+                                'Message',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.success,
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 8),
+                                minimumSize: const Size(0, 34),
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                elevation: 0,
+                              ),
+                            );
+                          }
+
+                          // ── Pending → show status chip ─────────────────
+                          if (req != null && req.isPending) {
+                            return GestureDetector(
+                              onTap: () {
+                                onConnectTap();
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: AppColors.warningSoft,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                      color: AppColors.warning
+                                          .withOpacity(0.4)),
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.hourglass_top_rounded,
+                                        size: 12, color: AppColors.warning),
+                                    SizedBox(width: 4),
+                                    Text(
+                                      'Pending',
+                                      style: TextStyle(
+                                        color: AppColors.warning,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }
+
+                          // ── Declined → muted chip ──────────────────────
+                          if (req != null && req.isDeclined) {
+                            return GestureDetector(
+                              onTap: () => onConnectTap(),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFFEEEE),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                      color: AppColors.error
+                                          .withOpacity(0.3)),
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.cancel_outlined,
+                                        size: 12, color: AppColors.error),
+                                    SizedBox(width: 4),
+                                    Text(
+                                      'Declined',
+                                      style: TextStyle(
+                                        color: AppColors.error,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }
+
+                          // ── No request → Connect button ────────────────
+                          return ElevatedButton.icon(
+                            onPressed: () {
+                              onConnectTap();
+                              // Refresh status after action
+                              Future.delayed(
+                                const Duration(milliseconds: 800),
+                                () {
+                                  if (mounted) setState(_loadStatus);
+                                },
+                              );
+                            },
+                            icon: const Icon(Icons.send_rounded,
+                                size: 13, color: Colors.white),
+                            label: const Text(
+                              'Connect',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.secondary,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 8),
+                              minimumSize: const Size(0, 34),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              elevation: 0,
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),

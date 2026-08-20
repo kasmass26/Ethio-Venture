@@ -7,6 +7,8 @@ import '../../features/auth/presentation/pages/register_page.dart';
 import '../../features/founder/presentation/pages/founder_dashboard_page.dart';
 import '../../features/founder/presentation/pages/investors_page.dart';
 import '../../features/investor/presentation/pages/investor_dashboard_page.dart';
+import '../../features/investor/presentation/pages/investor_requests_page.dart';
+import '../../features/founder/presentation/pages/my_requests_page.dart';
 import '../../features/investor_profile/presentation/pages/investor_profile_page.dart';
 import '../../features/matching/domain/entities/match_result_entity.dart';
 import '../../features/matching/presentation/pages/recommendations_page.dart';
@@ -70,6 +72,8 @@ class AppRouter {
       AppConstants.routeStartupSearch => const StartupListPage(),
       AppConstants.routeRecommendations => const RecommendationsPage(),
       AppConstants.routeMessages => const ConversationsPage(),
+      AppConstants.routeInvestorRequests => const InvestorRequestsPage(),
+      AppConstants.routeFounderRequests => const MyRequestsPage(),
       AppConstants.routeChat => settings.arguments is Map
           ? ChatPage(
               conversationId: ((settings.arguments
