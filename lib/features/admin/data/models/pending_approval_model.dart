@@ -19,6 +19,7 @@ class PendingApprovalModel extends PendingApprovalEntity {
     required super.approvalStatus,
     super.rejectionReason,
     super.approvalDate,
+    super.rejectionCount = 0,
   });
 
   /// Creates a model from Supabase JSON response.
@@ -51,6 +52,7 @@ class PendingApprovalModel extends PendingApprovalEntity {
       approvalStatus: json['approval_status'] as String? ?? 'pending',
       rejectionReason: json['rejection_reason'] as String?,
       approvalDate: parsedApprovalDate,
+      rejectionCount: (json['rejection_count'] as num?)?.toInt() ?? 0,
     );
   }
 
@@ -73,6 +75,7 @@ class PendingApprovalModel extends PendingApprovalEntity {
       'approval_status': approvalStatus,
       'rejection_reason': rejectionReason,
       'approval_date': approvalDate?.toIso8601String(),
+      'rejection_count': rejectionCount,
     };
   }
 }

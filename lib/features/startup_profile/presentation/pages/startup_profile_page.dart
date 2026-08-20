@@ -303,12 +303,18 @@ class StartupProfilePage extends StatelessWidget {
                               children: [
                                 Row(
                                   children: [
-                                    const Icon(Icons.cancel, color: AppColors.error, size: 22),
+                                    Icon(
+                                      profile.hasExhaustedChances ? Icons.lock : Icons.cancel,
+                                      color: AppColors.error,
+                                      size: 22,
+                                    ),
                                     const SizedBox(width: 10),
-                                    const Expanded(
+                                    Expanded(
                                       child: Text(
-                                        'Profile Application Not Approved',
-                                        style: TextStyle(
+                                        profile.hasExhaustedChances
+                                            ? 'Profile Submission Locked'
+                                            : 'Profile Application Not Approved',
+                                        style: const TextStyle(
                                           fontWeight: FontWeight.w700,
                                           fontSize: 15,
                                           color: AppColors.error,
@@ -318,44 +324,65 @@ class StartupProfilePage extends StatelessWidget {
                                   ],
                                 ),
                                 const SizedBox(height: 8),
-                                Text(
-                                  'Admin Feedback: ${profile.rejectionReason != null && profile.rejectionReason!.isNotEmpty ? profile.rejectionReason : "Please update your profile details to meet requirements."}',
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    color: AppColors.ink,
-                                    height: 1.4,
+                                if (profile.hasExhaustedChances)
+                                  const Text(
+                                    'Maximum Review Submissions Reached (3/3 attempts used). Resubmissions are locked. Please contact support.',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: AppColors.ink,
+                                      height: 1.4,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  )
+                                else ...[
+                                  Text(
+                                    'Admin Feedback: ${profile.rejectionReason != null && profile.rejectionReason!.isNotEmpty ? profile.rejectionReason : "Please update your profile details to meet requirements."}',
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      color: AppColors.ink,
+                                      height: 1.4,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 12),
-                                Align(
-                                  alignment: Alignment.centerRight,
-                                  child: ElevatedButton.icon(
-                                    onPressed: () {
-                                      Navigator.pushNamed(
-                                        context,
-                                        '/edit-startup-profile',
-                                        arguments: profile,
-                                      ).then((_) {
-                                        if (context.mounted) {
-                                          context.read<StartupProfileCubit>().loadProfile(
-                                            currentUserId,
-                                          );
-                                        }
-                                      });
-                                    },
-                                    icon: const Icon(Icons.edit, size: 16),
-                                    label: const Text('Edit & Resubmit'),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: AppColors.error,
-                                      foregroundColor: AppColors.white,
-                                      elevation: 0,
-                                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(10),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    'Attempt ${profile.rejectionCount} of 3 (${profile.remainingChances} resubmission(s) left)',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.slate,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Align(
+                                    alignment: Alignment.centerRight,
+                                    child: ElevatedButton.icon(
+                                      onPressed: () {
+                                        Navigator.pushNamed(
+                                          context,
+                                          '/edit-startup-profile',
+                                          arguments: profile,
+                                        ).then((_) {
+                                          if (context.mounted) {
+                                            context.read<StartupProfileCubit>().loadProfile(
+                                              currentUserId,
+                                            );
+                                          }
+                                        });
+                                      },
+                                      icon: const Icon(Icons.edit, size: 16),
+                                      label: const Text('Edit & Resubmit'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.error,
+                                        foregroundColor: AppColors.white,
+                                        elevation: 0,
+                                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(10),
+                                        ),
                                       ),
                                     ),
                                   ),
-                                ),
+                                ],
                               ],
                             ),
                           ),
@@ -760,28 +787,37 @@ class StartupProfilePage extends StatelessWidget {
                         const SizedBox(height: 24),
 
                         // Bottom Action Button
-                        ElevatedButton.icon(
-                          onPressed: () {
-                            Navigator.pushNamed(
-                              context,
-                              '/edit-startup-profile',
-                              arguments: profile,
-                            ).then((_) {
-                              if (context.mounted) {
-                                context.read<StartupProfileCubit>().loadProfile(
-                                  currentUserId,
-                                );
-                              }
-                            });
-                          },
-                          icon: const Icon(Icons.edit_outlined, size: 20),
-                          label: const Text(
-                            'Edit Startup Profile',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                         ElevatedButton.icon(
+                          onPressed: profile.hasExhaustedChances
+                              ? null
+                              : () {
+                                  Navigator.pushNamed(
+                                    context,
+                                    '/edit-startup-profile',
+                                    arguments: profile,
+                                  ).then((_) {
+                                    if (context.mounted) {
+                                      context.read<StartupProfileCubit>().loadProfile(
+                                        currentUserId,
+                                      );
+                                    }
+                                  });
+                                },
+                          icon: Icon(
+                            profile.hasExhaustedChances ? Icons.lock : Icons.edit_outlined,
+                            size: 20,
+                          ),
+                          label: Text(
+                            profile.hasExhaustedChances
+                                ? 'Resubmission Locked (3/3 Attempts Used)'
+                                : 'Edit Startup Profile',
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                           ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.primary,
                             foregroundColor: AppColors.white,
+                            disabledBackgroundColor: AppColors.slate.withOpacity(0.12),
+                            disabledForegroundColor: AppColors.slate,
                             padding: const EdgeInsets.symmetric(
                               vertical: 16,
                             ),

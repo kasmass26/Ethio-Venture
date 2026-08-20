@@ -198,6 +198,29 @@ class _PendingProfileCardState extends State<PendingProfileCard> {
                                     ],
                                   ),
                                 ),
+                                // Review Attempt Tag
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: AppSizes.sm,
+                                    vertical: 3,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.slate.withOpacity(0.08),
+                                    borderRadius: BorderRadius.circular(
+                                        AppSizes.radiusSm),
+                                    border: Border.all(
+                                      color: AppColors.slate.withOpacity(0.3),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    'Attempt ${widget.profile.rejectionCount + 1}/3',
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.slate,
+                                    ),
+                                  ),
+                                ),
                                 // Created date
                                 Row(
                                   mainAxisSize: MainAxisSize.min,

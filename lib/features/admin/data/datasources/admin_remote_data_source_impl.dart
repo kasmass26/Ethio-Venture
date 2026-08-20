@@ -26,6 +26,7 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
             approval_status,
             rejection_reason,
             approval_date,
+            rejection_count,
             users!inner(full_name, email, account_type)
           ''')
           .eq('approval_status', 'pending')
@@ -76,6 +77,7 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
             approval_status,
             rejection_reason,
             approval_date,
+            rejection_count,
             users!inner(full_name, email, account_type)
           ''')
           .eq('approval_status', 'pending')
@@ -105,6 +107,7 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
               'approval_status': json['approval_status'],
               'rejection_reason': json['rejection_reason'],
               'approval_date': json['approval_date'],
+              'rejection_count': json['rejection_count'],
             });
           })
           .toList();
@@ -155,17 +158,28 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
     try {
       final table = role == 'founder' ? 'startup_profiles' : 'investor_profiles';
       
+      // Fetch current rejection_count
+      final currentData = await supabase
+          .from(table)
+          .select('rejection_count')
+          .eq('id', profileId)
+          .maybeSingle();
+
+      final currentCount = (currentData?['rejection_count'] as num?)?.toInt() ?? 0;
+      final newCount = currentCount + 1;
+
       await supabase
           .from(table)
           .update({
             'approval_status': 'rejected',
             'rejection_reason': rejectionReason,
             'approval_date': DateTime.now().toIso8601String(),
+            'rejection_count': newCount,
           })
           .eq('id', profileId);
 
       developer.log(
-        'Rejected profile: $profileId in table: $table with reason: $rejectionReason',
+        'Rejected profile: $profileId in table: $table (new rejection_count: $newCount) with reason: $rejectionReason',
         name: 'EthioVenture.Admin',
       );
     } catch (error, stackTrace) {
@@ -198,6 +212,7 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
             approval_status,
             rejection_reason,
             approval_date,
+            rejection_count,
             users!inner(full_name, email, account_type)
           ''')
           .eq('approval_status', 'approved')
@@ -243,6 +258,7 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
             approval_status,
             rejection_reason,
             approval_date,
+            rejection_count,
             users!inner(full_name, email, account_type)
           ''')
           .eq('approval_status', 'approved')
@@ -267,6 +283,7 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
               'approval_status': json['approval_status'],
               'rejection_reason': json['rejection_reason'],
               'approval_date': json['approval_date'],
+              'rejection_count': json['rejection_count'],
             });
           })
           .toList();
@@ -300,6 +317,7 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
             approval_status,
             rejection_reason,
             approval_date,
+            rejection_count,
             users!inner(full_name, email, account_type)
           ''')
           .eq('approval_status', 'rejected')
@@ -322,6 +340,7 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
             approval_status,
             rejection_reason,
             approval_date,
+            rejection_count,
             users!inner(full_name, email, account_type)
           ''')
           .eq('approval_status', 'rejected')
@@ -352,6 +371,7 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
               'approval_status': json['approval_status'],
               'rejection_reason': json['rejection_reason'],
               'approval_date': json['approval_date'],
+              'rejection_count': json['rejection_count'],
             });
           }),
       ];

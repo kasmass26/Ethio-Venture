@@ -135,12 +135,18 @@ class InvestorProfileDisplayWidget extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.cancel, color: AppColors.error, size: 22),
+                    Icon(
+                      profile.hasExhaustedChances ? Icons.lock : Icons.cancel,
+                      color: AppColors.error,
+                      size: 22,
+                    ),
                     const SizedBox(width: 10),
-                    const Expanded(
+                    Expanded(
                       child: Text(
-                        'Investor Application Not Approved',
-                        style: TextStyle(
+                        profile.hasExhaustedChances
+                            ? 'Profile Submission Locked'
+                            : 'Investor Application Not Approved',
+                        style: const TextStyle(
                           fontWeight: FontWeight.w700,
                           fontSize: 15,
                           color: AppColors.error,
@@ -150,32 +156,53 @@ class InvestorProfileDisplayWidget extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 8),
-                Text(
-                  'Admin Feedback: ${profile.rejectionReason != null && profile.rejectionReason!.isNotEmpty ? profile.rejectionReason : "Please update your profile details to meet requirements."}',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: isDark ? AppColors.white : AppColors.ink,
-                    height: 1.4,
+                if (profile.hasExhaustedChances)
+                  Text(
+                    'Maximum Review Submissions Reached (3/3 attempts used). Resubmissions are locked. Please contact support.',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: isDark ? AppColors.white : AppColors.ink,
+                      height: 1.4,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  )
+                else ...[
+                  Text(
+                    'Admin Feedback: ${profile.rejectionReason != null && profile.rejectionReason!.isNotEmpty ? profile.rejectionReason : "Please update your profile details to meet requirements."}',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: isDark ? AppColors.white : AppColors.ink,
+                      height: 1.4,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: ElevatedButton.icon(
-                    onPressed: onEdit,
-                    icon: const Icon(Icons.edit, size: 16),
-                    label: const Text('Edit & Resubmit'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.error,
-                      foregroundColor: AppColors.white,
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Attempt ${profile.rejectionCount} of 3 (${profile.remainingChances} resubmission(s) left)',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.slate,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: ElevatedButton.icon(
+                      onPressed: onEdit,
+                      icon: const Icon(Icons.edit, size: 16),
+                      label: const Text('Edit & Resubmit'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.error,
+                        foregroundColor: AppColors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                       ),
                     ),
                   ),
-                ),
+                ],
               ],
             ),
           ),
@@ -232,6 +259,7 @@ class InvestorProfileDisplayWidget extends StatelessWidget {
           completenessScore: completenessScore,
           onEdit: onEdit,
           isDark: isDark,
+          hasExhaustedChances: profile.hasExhaustedChances,
         ),
         const SizedBox(height: AppSizes.lg),
 
@@ -446,48 +474,73 @@ class InvestorProfileDisplayWidget extends StatelessWidget {
                 ),
               );
 
-              final editBtn = Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(AppSizes.radiusMd),
-                  gradient: const LinearGradient(
-                    colors: [AppColors.secondary, AppColors.secondaryLight],
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.secondary.withValues(alpha: 0.3),
-                      blurRadius: 12,
-                      offset: const Offset(0, 5),
-                    ),
-                  ],
-                ),
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: onEdit,
-                    borderRadius: BorderRadius.circular(AppSizes.radiusMd),
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(vertical: AppSizes.md),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.edit_outlined, size: 18, color: Colors.white),
-                          SizedBox(width: 8),
-                          Text(
-                            'Edit Thesis Criteria',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 15,
+              final editBtn = profile.hasExhaustedChances
+                  ? Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+                        color: AppColors.slate.withOpacity(0.12),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: AppSizes.md),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.lock, size: 18, color: AppColors.slate.withOpacity(0.6)),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Resubmission Locked (3/3 Attempts Used)',
+                              style: TextStyle(
+                                color: AppColors.slate.withOpacity(0.8),
+                                fontWeight: FontWeight.w700,
+                                fontSize: 14,
+                              ),
                             ),
+                          ],
+                        ),
+                      ),
+                    )
+                  : Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+                        gradient: const LinearGradient(
+                          colors: [AppColors.secondary, AppColors.secondaryLight],
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.secondary.withValues(alpha: 0.3),
+                            blurRadius: 12,
+                            offset: const Offset(0, 5),
                           ),
                         ],
                       ),
-                    ),
-                  ),
-                ),
-              );
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: onEdit,
+                          borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(vertical: AppSizes.md),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.edit_outlined, size: 18, color: Colors.white),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Edit Thesis Criteria',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
 
               if (isWide) {
                 return Row(
@@ -529,6 +582,7 @@ class _HeroHeader extends StatelessWidget {
     required this.completenessScore,
     required this.onEdit,
     required this.isDark,
+    required this.hasExhaustedChances,
   });
 
   final String orgName;
@@ -539,6 +593,7 @@ class _HeroHeader extends StatelessWidget {
   final int completenessScore;
   final VoidCallback onEdit;
   final bool isDark;
+  final bool hasExhaustedChances;
 
   @override
   Widget build(BuildContext context) {
@@ -613,47 +668,49 @@ class _HeroHeader extends StatelessWidget {
                     );
 
                     // Glassmorphic edit button
-                    final editButton = ClipRRect(
-                      borderRadius: BorderRadius.circular(AppSizes.radiusMd),
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                        child: Material(
-                          color: Colors.white.withValues(alpha: 0.15),
-                          child: InkWell(
-                            onTap: onEdit,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: AppSizes.md,
-                                vertical: AppSizes.sm,
-                              ),
-                              decoration: BoxDecoration(
-                                borderRadius:
-                                    BorderRadius.circular(AppSizes.radiusMd),
-                                border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.25),
-                                ),
-                              ),
-                              child: const Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.edit_outlined,
-                                      size: 15, color: Colors.white),
-                                  SizedBox(width: 6),
-                                  Text(
-                                    'Edit Profile',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 13,
+                    final editButton = hasExhaustedChances
+                        ? const SizedBox.shrink()
+                        : ClipRRect(
+                            borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+                            child: BackdropFilter(
+                              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                              child: Material(
+                                color: Colors.white.withValues(alpha: 0.15),
+                                child: InkWell(
+                                  onTap: onEdit,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: AppSizes.md,
+                                      vertical: AppSizes.sm,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      borderRadius:
+                                          BorderRadius.circular(AppSizes.radiusMd),
+                                      border: Border.all(
+                                        color: Colors.white.withValues(alpha: 0.25),
+                                      ),
+                                    ),
+                                    child: const Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.edit_outlined,
+                                            size: 15, color: Colors.white),
+                                        SizedBox(width: 6),
+                                        Text(
+                                          'Edit Profile',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                ],
+                                ),
                               ),
                             ),
-                          ),
-                        ),
-                      ),
-                    );
+                          );
 
                     final titleColumn = Column(
                       crossAxisAlignment: CrossAxisAlignment.start,

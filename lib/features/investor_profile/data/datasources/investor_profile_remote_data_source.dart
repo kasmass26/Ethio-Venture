@@ -120,7 +120,51 @@ class InvestorProfileRemoteDataSourceImpl
   Future<InvestorProfileModel> updateInvestorProfile(
     InvestorProfileModel profile,
   ) async {
+    final currentUserId = profile.userId;
+
+    // Fetch existing profile to check approval status and rejection count
+    Map<String, dynamic>? existingData;
+    try {
+      existingData = await _client
+          .from(_tableName)
+          .select('approval_status, rejection_count, rejection_reason')
+          .eq('user_id', currentUserId)
+          .maybeSingle();
+    } catch (_) {
+      // Ignore select error or let it fallback
+    }
+
+    String approvalStatus = 'pending';
+    String? rejectionReason;
+    int rejectionCount = 0;
+
+    if (existingData != null) {
+      final existingStatus = existingData['approval_status']?.toString();
+      final existingCount = (existingData['rejection_count'] as num?)?.toInt() ?? 0;
+
+      if (existingStatus == 'rejected') {
+        if (existingCount >= 3) {
+          throw ServerException(
+            message: 'Maximum review submissions reached (3/3 attempts used). Resubmissions are locked.',
+          );
+        }
+        // If rejected and count < 3, transition back to pending and clear rejection reason
+        approvalStatus = 'pending';
+        rejectionReason = null;
+        rejectionCount = existingCount;
+      } else {
+        // Keep the existing status and count if not rejected
+        approvalStatus = existingStatus ?? 'pending';
+        rejectionReason = existingData['rejection_reason']?.toString();
+        rejectionCount = existingCount;
+      }
+    }
+
     final payload = profile.toJson();
+    payload['approval_status'] = approvalStatus;
+    payload['rejection_reason'] = rejectionReason;
+    payload['rejection_count'] = rejectionCount;
+
     developer.log(
       'Updating investor profile id "${profile.id}" in table "$_tableName" with payload: $payload',
       name: 'InvestorProfileRemoteDataSource.updateInvestorProfile',

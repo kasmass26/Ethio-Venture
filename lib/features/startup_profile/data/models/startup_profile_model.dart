@@ -35,6 +35,7 @@ class StartupProfileModel extends StartupProfileEntity {
     super.approvalStatus = 'pending',
     super.rejectionReason,
     super.approvalDate,
+    super.rejectionCount = 0,
   });
 
   factory StartupProfileModel.fromJson(Map<String, dynamic> json) {
@@ -114,6 +115,7 @@ class StartupProfileModel extends StartupProfileEntity {
       approvalStatus: json['approval_status']?.toString() ?? 'pending',
       rejectionReason: json['rejection_reason']?.toString(),
       approvalDate: parsedApprovalDate,
+      rejectionCount: (json['rejection_count'] as num?)?.toInt() ?? 0,
     );
   }
 
@@ -134,6 +136,7 @@ class StartupProfileModel extends StartupProfileEntity {
       approvalStatus: entity.approvalStatus,
       rejectionReason: entity.rejectionReason,
       approvalDate: entity.approvalDate,
+      rejectionCount: entity.rejectionCount,
     );
   }
 
@@ -154,6 +157,7 @@ class StartupProfileModel extends StartupProfileEntity {
       'approval_status': approvalStatus,
       'rejection_reason': rejectionReason,
       'approval_date': approvalDate?.toIso8601String(),
+      'rejection_count': rejectionCount,
     };
   }
 
@@ -173,6 +177,7 @@ class StartupProfileModel extends StartupProfileEntity {
       'approval_status': approvalStatus,
       'rejection_reason': rejectionReason,
       'approval_date': approvalDate?.toIso8601String(),
+      'rejection_count': rejectionCount,
     };
   }
 
@@ -190,6 +195,7 @@ class StartupProfileModel extends StartupProfileEntity {
       'approval_status': approvalStatus,
       'rejection_reason': rejectionReason,
       'approval_date': approvalDate?.toIso8601String(),
+      'rejection_count': rejectionCount,
     };
   }
 

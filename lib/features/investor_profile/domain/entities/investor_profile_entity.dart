@@ -20,6 +20,7 @@ class InvestorProfileEntity {
     this.approvalStatus = 'pending',
     this.rejectionReason,
     this.approvalDate,
+    this.rejectionCount = 0,
   }) : assert(
          ticketSizeMin == null ||
              ticketSizeMax == null ||
@@ -41,10 +42,20 @@ class InvestorProfileEntity {
   final String approvalStatus;
   final String? rejectionReason;
   final DateTime? approvalDate;
+  final int rejectionCount;
 
   bool get isApproved => approvalStatus == 'approved';
   bool get isPending => approvalStatus == 'pending';
   bool get isRejected => approvalStatus == 'rejected';
+
+  /// Whether the investor can edit & resubmit (up to 3 chances)
+  bool get canResubmit => isRejected && rejectionCount < 3;
+
+  /// Whether the investor has exhausted all 3 review attempts
+  bool get hasExhaustedChances => isRejected && rejectionCount >= 3;
+
+  /// Number of remaining review chances
+  int get remainingChances => (3 - rejectionCount).clamp(0, 3);
 
   InvestorProfileEntity copyWith({
     String? id,
@@ -61,6 +72,7 @@ class InvestorProfileEntity {
     String? approvalStatus,
     String? rejectionReason,
     DateTime? approvalDate,
+    int? rejectionCount,
   }) {
     return InvestorProfileEntity(
       id: id ?? this.id,
@@ -77,6 +89,7 @@ class InvestorProfileEntity {
       approvalStatus: approvalStatus ?? this.approvalStatus,
       rejectionReason: rejectionReason ?? this.rejectionReason,
       approvalDate: approvalDate ?? this.approvalDate,
+      rejectionCount: rejectionCount ?? this.rejectionCount,
     );
   }
 

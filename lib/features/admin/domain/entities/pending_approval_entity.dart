@@ -17,6 +17,7 @@ class PendingApprovalEntity {
     required this.approvalStatus,
     this.rejectionReason,
     this.approvalDate,
+    this.rejectionCount = 0,
   });
 
   final String id;
@@ -35,6 +36,7 @@ class PendingApprovalEntity {
   final String approvalStatus; // 'pending', 'approved', 'rejected'
   final String? rejectionReason;
   final DateTime? approvalDate;
+  final int rejectionCount;
 
   PendingApprovalEntity copyWith({
     String? id,
@@ -53,6 +55,7 @@ class PendingApprovalEntity {
     String? approvalStatus,
     String? rejectionReason,
     DateTime? approvalDate,
+    int? rejectionCount,
   }) {
     return PendingApprovalEntity(
       id: id ?? this.id,
@@ -71,6 +74,7 @@ class PendingApprovalEntity {
       approvalStatus: approvalStatus ?? this.approvalStatus,
       rejectionReason: rejectionReason ?? this.rejectionReason,
       approvalDate: approvalDate ?? this.approvalDate,
+      rejectionCount: rejectionCount ?? this.rejectionCount,
     );
   }
 }

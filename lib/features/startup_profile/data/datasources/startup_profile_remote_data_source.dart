@@ -124,6 +124,44 @@ class StartupProfileRemoteDataSourceImpl
   Future<StartupProfileModel> updateProfile(StartupProfileModel profile) async {
     final currentUserId = _client.auth.currentUser?.id ?? profile.userId;
 
+    // Fetch existing profile to check approval status and rejection count
+    Map<String, dynamic>? existingData;
+    try {
+      existingData = await _client
+          .from(_tableName)
+          .select('approval_status, rejection_count, rejection_reason')
+          .eq('user_id', currentUserId)
+          .maybeSingle();
+    } catch (_) {
+      // Ignore select error or let it fallback
+    }
+
+    String approvalStatus = 'pending';
+    String? rejectionReason;
+    int rejectionCount = 0;
+
+    if (existingData != null) {
+      final existingStatus = existingData['approval_status']?.toString();
+      final existingCount = (existingData['rejection_count'] as num?)?.toInt() ?? 0;
+
+      if (existingStatus == 'rejected') {
+        if (existingCount >= 3) {
+          throw ServerException(
+            message: 'Maximum review submissions reached (3/3 attempts used). Resubmissions are locked.',
+          );
+        }
+        // If rejected and count < 3, transition back to pending and clear rejection reason
+        approvalStatus = 'pending';
+        rejectionReason = null;
+        rejectionCount = existingCount;
+      } else {
+        // Keep the existing status and count if not rejected
+        approvalStatus = existingStatus ?? 'pending';
+        rejectionReason = existingData['rejection_reason']?.toString();
+        rejectionCount = existingCount;
+      }
+    }
+
     final primaryPayload = {
       'user_id': currentUserId,
       'startup_name': profile.startupName,
@@ -135,6 +173,9 @@ class StartupProfileRemoteDataSourceImpl
       'team_information': profile.teamInformation,
       'contact_information': profile.contactInformation,
       'updated_at': DateTime.now().toIso8601String(),
+      'approval_status': approvalStatus,
+      'rejection_reason': rejectionReason,
+      'rejection_count': rejectionCount,
     };
 
     try {
@@ -160,6 +201,9 @@ class StartupProfileRemoteDataSourceImpl
             'team_information': profile.teamInformation,
             'contact_information': profile.contactInformation,
             'updated_at': DateTime.now().toIso8601String(),
+            'approval_status': approvalStatus,
+            'rejection_reason': rejectionReason,
+            'rejection_count': rejectionCount,
           };
           final response = await _client
               .from(_tableName)

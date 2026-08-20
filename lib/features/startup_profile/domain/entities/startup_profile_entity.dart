@@ -19,6 +19,7 @@ class StartupProfileEntity {
     this.approvalStatus = 'pending',
     this.rejectionReason,
     this.approvalDate,
+    this.rejectionCount = 0,
   });
 
   /// Primary key of the startup_profiles row.
@@ -63,9 +64,21 @@ class StartupProfileEntity {
   /// Date of latest approval or rejection
   final DateTime? approvalDate;
 
+  /// How many times this startup application has been rejected (max 3 allowed)
+  final int rejectionCount;
+
   bool get isApproved => approvalStatus == 'approved';
   bool get isPending => approvalStatus == 'pending';
   bool get isRejected => approvalStatus == 'rejected';
+
+  /// Whether the user can edit & resubmit (up to 3 chances)
+  bool get canResubmit => isRejected && rejectionCount < 3;
+
+  /// Whether the user has exhausted all 3 review attempts
+  bool get hasExhaustedChances => isRejected && rejectionCount >= 3;
+
+  /// Number of remaining review chances
+  int get remainingChances => (3 - rejectionCount).clamp(0, 3);
 
   StartupProfileEntity copyWith({
     String? id,
@@ -83,6 +96,7 @@ class StartupProfileEntity {
     String? approvalStatus,
     String? rejectionReason,
     DateTime? approvalDate,
+    int? rejectionCount,
   }) {
     return StartupProfileEntity(
       id: id ?? this.id,
@@ -100,6 +114,7 @@ class StartupProfileEntity {
       approvalStatus: approvalStatus ?? this.approvalStatus,
       rejectionReason: rejectionReason ?? this.rejectionReason,
       approvalDate: approvalDate ?? this.approvalDate,
+      rejectionCount: rejectionCount ?? this.rejectionCount,
     );
   }
 
