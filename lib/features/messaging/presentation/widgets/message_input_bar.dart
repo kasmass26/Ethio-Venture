@@ -9,10 +9,12 @@ class MessageInputBar extends StatefulWidget {
     super.key,
     required this.onSend,
     this.isSending = false,
+    this.onTap,
   });
 
   final ValueChanged<String> onSend;
   final bool isSending;
+  final VoidCallback? onTap;
 
   @override
   State<MessageInputBar> createState() => _MessageInputBarState();
@@ -65,6 +67,7 @@ class _MessageInputBarState extends State<MessageInputBar> {
                 ),
                 child: TextField(
                   controller: _controller,
+                  onTap: widget.onTap,
                   maxLines: null,
                   textInputAction: TextInputAction.newline,
                   style: const TextStyle(
