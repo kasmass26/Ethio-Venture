@@ -35,18 +35,6 @@ class DocumentRemoteDataSourceImpl implements DocumentRemoteDataSource {
   // Sample documents list for fallback - starts empty
   static final List<DocumentModel> _sampleDocuments = [];
 
-  SupabaseClient _getAnonClient() {
-    try {
-      final config = AppConfig.fromEnvironment();
-      return SupabaseClient(
-        config.supabaseUrl,
-        config.supabasePublishableKey,
-      );
-    } catch (_) {
-      return _client;
-    }
-  }
-
   @override
   Future<DocumentModel> uploadDocument({
     required String startupId,
@@ -55,7 +43,6 @@ class DocumentRemoteDataSourceImpl implements DocumentRemoteDataSource {
     required String fileName,
     bool isPrivate = false,
   }) async {
-    final client = _getAnonClient();
     final documentId = 'doc_${DateTime.now().millisecondsSinceEpoch}';
 
     final fileType = fileName.split('.').last.toLowerCase();
@@ -74,7 +61,7 @@ class DocumentRemoteDataSourceImpl implements DocumentRemoteDataSource {
     );
 
     try {
-      await client.from(_tableName).insert(model.toJson());
+      await _client.from(_tableName).insert(model.toJson());
     } catch (_) {}
 
     _sampleDocuments.add(model);
@@ -83,10 +70,8 @@ class DocumentRemoteDataSourceImpl implements DocumentRemoteDataSource {
 
   @override
   Future<List<DocumentModel>> getStartupDocuments({required String startupId}) async {
-    final client = _getAnonClient();
-
     try {
-      final response = await client
+      final response = await _client
           .from(_tableName)
           .select()
           .eq('startup_id', startupId)
@@ -108,10 +93,8 @@ class DocumentRemoteDataSourceImpl implements DocumentRemoteDataSource {
     required String documentId,
     required String startupId,
   }) async {
-    final client = _getAnonClient();
-
     try {
-      await client.from(_tableName).delete().eq('id', documentId);
+      await _client.from(_tableName).delete().eq('id', documentId);
     } catch (_) {}
 
     _sampleDocuments.removeWhere((doc) => doc.id == documentId);
@@ -139,8 +122,7 @@ class DocumentRemoteDataSourceImpl implements DocumentRemoteDataSource {
       _sampleDocuments[index] = updated;
 
       try {
-        final client = _getAnonClient();
-        await client
+        await _client
             .from(_tableName)
             .update({'is_private': isPrivate})
             .eq('id', documentId);

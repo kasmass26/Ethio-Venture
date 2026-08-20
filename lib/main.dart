@@ -42,25 +42,22 @@ Future<void> main() async {
       await configureDependencies(supabaseClient: supabaseClient);
       Bloc.observer = const AppBlocObserver();
     } else {
-      initError ??= 'Supabase client is not initialized. Please check your .env configuration.';
+      initError ??=
+          'Supabase client is not initialized. Please check your .env configuration.';
     }
   } catch (error, stackTrace) {
     initError = error.toString();
     debugPrint('Dependency injection error: $error\n$stackTrace');
   }
 
-  runApp(
-    EthioVentureApp(
-      environment: environment,
-      initError: initError,
-    ),
-  );
+  runApp(EthioVentureApp(environment: environment, initError: initError));
 }
 
 class EthioVentureApp extends StatelessWidget {
   const EthioVentureApp({super.key, required this.environment, this.initError});
 
   final String environment;
+
   /// Non-null when Supabase failed to initialise; shown to the developer.
   final String? initError;
 
@@ -112,10 +109,9 @@ class _InitErrorPage extends StatelessWidget {
               const SizedBox(height: 16),
               Text(
                 'Configuration Error',
-                style: Theme.of(context)
-                    .textTheme
-                    .headlineSmall
-                    ?.copyWith(fontWeight: FontWeight.bold),
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 8),
               const Text(

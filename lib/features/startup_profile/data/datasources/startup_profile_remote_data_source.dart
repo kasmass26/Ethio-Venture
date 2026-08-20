@@ -28,33 +28,63 @@ class StartupProfileRemoteDataSourceImpl
   static const String _tableName = 'startup_profiles';
   static const String _defaultSeedUserId = '71c17916-032d-47fb-b3f5-a9a097036716';
 
-  SupabaseClient _getAnonClient() {
-    try {
-      final config = AppConfig.fromEnvironment();
-      return SupabaseClient(
-        config.supabaseUrl,
-        config.supabasePublishableKey,
-      );
-    } catch (_) {
-      return _client;
-    }
-  }
-
   @override
   Future<StartupProfileModel> createProfile(StartupProfileModel profile) async {
-    final insertMap = profile.toInsertJson();
-    // Do not override user_id - it's already set in toInsertJson() from the current authenticated user
+    final currentUserId = _client.auth.currentUser?.id ?? profile.userId;
 
-    final client = _getAnonClient();
+    final primaryPayload = {
+      'user_id': currentUserId,
+      'startup_name': profile.startupName,
+      'description': profile.description,
+      'industry': profile.industry,
+      'funding_stage': profile.fundingStage,
+      'location': profile.location,
+      'funding_amount_needed': profile.fundingAmountNeeded,
+      'team_information': profile.teamInformation,
+      'contact_information': profile.contactInformation,
+      'updated_at': DateTime.now().toIso8601String(),
+    };
 
     try {
-      final response = await client
+      final response = await _client
           .from(_tableName)
-          .upsert(insertMap, onConflict: 'user_id')
+          .upsert(primaryPayload, onConflict: 'user_id')
           .select()
           .single();
       return StartupProfileModel.fromJson(response);
     } catch (e) {
+      // If table uses business_name / funding_amount_sought columns
+      if (e is PostgrestException && (e.code == '42703' || e.message.contains('column'))) {
+        try {
+          final fallbackPayload = {
+            'user_id': currentUserId,
+            'business_name': profile.startupName,
+            'description': profile.description,
+            'industry': profile.industry,
+            'funding_stage': profile.fundingStage,
+            'location': profile.location,
+            'funding_amount_sought': profile.fundingAmountNeeded,
+            'updated_at': DateTime.now().toIso8601String(),
+          };
+          final response = await _client
+              .from(_tableName)
+              .upsert(fallbackPayload, onConflict: 'user_id')
+              .select()
+              .single();
+          return StartupProfileModel.fromJson(response);
+        } catch (fallbackError) {
+          if (fallbackError is PostgrestException) {
+            throw ServerException(
+              message: fallbackError.message,
+              statusCode: int.tryParse(fallbackError.code ?? ''),
+            );
+          }
+          throw ServerException(
+            message: 'Failed to create startup profile: $fallbackError',
+          );
+        }
+      }
+
       if (e is PostgrestException) {
         throw ServerException(
           message: e.message,
@@ -67,10 +97,8 @@ class StartupProfileRemoteDataSourceImpl
 
   @override
   Future<StartupProfileModel?> getProfile(String userId) async {
-    final client = _getAnonClient();
-
     try {
-      final response = await client
+      final response = await _client
           .from(_tableName)
           .select()
           .eq('user_id', userId)
@@ -92,21 +120,60 @@ class StartupProfileRemoteDataSourceImpl
 
   @override
   Future<StartupProfileModel> updateProfile(StartupProfileModel profile) async {
-    final updateMap = profile.toUpdateJson();
-    // Add user_id for the where clause in upsert
-    final currentAuthUserId = _client.auth.currentUser?.id ?? profile.userId;
-    updateMap['user_id'] = currentAuthUserId;
+    final currentUserId = _client.auth.currentUser?.id ?? profile.userId;
 
-    final client = _getAnonClient();
+    final primaryPayload = {
+      'user_id': currentUserId,
+      'startup_name': profile.startupName,
+      'description': profile.description,
+      'industry': profile.industry,
+      'funding_stage': profile.fundingStage,
+      'location': profile.location,
+      'funding_amount_needed': profile.fundingAmountNeeded,
+      'team_information': profile.teamInformation,
+      'contact_information': profile.contactInformation,
+      'updated_at': DateTime.now().toIso8601String(),
+    };
 
     try {
-      final response = await client
+      final response = await _client
           .from(_tableName)
-          .upsert(updateMap, onConflict: 'user_id')
+          .upsert(primaryPayload, onConflict: 'user_id')
           .select()
           .single();
       return StartupProfileModel.fromJson(response);
     } catch (e) {
+      if (e is PostgrestException && (e.code == '42703' || e.message.contains('column'))) {
+        try {
+          final fallbackPayload = {
+            'user_id': currentUserId,
+            'business_name': profile.startupName,
+            'description': profile.description,
+            'industry': profile.industry,
+            'funding_stage': profile.fundingStage,
+            'location': profile.location,
+            'funding_amount_sought': profile.fundingAmountNeeded,
+            'updated_at': DateTime.now().toIso8601String(),
+          };
+          final response = await _client
+              .from(_tableName)
+              .upsert(fallbackPayload, onConflict: 'user_id')
+              .select()
+              .single();
+          return StartupProfileModel.fromJson(response);
+        } catch (fallbackError) {
+          if (fallbackError is PostgrestException) {
+            throw ServerException(
+              message: fallbackError.message,
+              statusCode: int.tryParse(fallbackError.code ?? ''),
+            );
+          }
+          throw ServerException(
+            message: 'Failed to update startup profile: $fallbackError',
+          );
+        }
+      }
+
       if (e is PostgrestException) {
         throw ServerException(
           message: e.message,
@@ -119,10 +186,8 @@ class StartupProfileRemoteDataSourceImpl
 
   @override
   Future<void> deleteProfile(String userId) async {
-    final client = _getAnonClient();
-
     try {
-      await client.from(_tableName).delete().eq('user_id', userId);
+      await _client.from(_tableName).delete().eq('user_id', userId);
     } on PostgrestException catch (e) {
       throw ServerException(
         message: e.message,

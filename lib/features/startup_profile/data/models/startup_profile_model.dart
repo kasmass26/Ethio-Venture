@@ -35,19 +35,45 @@ class StartupProfileModel extends StartupProfileEntity {
   });
 
   factory StartupProfileModel.fromJson(Map<String, dynamic> json) {
+    final name = json['startup_name']?.toString().isNotEmpty == true
+        ? json['startup_name'].toString()
+        : (json['business_name']?.toString() ?? '');
+
+    final amount = _parseDouble(json['funding_amount_needed']) ??
+        _parseDouble(json['funding_amount_sought']) ??
+        0.0;
+
+    DateTime parsedCreated;
+    try {
+      parsedCreated = json['created_at'] != null
+          ? DateTime.parse(json['created_at'].toString())
+          : DateTime.now();
+    } catch (_) {
+      parsedCreated = DateTime.now();
+    }
+
+    DateTime parsedUpdated;
+    try {
+      parsedUpdated = json['updated_at'] != null
+          ? DateTime.parse(json['updated_at'].toString())
+          : DateTime.now();
+    } catch (_) {
+      parsedUpdated = DateTime.now();
+    }
+
     return StartupProfileModel(
-      id: json['id'] as String,
-      userId: json['user_id'] as String,
-      startupName: json['startup_name'] as String,
-      description: json['description'] as String,
-      industry: json['industry'] as String,
-      fundingStage: json['funding_stage'] as String,
-      location: json['location'] as String,
-      fundingAmountNeeded: _parseDouble(json['funding_amount_needed']) ?? 0.0,
-      teamInformation: json['team_information'] as String? ?? '',
-      contactInformation: json['contact_information'] as String? ?? '',
-      createdAt: DateTime.parse(json['created_at'] as String),
-      updatedAt: DateTime.parse(json['updated_at'] as String),
+      id: json['id']?.toString() ?? '',
+      userId: json['user_id']?.toString() ?? '',
+      startupName: name,
+      description: json['description']?.toString() ?? '',
+      industry: json['industry']?.toString() ?? '',
+      fundingStage: json['funding_stage']?.toString() ?? '',
+      location: json['location']?.toString() ?? '',
+      fundingAmountNeeded: amount,
+      teamInformation: json['team_information']?.toString() ?? '',
+      contactInformation: json['contact_information']?.toString() ?? '',
+      createdAt: parsedCreated,
+      updatedAt: parsedUpdated,
     );
   }
 

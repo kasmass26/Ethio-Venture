@@ -40,7 +40,7 @@ class _StartupProfileFormState extends State<StartupProfileForm> {
   late final TextEditingController _contactController;
 
   String _selectedIndustry = 'Fintech';
-  String _selectedFundingStage = 'MVP';
+  String _selectedFundingStage = 'Seed';
 
   static const List<String> _industries = [
     'Fintech',
@@ -57,10 +57,30 @@ class _StartupProfileFormState extends State<StartupProfileForm> {
     'Idea',
     'MVP',
     'Early Stage',
+    'Pre-Seed',
     'Seed',
-    'Growth',
     'Series A',
+    'Series B',
+    'Series C',
+    'Series D',
+    'Growth',
   ];
+
+  List<String> get _availableIndustries {
+    final list = List<String>.from(_industries);
+    if (_selectedIndustry.isNotEmpty && !list.contains(_selectedIndustry)) {
+      list.add(_selectedIndustry);
+    }
+    return list;
+  }
+
+  List<String> get _availableFundingStages {
+    final list = List<String>.from(_fundingStages);
+    if (_selectedFundingStage.isNotEmpty && !list.contains(_selectedFundingStage)) {
+      list.add(_selectedFundingStage);
+    }
+    return list;
+  }
 
   @override
   void initState() {
@@ -79,10 +99,10 @@ class _StartupProfileFormState extends State<StartupProfileForm> {
       text: p?.contactInformation ?? '',
     );
 
-    if (p != null && _industries.contains(p.industry)) {
+    if (p != null && p.industry.isNotEmpty) {
       _selectedIndustry = p.industry;
     }
-    if (p != null && _fundingStages.contains(p.fundingStage)) {
+    if (p != null && p.fundingStage.isNotEmpty) {
       _selectedFundingStage = p.fundingStage;
     }
   }
@@ -229,11 +249,13 @@ class _StartupProfileFormState extends State<StartupProfileForm> {
           // Industry Sector Dropdown
           _buildFieldLabel('Industry Sector *'),
           DropdownButtonFormField<String>(
-            initialValue: _selectedIndustry,
+            value: _availableIndustries.contains(_selectedIndustry)
+                ? _selectedIndustry
+                : _availableIndustries.first,
             dropdownColor: AppColors.white,
             iconEnabledColor: AppColors.primary,
             style: const TextStyle(color: AppColors.ink, fontSize: 15),
-            items: _industries
+            items: _availableIndustries
                 .map(
                   (ind) => DropdownMenuItem(
                     value: ind,
@@ -254,11 +276,13 @@ class _StartupProfileFormState extends State<StartupProfileForm> {
           // Funding Stage Dropdown
           _buildFieldLabel('Funding Stage *'),
           DropdownButtonFormField<String>(
-            initialValue: _selectedFundingStage,
+            value: _availableFundingStages.contains(_selectedFundingStage)
+                ? _selectedFundingStage
+                : _availableFundingStages.first,
             dropdownColor: AppColors.white,
             iconEnabledColor: AppColors.primary,
             style: const TextStyle(color: AppColors.ink, fontSize: 15),
-            items: _fundingStages
+            items: _availableFundingStages
                 .map(
                   (stage) => DropdownMenuItem(
                     value: stage,
