@@ -58,23 +58,21 @@ class AppRouter {
             )
           : settings.arguments is MatchResultEntity
               ? StartupDetailPage.fromId(
-                  (settings.arguments as MatchResultEntity).startup.id,
+                  startupId: (settings.arguments as MatchResultEntity).startup.id,
                 )
               : _UnknownRoutePage(routeName: settings.name),
       AppConstants.routeInvestorProfile => const InvestorProfilePage(),
       AppConstants.routeStartupSearch => const StartupListPage(),
       AppConstants.routeRecommendations => const RecommendationsPage(),
-      AppConstants.routeConversations => const ConversationsPage(),
+      AppConstants.routeMessages => const ConversationsPage(),
       AppConstants.routeChat => settings.arguments is Map<String, dynamic>
           ? ChatPage(
               conversationId: (settings.arguments
-                  as Map<String, dynamic>)['conversationId'] as String?,
-              otherUserId: (settings.arguments
-                  as Map<String, dynamic>)['otherUserId'] as String,
-              otherUserName: (settings.arguments
-                  as Map<String, dynamic>)['otherUserName'] as String,
-              otherUserRole: (settings.arguments
-                  as Map<String, dynamic>)['otherUserRole'] as String,
+                  as Map<String, dynamic>)['conversationId'] as String? ?? '',
+              participantName: (settings.arguments
+                  as Map<String, dynamic>)['participantName'] as String? ?? 'User',
+              participantAvatarUrl: (settings.arguments
+                  as Map<String, dynamic>)['participantAvatarUrl'] as String?,
             )
           : _UnknownRoutePage(routeName: settings.name),
       _ => _UnknownRoutePage(routeName: settings.name),
@@ -84,10 +82,14 @@ class AppRouter {
   }
 
   /// Returns the appropriate destination after a successful authentication.
-  static String dashboardRouteForRole(String role) {
-    return role == AppConstants.roleInvestor
-        ? AppConstants.routeInvestorDashboard
-        : AppConstants.routeFounderDashboard;
+  static String dashboardRouteForRole(String role, [bool isApproved = true]) {
+    if (role == AppConstants.roleAdmin) {
+      return AppConstants.routeAdminDashboard;
+    }
+    if (role == AppConstants.roleInvestor) {
+      return AppConstants.routeInvestorDashboard;
+    }
+    return AppConstants.routeFounderDashboard;
   }
 
   static Route<dynamic> onUnknownRoute(RouteSettings settings) {
