@@ -35,31 +35,38 @@ class StartupProfileModel extends StartupProfileEntity {
   });
 
   factory StartupProfileModel.fromJson(Map<String, dynamic> json) {
-    final name = json['startup_name']?.toString().isNotEmpty == true
-        ? json['startup_name'].toString()
-        : (json['business_name']?.toString() ?? '');
+    String cleanString(dynamic val) {
+      if (val == null) return '';
+      final str = val.toString().trim();
+      if (str.isEmpty || str.toLowerCase() == 'null' || str.toLowerCase() == 'undefined') return '';
+      return str;
+    }
+
+    final name = cleanString(json['startup_name']).isNotEmpty
+        ? cleanString(json['startup_name'])
+        : cleanString(json['business_name']);
 
     final amount = _parseDouble(json['funding_amount_needed']) ??
         _parseDouble(json['funding_amount_sought']) ??
         0.0;
 
-    final teamInfo = (json['team_information']?.toString().trim().isNotEmpty == true)
-        ? json['team_information'].toString()
-        : (json['team_overview']?.toString().trim().isNotEmpty == true)
-            ? json['team_overview'].toString()
-            : (json['team_details']?.toString().trim().isNotEmpty == true)
-                ? json['team_details'].toString()
-                : (json['team']?.toString() ?? '');
+    final teamInfo = cleanString(json['team_information']).isNotEmpty
+        ? cleanString(json['team_information'])
+        : cleanString(json['team_overview']).isNotEmpty
+            ? cleanString(json['team_overview'])
+            : cleanString(json['team_details']).isNotEmpty
+                ? cleanString(json['team_details'])
+                : cleanString(json['team']);
 
-    final contactInfo = (json['contact_information']?.toString().trim().isNotEmpty == true)
-        ? json['contact_information'].toString()
-        : (json['contact_info']?.toString().trim().isNotEmpty == true)
-            ? json['contact_info'].toString()
-            : (json['contact_email']?.toString().trim().isNotEmpty == true)
-                ? json['contact_email'].toString()
-                : (json['contact_details']?.toString().trim().isNotEmpty == true)
-                    ? json['contact_details'].toString()
-                    : (json['contact']?.toString() ?? '');
+    final contactInfo = cleanString(json['contact_information']).isNotEmpty
+        ? cleanString(json['contact_information'])
+        : cleanString(json['contact_info']).isNotEmpty
+            ? cleanString(json['contact_info'])
+            : cleanString(json['contact_email']).isNotEmpty
+                ? cleanString(json['contact_email'])
+                : cleanString(json['contact_details']).isNotEmpty
+                    ? cleanString(json['contact_details'])
+                    : cleanString(json['contact']);
 
     DateTime parsedCreated;
     try {

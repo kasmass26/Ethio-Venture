@@ -58,12 +58,16 @@ class StartupProfileRemoteDataSourceImpl
         try {
           final fallbackPayload = {
             'user_id': currentUserId,
+            'startup_name': profile.startupName,
             'business_name': profile.startupName,
             'description': profile.description,
             'industry': profile.industry,
             'funding_stage': profile.fundingStage,
             'location': profile.location,
+            'funding_amount_needed': profile.fundingAmountNeeded,
             'funding_amount_sought': profile.fundingAmountNeeded,
+            'team_information': profile.teamInformation,
+            'contact_information': profile.contactInformation,
             'updated_at': DateTime.now().toIso8601String(),
           };
           final response = await _client
@@ -147,12 +151,16 @@ class StartupProfileRemoteDataSourceImpl
         try {
           final fallbackPayload = {
             'user_id': currentUserId,
+            'startup_name': profile.startupName,
             'business_name': profile.startupName,
             'description': profile.description,
             'industry': profile.industry,
             'funding_stage': profile.fundingStage,
             'location': profile.location,
+            'funding_amount_needed': profile.fundingAmountNeeded,
             'funding_amount_sought': profile.fundingAmountNeeded,
+            'team_information': profile.teamInformation,
+            'contact_information': profile.contactInformation,
             'updated_at': DateTime.now().toIso8601String(),
           };
           final response = await _client
