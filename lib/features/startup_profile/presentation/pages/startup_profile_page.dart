@@ -63,132 +63,595 @@ class StartupProfilePage extends StatelessWidget {
         sl<SupabaseClient>().auth.currentUser?.id ??
         '00000000-0000-0000-0000-000000000000';
 
-    return BlocProvider<StartupProfileCubit>(
-      create: (context) =>
-          sl<StartupProfileCubit>()..loadProfile(currentUserId),
-      child: Scaffold(
-        backgroundColor: AppColors.background,
-        bottomNavigationBar: DashboardBottomNav(
-          currentIndex: 3,
-          onTap: (index) {
-            if (index == 0) {
-              Navigator.of(
-                context,
-              ).pushReplacementNamed(AppConstants.routeFounderDashboard);
-            } else if (index == 1) {
-              Navigator.of(
-                context,
-              ).pushReplacementNamed(AppConstants.routeFounderInvestors);
-            } else if (index == 2) {
-              Navigator.of(
-                context,
-              ).pushNamed(AppConstants.routeMessages);
-            }
-          },
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<StartupProfileCubit>(
+          create: (context) =>
+              sl<StartupProfileCubit>()..loadProfile(currentUserId),
         ),
-        appBar: AppBar(
-          title: const Text('Startup Profile'),
-          backgroundColor: AppColors.surface,
-          foregroundColor: AppColors.ink,
-          elevation: 0,
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.add_circle_outline),
-              tooltip: 'Create New Profile',
-              onPressed: () {
-                Navigator.pushNamed(context, '/startup-profile-setup').then((
-                  _,
-                ) {
-                  if (context.mounted) {
-                    context.read<StartupProfileCubit>().loadProfile(
-                      currentUserId,
+        BlocProvider<DocumentCubit>(
+          create: (context) => sl<DocumentCubit>(),
+        ),
+      ],
+      child: BlocListener<StartupProfileCubit, StartupProfileState>(
+        listener: (context, state) {
+          if (state is StartupProfileLoaded) {
+            context.read<DocumentCubit>().loadDocuments(
+              startupId: state.profile.id,
+            );
+          }
+        },
+        child: Scaffold(
+          backgroundColor: AppColors.background,
+          bottomNavigationBar: DashboardBottomNav(
+            currentIndex: 3,
+            onTap: (index) {
+              if (index == 0) {
+                Navigator.of(
+                  context,
+                ).pushReplacementNamed(AppConstants.routeFounderDashboard);
+              } else if (index == 1) {
+                Navigator.of(
+                  context,
+                ).pushReplacementNamed(AppConstants.routeFounderInvestors);
+              } else if (index == 2) {
+                Navigator.of(
+                  context,
+                ).pushNamed(AppConstants.routeMessages);
+              }
+            },
+          ),
+          appBar: AppBar(
+            title: const Text(
+              'Startup Profile',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            ),
+            backgroundColor: AppColors.surface,
+            foregroundColor: AppColors.ink,
+            elevation: 0,
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.add_circle_outline),
+                tooltip: 'Create New Profile',
+                onPressed: () {
+                  Navigator.pushNamed(context, '/startup-profile-setup').then((
+                    _,
+                  ) {
+                    if (context.mounted) {
+                      context.read<StartupProfileCubit>().loadProfile(
+                        currentUserId,
+                      );
+                    }
+                  });
+                },
+              ),
+              BlocBuilder<StartupProfileCubit, StartupProfileState>(
+                builder: (context, state) {
+                  if (state is StartupProfileLoaded) {
+                    return IconButton(
+                      icon: const Icon(Icons.edit_outlined),
+                      tooltip: 'Edit Profile',
+                      onPressed: () {
+                        Navigator.pushNamed(
+                          context,
+                          '/edit-startup-profile',
+                          arguments: state.profile,
+                        ).then((_) {
+                          if (context.mounted) {
+                            context.read<StartupProfileCubit>().loadProfile(
+                              currentUserId,
+                            );
+                          }
+                        });
+                      },
                     );
                   }
-                });
-              },
-            ),
-            BlocBuilder<StartupProfileCubit, StartupProfileState>(
+                  return const SizedBox.shrink();
+                },
+              ),
+              IconButton(
+                icon: const Icon(Icons.logout_outlined),
+                tooltip: 'Sign Out',
+                onPressed: () => _confirmLogout(context),
+              ),
+            ],
+          ),
+          body: SafeArea(
+            child: BlocBuilder<StartupProfileCubit, StartupProfileState>(
               builder: (context, state) {
-                if (state is StartupProfileLoaded) {
-                  return IconButton(
-                    icon: const Icon(Icons.edit_outlined),
-                    tooltip: 'Edit Current Profile',
-                    onPressed: () {
-                      Navigator.pushNamed(
-                        context,
-                        '/edit-startup-profile',
-                        arguments: state.profile,
-                      ).then((_) {
-                        if (context.mounted) {
-                          context.read<StartupProfileCubit>().loadProfile(
-                            currentUserId,
-                          );
-                        }
-                      });
-                    },
+                if (state is StartupProfileLoading) {
+                  return const Center(
+                    child: CircularProgressIndicator(color: AppColors.primary),
                   );
                 }
-                return const SizedBox.shrink();
-              },
-            ),
-            IconButton(
-              icon: const Icon(Icons.logout_outlined),
-              tooltip: 'Sign Out',
-              onPressed: () => _confirmLogout(context),
-            ),
-          ],
-        ),
-        body: SafeArea(
-          child: BlocBuilder<StartupProfileCubit, StartupProfileState>(
-            builder: (context, state) {
-              if (state is StartupProfileLoading) {
-                return const Center(
-                  child: CircularProgressIndicator(color: AppColors.primary),
-                );
-              }
 
-              if (state is StartupProfileInitial ||
-                  state is StartupProfileEmpty) {
-                return Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(AppSizes.lg),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(AppSizes.lg),
-                          decoration: const BoxDecoration(
-                            color: AppColors.primaryTint,
-                            shape: BoxShape.circle,
+                if (state is StartupProfileInitial ||
+                    state is StartupProfileEmpty) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppSizes.lg),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(AppSizes.xl),
+                            decoration: BoxDecoration(
+                              color: AppColors.primarySoft,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.rocket_launch_outlined,
+                              size: 54,
+                              color: AppColors.primaryDark,
+                            ),
                           ),
-                          child: const Icon(
-                            Icons.business_outlined,
-                            size: 48,
-                            color: AppColors.primary,
+                          const SizedBox(height: AppSizes.lg),
+                          Text(
+                            'No Startup Profile Found',
+                            style: Theme.of(context).textTheme.headlineSmall
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.ink,
+                                ),
                           ),
-                        ),
-                        const SizedBox(height: AppSizes.md),
-                        Text(
-                          'No Startup Profile Found',
-                          style: Theme.of(context).textTheme.headlineSmall
-                              ?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.ink,
+                          const SizedBox(height: AppSizes.xs),
+                          Text(
+                            'Create your startup profile to showcase your product, team, and funding goals to investors on Ethio Venture.',
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(color: AppColors.slate),
+                          ),
+                          const SizedBox(height: AppSizes.xl),
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              Navigator.pushNamed(
+                                context,
+                                '/startup-profile-setup',
+                              ).then((_) {
+                                if (context.mounted) {
+                                  context.read<StartupProfileCubit>().loadProfile(
+                                    currentUserId,
+                                  );
+                                }
+                              });
+                            },
+                            icon: const Icon(Icons.add),
+                            label: const Text('Setup Profile Now'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: AppColors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppSizes.xl,
+                                vertical: AppSizes.md,
                               ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+
+                if (state is StartupProfileError) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppSizes.lg),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.error_outline,
+                            size: 48,
+                            color: AppColors.coral,
+                          ),
+                          const SizedBox(height: AppSizes.md),
+                          Text(
+                            'Unable to Load Profile',
+                            style: Theme.of(context).textTheme.titleLarge
+                                ?.copyWith(
+                                  color: AppColors.ink,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                          ),
+                          const SizedBox(height: AppSizes.xs),
+                          Text(
+                            state.message,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(color: AppColors.slate),
+                          ),
+                          const SizedBox(height: AppSizes.lg),
+                          ElevatedButton(
+                            onPressed: () {
+                              context.read<StartupProfileCubit>().loadProfile(
+                                currentUserId,
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: AppColors.white,
+                            ),
+                            child: const Text('Retry'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+
+                if (state is StartupProfileLoaded) {
+                  final profile = state.profile;
+                  return SingleChildScrollView(
+                    padding: const EdgeInsets.all(18),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Modern Hero Header Banner Card
+                        Container(
+                          padding: const EdgeInsets.all(22),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(24),
+                            gradient: const LinearGradient(
+                              colors: [AppColors.secondary, AppColors.secondaryLight],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.secondary.withValues(alpha: 0.25),
+                                blurRadius: 16,
+                                offset: const Offset(0, 6),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    width: 60,
+                                    height: 60,
+                                    alignment: Alignment.center,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(alpha: 0.2),
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: Colors.white38, width: 1.5),
+                                    ),
+                                    child: Text(
+                                      profile.startupName.isNotEmpty
+                                          ? profile.startupName[0].toUpperCase()
+                                          : 'S',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 26,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          profile.startupName,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 22,
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Row(
+                                          children: [
+                                            const Icon(
+                                              Icons.location_on_outlined,
+                                              size: 15,
+                                              color: Colors.white70,
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Expanded(
+                                              child: Text(
+                                                profile.location.isNotEmpty
+                                                    ? profile.location
+                                                    : 'Addis Ababa, Ethiopia',
+                                                style: const TextStyle(
+                                                  color: Colors.white70,
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 18),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(alpha: 0.18),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(Icons.domain_rounded, size: 14, color: Colors.white),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          profile.industry,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(alpha: 0.18),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(Icons.trending_up_rounded, size: 14, color: Colors.white),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          profile.fundingStage,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primarySoft,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: const Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.verified_rounded, size: 14, color: AppColors.primaryDark),
+                                        SizedBox(width: 6),
+                                        Text(
+                                          'Verified Venture',
+                                          style: TextStyle(
+                                            color: AppColors.primaryDark,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
-                        const SizedBox(height: AppSizes.xs),
-                        Text(
-                          'Create your startup profile to showcase your product, team, and funding goals to investors.',
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(color: AppColors.slate),
+                        const SizedBox(height: 18),
+
+                        // Key Metrics Row Card
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: AppColors.surface,
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(color: AppColors.border),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.primarySoft,
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: const Icon(
+                                        Icons.monetization_on_outlined,
+                                        size: 20,
+                                        color: AppColors.primaryDark,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      _formatCurrency(profile.fundingAmountNeeded),
+                                      style: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w800,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    const Text(
+                                      'Funding Requested',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: AppColors.textSecondary,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: AppColors.surface,
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(color: AppColors.border),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.secondarySoft,
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: const Icon(
+                                        Icons.rocket_launch_outlined,
+                                        size: 20,
+                                        color: AppColors.secondary,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      profile.fundingStage,
+                                      style: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w800,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    const Text(
+                                      'Target Stage',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: AppColors.textSecondary,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: AppSizes.xl),
+                        const SizedBox(height: 18),
+
+                        // Description Card
+                        _buildInfoSection(
+                          context,
+                          title: 'Overview & Vision',
+                          icon: Icons.lightbulb_outline_rounded,
+                          content: profile.description,
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Team Information Card
+                        _buildInfoSection(
+                          context,
+                          title: 'Team & Founders',
+                          icon: Icons.groups_2_outlined,
+                          content: profile.teamInformation,
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Pitch Deck & Business Documents Section
+                        PitchDeckSectionWidget(
+                          startupId: profile.id,
+                          isFounder: true,
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Contact Information Card
+                        Card(
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                            side: const BorderSide(color: AppColors.border),
+                          ),
+                          color: AppColors.surface,
+                          child: Padding(
+                            padding: const EdgeInsets.all(18),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Row(
+                                  children: [
+                                    Icon(
+                                      Icons.contact_mail_outlined,
+                                      size: 20,
+                                      color: AppColors.primaryDark,
+                                    ),
+                                    SizedBox(width: 10),
+                                    Text(
+                                      'Contact Details',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const Divider(height: 24),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 10,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.background,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: AppColors.border),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        profile.contactInformation.contains('@')
+                                            ? Icons.email_outlined
+                                            : Icons.phone_outlined,
+                                        size: 18,
+                                        color: AppColors.primaryDark,
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: SelectableText(
+                                          profile.contactInformation,
+                                          style: const TextStyle(
+                                            color: AppColors.textPrimary,
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+
+                        // Bottom Action Button
                         ElevatedButton.icon(
                           onPressed: () {
                             Navigator.pushNamed(
                               context,
-                              '/startup-profile-setup',
+                              '/edit-startup-profile',
+                              arguments: profile,
                             ).then((_) {
                               if (context.mounted) {
                                 context.read<StartupProfileCubit>().loadProfile(
@@ -197,357 +660,31 @@ class StartupProfilePage extends StatelessWidget {
                               }
                             });
                           },
-                          icon: const Icon(Icons.add),
-                          label: const Text('Setup Profile Now'),
+                          icon: const Icon(Icons.edit_outlined, size: 20),
+                          label: const Text(
+                            'Edit Startup Profile',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.primary,
                             foregroundColor: AppColors.white,
                             padding: const EdgeInsets.symmetric(
-                              horizontal: AppSizes.xl,
-                              vertical: AppSizes.md,
+                              vertical: 16,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
                             ),
                           ),
                         ),
+                        const SizedBox(height: 32),
                       ],
                     ),
-                  ),
-                );
-              }
+                  );
+                }
 
-              if (state is StartupProfileError) {
-                return Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(AppSizes.lg),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.error_outline,
-                          size: 48,
-                          color: AppColors.coral,
-                        ),
-                        const SizedBox(height: AppSizes.md),
-                        Text(
-                          'Unable to Load Profile',
-                          style: Theme.of(context).textTheme.titleLarge
-                              ?.copyWith(
-                                color: AppColors.ink,
-                                fontWeight: FontWeight.bold,
-                              ),
-                        ),
-                        const SizedBox(height: AppSizes.xs),
-                        Text(
-                          state.message,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(color: AppColors.slate),
-                        ),
-                        const SizedBox(height: AppSizes.lg),
-                        ElevatedButton(
-                          onPressed: () {
-                            context.read<StartupProfileCubit>().loadProfile(
-                              currentUserId,
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            foregroundColor: AppColors.white,
-                          ),
-                          child: const Text('Retry'),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }
-
-              if (state is StartupProfileLoaded) {
-                final profile = state.profile;
-                return SingleChildScrollView(
-                  padding: const EdgeInsets.all(AppSizes.pageHorizontal),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // Header Summary Card
-                      Card(
-                        elevation: 1,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(
-                            AppSizes.radiusLg,
-                          ),
-                        ),
-                        color: AppColors.surface,
-                        child: Padding(
-                          padding: const EdgeInsets.all(AppSizes.lg),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 56,
-                                height: 56,
-                                decoration: BoxDecoration(
-                                  color: AppColors.primaryTint,
-                                  borderRadius: BorderRadius.circular(
-                                    AppSizes.radiusMd,
-                                  ),
-                                ),
-                                child: const Icon(
-                                  Icons.storefront,
-                                  color: AppColors.primary,
-                                  size: 28,
-                                ),
-                              ),
-                              const SizedBox(width: AppSizes.md),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      profile.startupName,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .headlineSmall
-                                          ?.copyWith(
-                                            fontWeight: FontWeight.bold,
-                                            color: AppColors.ink,
-                                          ),
-                                    ),
-                                    const SizedBox(height: AppSizes.xs),
-                                    Wrap(
-                                      spacing: AppSizes.xs,
-                                      children: [
-                                        Chip(
-                                          label: Text(
-                                            profile.industry,
-                                            style: const TextStyle(
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.w600,
-                                              color: AppColors.primary,
-                                            ),
-                                          ),
-                                          backgroundColor:
-                                              AppColors.primaryTint,
-                                          visualDensity: VisualDensity.compact,
-                                          side: BorderSide.none,
-                                        ),
-                                        Chip(
-                                          label: Text(
-                                            profile.fundingStage,
-                                            style: const TextStyle(
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.w600,
-                                              color: AppColors.violet,
-                                            ),
-                                          ),
-                                          backgroundColor: AppColors.violetTint,
-                                          visualDensity: VisualDensity.compact,
-                                          side: BorderSide.none,
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: AppSizes.md),
-
-                      // Funding Request Card
-                      Card(
-                        elevation: 1,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(
-                            AppSizes.radiusLg,
-                          ),
-                        ),
-                        color: AppColors.surface,
-                        child: Padding(
-                          padding: const EdgeInsets.all(AppSizes.lg),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Funding Request',
-                                style: Theme.of(context).textTheme.titleSmall
-                                    ?.copyWith(color: AppColors.slate),
-                              ),
-                              const SizedBox(height: AppSizes.xs),
-                              Text(
-                                _formatCurrency(profile.fundingAmountNeeded),
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .headlineMedium
-                                    ?.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                      color: AppColors.primary,
-                                    ),
-                              ),
-                              const SizedBox(height: AppSizes.xs),
-                              Row(
-                                children: [
-                                  const Icon(
-                                    Icons.location_on_outlined,
-                                    size: 16,
-                                    color: AppColors.slate,
-                                  ),
-                                  const SizedBox(width: AppSizes.xs),
-                                  Text(
-                                    profile.location,
-                                    style: const TextStyle(
-                                      color: AppColors.slate,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: AppSizes.md),
-
-                      // Description Card
-                      _buildInfoSection(
-                        context,
-                        title: 'Overview & Vision',
-                        icon: Icons.description_outlined,
-                        content: profile.description,
-                      ),
-                      const SizedBox(height: AppSizes.md),
-
-                      // Team Information Card
-                      _buildInfoSection(
-                        context,
-                        title: 'Team & Founders',
-                        icon: Icons.people_outline,
-                        content: profile.teamInformation,
-                      ),
-                      const SizedBox(height: AppSizes.md),
-
-                      // Pitch Deck & Business Documents Section
-                      BlocProvider<DocumentCubit>(
-                        create: (context) =>
-                            sl<DocumentCubit>()
-                              ..loadDocuments(startupId: profile.id),
-                        child: PitchDeckSectionWidget(startupId: profile.id),
-                      ),
-                      const SizedBox(height: AppSizes.md),
-
-                      // Contact Information Card with Email Badge
-                      Card(
-                        elevation: 1,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(
-                            AppSizes.radiusLg,
-                          ),
-                        ),
-                        color: AppColors.surface,
-                        child: Padding(
-                          padding: const EdgeInsets.all(AppSizes.lg),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  const Icon(
-                                    Icons.contact_mail_outlined,
-                                    size: 20,
-                                    color: AppColors.primary,
-                                  ),
-                                  const SizedBox(width: AppSizes.sm),
-                                  Text(
-                                    'Contact Details',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .titleMedium
-                                        ?.copyWith(
-                                          fontWeight: FontWeight.bold,
-                                          color: AppColors.ink,
-                                        ),
-                                  ),
-                                ],
-                              ),
-                              const Divider(height: AppSizes.lg),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: AppSizes.md,
-                                  vertical: AppSizes.sm,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.background,
-                                  borderRadius: BorderRadius.circular(
-                                    AppSizes.radiusMd,
-                                  ),
-                                  border: Border.all(color: AppColors.fog),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      profile.contactInformation.contains('@')
-                                          ? Icons.email_outlined
-                                          : Icons.phone_outlined,
-                                      size: 18,
-                                      color: AppColors.primary,
-                                    ),
-                                    const SizedBox(width: AppSizes.sm),
-                                    SelectableText(
-                                      profile.contactInformation,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodyMedium
-                                          ?.copyWith(
-                                            color: AppColors.ink,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: AppSizes.xl),
-
-                      // Bottom Main Action Button
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          Navigator.pushNamed(
-                            context,
-                            '/edit-startup-profile',
-                            arguments: profile,
-                          ).then((_) {
-                            if (context.mounted) {
-                              context.read<StartupProfileCubit>().loadProfile(
-                                currentUserId,
-                              );
-                            }
-                          });
-                        },
-                        icon: const Icon(Icons.edit_outlined, size: 18),
-                        label: const Text('Edit Current Profile'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: AppColors.white,
-                          padding: const EdgeInsets.symmetric(
-                            vertical: AppSizes.md,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(
-                              AppSizes.radiusMd,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: AppSizes.xl),
-                    ],
-                  ),
-                );
-              }
-
-              return const SizedBox.shrink();
-            },
+                return const SizedBox.shrink();
+              },
+            ),
           ),
         ),
       ),
@@ -561,34 +698,37 @@ class StartupProfilePage extends StatelessWidget {
     required String content,
   }) {
     return Card(
-      elevation: 1,
+      elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+        borderRadius: BorderRadius.circular(20),
+        side: const BorderSide(color: AppColors.border),
       ),
       color: AppColors.surface,
       child: Padding(
-        padding: const EdgeInsets.all(AppSizes.lg),
+        padding: const EdgeInsets.all(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Icon(icon, size: 20, color: AppColors.primary),
-                const SizedBox(width: AppSizes.sm),
+                Icon(icon, size: 20, color: AppColors.primaryDark),
+                const SizedBox(width: 10),
                 Text(
                   title,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  style: const TextStyle(
+                    fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.ink,
+                    color: AppColors.textPrimary,
                   ),
                 ),
               ],
             ),
-            const Divider(height: AppSizes.lg),
+            const Divider(height: 24),
             Text(
-              content,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppColors.slate,
+              content.isNotEmpty ? content : 'No details provided.',
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 14,
                 height: 1.5,
               ),
             ),

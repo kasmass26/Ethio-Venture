@@ -43,6 +43,24 @@ class StartupProfileModel extends StartupProfileEntity {
         _parseDouble(json['funding_amount_sought']) ??
         0.0;
 
+    final teamInfo = (json['team_information']?.toString().trim().isNotEmpty == true)
+        ? json['team_information'].toString()
+        : (json['team_overview']?.toString().trim().isNotEmpty == true)
+            ? json['team_overview'].toString()
+            : (json['team_details']?.toString().trim().isNotEmpty == true)
+                ? json['team_details'].toString()
+                : (json['team']?.toString() ?? '');
+
+    final contactInfo = (json['contact_information']?.toString().trim().isNotEmpty == true)
+        ? json['contact_information'].toString()
+        : (json['contact_info']?.toString().trim().isNotEmpty == true)
+            ? json['contact_info'].toString()
+            : (json['contact_email']?.toString().trim().isNotEmpty == true)
+                ? json['contact_email'].toString()
+                : (json['contact_details']?.toString().trim().isNotEmpty == true)
+                    ? json['contact_details'].toString()
+                    : (json['contact']?.toString() ?? '');
+
     DateTime parsedCreated;
     try {
       parsedCreated = json['created_at'] != null
@@ -70,8 +88,8 @@ class StartupProfileModel extends StartupProfileEntity {
       fundingStage: json['funding_stage']?.toString() ?? '',
       location: json['location']?.toString() ?? '',
       fundingAmountNeeded: amount,
-      teamInformation: json['team_information']?.toString() ?? '',
-      contactInformation: json['contact_information']?.toString() ?? '',
+      teamInformation: teamInfo,
+      contactInformation: contactInfo,
       createdAt: parsedCreated,
       updatedAt: parsedUpdated,
     );

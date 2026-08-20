@@ -26,10 +26,10 @@ class PitchDeckSectionWidget extends StatelessWidget {
   void _showUploadDialog(BuildContext parentContext) {
     final documentCubit = parentContext.read<DocumentCubit>();
     final titleController = TextEditingController();
-    final fileNameController = TextEditingController(
-      text: 'PitchDeck_EthioPay_2026.pdf',
-    );
     String? selectedFilePath;
+    String? selectedFileName;
+    int? selectedFileSize;
+    String? validationError;
     bool isPrivate = false;
 
     showDialog<void>(
@@ -48,15 +48,17 @@ class PitchDeckSectionWidget extends StatelessWidget {
                   final file = result.files.first;
                   setState(() {
                     selectedFilePath = file.path;
-                    fileNameController.text = file.name;
+                    selectedFileName = file.name;
+                    selectedFileSize = file.size;
+                    validationError = null;
+
                     if (titleController.text.trim().isEmpty) {
                       final nameWithoutExt = file.name.contains('.')
                           ? file.name.substring(0, file.name.lastIndexOf('.'))
                           : file.name;
-                      titleController.text = nameWithoutExt.replaceAll(
-                        '_',
-                        ' ',
-                      );
+                      titleController.text = nameWithoutExt
+                          .replaceAll('_', ' ')
+                          .replaceAll('-', ' ');
                     }
                   });
                 }
@@ -64,11 +66,19 @@ class PitchDeckSectionWidget extends StatelessWidget {
             }
 
             return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
               title: const Row(
                 children: [
-                  Icon(Icons.upload_file, color: AppColors.primary),
-                  SizedBox(width: AppSizes.xs),
-                  Text('Upload Pitch Deck / Document'),
+                  Icon(Icons.cloud_upload_outlined, color: AppColors.primary, size: 26),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Upload Pitch Deck / Document',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                  ),
                 ],
               ),
               content: SingleChildScrollView(
@@ -76,69 +86,166 @@ class PitchDeckSectionWidget extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Native File Picker Trigger Button
-                    OutlinedButton.icon(
-                      onPressed: pickRealFile,
-                      icon: const Icon(
-                        Icons.folder_open,
-                        color: AppColors.primary,
-                      ),
-                      label: Text(
-                        selectedFilePath != null
-                            ? 'Selected: ${fileNameController.text}'
-                            : 'Choose File from Device (PDF / DOCX / PPTX)',
-                        style: const TextStyle(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: AppColors.primary),
+                    // Visual File Drop / Browse Container
+                    InkWell(
+                      onTap: pickRealFile,
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        width: double.infinity,
                         padding: const EdgeInsets.symmetric(
-                          horizontal: AppSizes.md,
-                          vertical: AppSizes.sm,
+                          vertical: 20,
+                          horizontal: 16,
+                        ),
+                        decoration: BoxDecoration(
+                          color: selectedFilePath != null
+                              ? AppColors.primarySoft.withValues(alpha: 0.4)
+                              : AppColors.surface,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: selectedFilePath != null
+                                ? AppColors.primary
+                                : AppColors.border,
+                            width: selectedFilePath != null ? 1.8 : 1.2,
+                          ),
+                        ),
+                        child: selectedFilePath == null
+                            ? Column(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: const BoxDecoration(
+                                      color: AppColors.primarySoft,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.file_upload_outlined,
+                                      color: AppColors.primaryDark,
+                                      size: 30,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  const Text(
+                                    'Choose File from Device',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 14,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  const Text(
+                                    'Supports PDF, DOCX, PPTX (Max 25MB)',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primarySoft,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Icon(
+                                      (selectedFileName ?? '').endsWith('.pdf')
+                                          ? Icons.picture_as_pdf
+                                          : Icons.description,
+                                      color: AppColors.primaryDark,
+                                      size: 24,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          selectedFileName ?? 'Selected File',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 13,
+                                            color: AppColors.textPrimary,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        if (selectedFileSize != null)
+                                          Text(
+                                            _formatFileSize(selectedFileSize!),
+                                            style: const TextStyle(
+                                              fontSize: 11,
+                                              color: AppColors.textSecondary,
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  TextButton(
+                                    onPressed: pickRealFile,
+                                    child: const Text('Change'),
+                                  ),
+                                ],
+                              ),
+                      ),
+                    ),
+                    if (validationError != null) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        validationError!,
+                        style: const TextStyle(
+                          color: AppColors.coral,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                    ),
-                    const SizedBox(height: AppSizes.md),
-                    Text(
+                    ],
+                    const SizedBox(height: 16),
+                    const Text(
                       'Document Title *',
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                        color: AppColors.textPrimary,
                       ),
                     ),
-                    const SizedBox(height: AppSizes.xs),
+                    const SizedBox(height: 6),
                     TextField(
                       controller: titleController,
-                      decoration: const InputDecoration(
-                        hintText: 'e.g. EthioPay Investor Deck 2026',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                    const SizedBox(height: AppSizes.md),
-                    Text(
-                      'File Name',
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: AppSizes.xs),
-                    TextField(
-                      controller: fileNameController,
-                      decoration: const InputDecoration(
-                        hintText: 'e.g. pitch_deck.pdf',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(
-                          Icons.picture_as_pdf,
-                          color: AppColors.coral,
+                      decoration: InputDecoration(
+                        hintText: 'e.g. Investor Pitch Deck 2026',
+                        hintStyle: const TextStyle(fontSize: 13),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: AppColors.border),
                         ),
                       ),
                     ),
-                    const SizedBox(height: AppSizes.md),
+                    const SizedBox(height: 14),
                     SwitchListTile(
-                      title: const Text('Private (Matched Investors Only)'),
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text(
+                        'Private Document',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
                       subtitle: const Text(
-                        'Restrict visibility to verified investors',
+                        'Only verified matched investors can view',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                       value: isPrivate,
                       activeThumbColor: AppColors.primary,
@@ -158,30 +265,39 @@ class PitchDeckSectionWidget extends StatelessWidget {
                 ),
                 ElevatedButton.icon(
                   onPressed: () {
-                    final title = titleController.text.trim().isNotEmpty
-                        ? titleController.text.trim()
-                        : (fileNameController.text.trim().isNotEmpty
-                              ? fileNameController.text.trim()
-                              : 'EthioPay Pitch Deck 2026');
-                    final fileName = fileNameController.text.trim().isNotEmpty
-                        ? fileNameController.text.trim()
-                        : 'PitchDeck_EthioPay_2026.pdf';
-                    final filePath = selectedFilePath ?? fileName;
+                    final title = titleController.text.trim();
+                    if (selectedFilePath == null) {
+                      setState(() {
+                        validationError =
+                            'Please select a document file from your device first.';
+                      });
+                      return;
+                    }
+                    if (title.isEmpty) {
+                      setState(() {
+                        validationError =
+                            'Please enter a title for your document.';
+                      });
+                      return;
+                    }
 
                     Navigator.pop(dialogContext);
                     documentCubit.uploadDocument(
                       startupId: startupId,
                       title: title,
-                      filePath: filePath,
-                      fileName: fileName,
+                      filePath: selectedFilePath!,
+                      fileName: selectedFileName ?? 'Document.pdf',
                       isPrivate: isPrivate,
                     );
                   },
-                  icon: const Icon(Icons.cloud_upload),
+                  icon: const Icon(Icons.cloud_upload_outlined, size: 18),
                   label: const Text('Upload Document'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: AppColors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 ),
               ],
