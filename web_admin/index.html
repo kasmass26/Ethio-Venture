@@ -1,0 +1,1427 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EthioVenture Admin Panel — Master Management System</title>
+
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <!-- FontAwesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            cyan: '#00D1FF',
+                            violet: '#7B5CF0',
+                            navy: '#0A0F1E',
+                            dark: '#111827',
+                            card: '#1C2333',
+                            border: '#2A344B',
+                            emerald: '#10B981',
+                            amber: '#F59E0B',
+                            danger: '#EF4444'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .glass-panel {
+            background: rgba(28, 35, 51, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .light .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+
+        .gradient-accent {
+            background: linear-gradient(135deg, #00D1FF 0%, #7B5CF0 100%);
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #00D1FF 0%, #7B5CF0 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.5);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(100, 116, 139, 0.5);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 209, 255, 0.5);
+        }
+
+        /* Micro animations */
+        .card-hover {
+            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px -10px rgba(0, 209, 255, 0.15);
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-[#0A0F1E] text-slate-100 dark:bg-[#0A0F1E] dark:text-slate-100 min-h-screen flex flex-col antialiased selection:bg-cyan-500 selection:text-white">
+
+    <div class="flex h-screen overflow-hidden">
+
+        <!-- 🗂️ SIDEBAR NAVIGATION -->
+        <aside id="sidebar" class="w-64 bg-[#111827] border-r border-slate-800 flex flex-col justify-between transition-all duration-300 z-30 shrink-0">
+            <div>
+                <!-- Brand Header -->
+                <div class="h-16 flex items-center justify-between px-6 border-b border-slate-800">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-9 h-9 rounded-xl gradient-accent flex items-center justify-center text-slate-950 font-black text-lg shadow-lg shadow-cyan-500/20">
+                            EV
+                        </div>
+                        <div>
+                            <h1 class="text-base font-bold tracking-tight text-white flex items-center gap-1.5">
+                                EthioVenture
+                            </h1>
+                            <span class="text-[10px] font-semibold tracking-wider uppercase text-cyan-400">Admin Control</span>
+                        </div>
+                    </div>
+                    <button onclick="toggleSidebarCollapse()" class="text-slate-400 hover:text-white md:hidden">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </div>
+
+                <!-- Navigation Links -->
+                <nav class="p-4 space-y-1.5 overflow-y-auto max-h-[calc(100vh-140px)] custom-scrollbar">
+                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-3 mb-2">Main Menu</p>
+                    
+                    <button onclick="navigateTo('dashboard')" id="nav-dashboard" class="nav-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all bg-cyan-500/10 text-cyan-400 border-l-4 border-cyan-400">
+                        <span class="flex items-center gap-3">
+                            <i class="fa-solid fa-chart-pie text-base w-5 text-center"></i>
+                            Dashboard
+                        </span>
+                    </button>
+
+                    <button onclick="navigateTo('approvals')" id="nav-approvals" class="nav-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:bg-slate-800/60 hover:text-slate-200">
+                        <span class="flex items-center gap-3">
+                            <i class="fa-solid fa-circle-check text-base w-5 text-center text-emerald-400"></i>
+                            Approvals
+                        </span>
+                        <span id="badge-pending-total" class="bg-amber-500/20 text-amber-300 font-bold text-xs px-2 py-0.5 rounded-full border border-amber-500/30">0</span>
+                    </button>
+
+                    <button onclick="navigateTo('users')" id="nav-users" class="nav-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:bg-slate-800/60 hover:text-slate-200">
+                        <span class="flex items-center gap-3">
+                            <i class="fa-solid fa-users text-base w-5 text-center text-blue-400"></i>
+                            Users Management
+                        </span>
+                        <span id="badge-users-total" class="text-xs text-slate-500 font-mono">15</span>
+                    </button>
+
+                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-3 pt-4 mb-2">Ecosystem</p>
+
+                    <button onclick="navigateTo('startups')" id="nav-startups" class="nav-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:bg-slate-800/60 hover:text-slate-200">
+                        <span class="flex items-center gap-3">
+                            <i class="fa-solid fa-rocket text-base w-5 text-center text-cyan-400"></i>
+                            Startups Directory
+                        </span>
+                    </button>
+
+                    <button onclick="navigateTo('investors')" id="nav-investors" class="nav-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:bg-slate-800/60 hover:text-slate-200">
+                        <span class="flex items-center gap-3">
+                            <i class="fa-solid fa-briefcase text-base w-5 text-center text-purple-400"></i>
+                            Investors Directory
+                        </span>
+                    </button>
+
+                    <button onclick="navigateTo('messages')" id="nav-messages" class="nav-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:bg-slate-800/60 hover:text-slate-200">
+                        <span class="flex items-center gap-3">
+                            <i class="fa-solid fa-comments text-base w-5 text-center text-indigo-400"></i>
+                            Messages & Threads
+                        </span>
+                    </button>
+
+                    <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-3 pt-4 mb-2">Tools & Admin</p>
+
+                    <button onclick="navigateTo('notifications')" id="nav-notifications" class="nav-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:bg-slate-800/60 hover:text-slate-200">
+                        <span class="flex items-center gap-3">
+                            <i class="fa-solid fa-bell text-base w-5 text-center text-yellow-400"></i>
+                            Notifications Hub
+                        </span>
+                    </button>
+
+                    <button onclick="navigateTo('analytics')" id="nav-analytics" class="nav-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:bg-slate-800/60 hover:text-slate-200">
+                        <span class="flex items-center gap-3">
+                            <i class="fa-solid fa-chart-line text-base w-5 text-center text-pink-400"></i>
+                            Analytics & Reports
+                        </span>
+                    </button>
+
+                    <button onclick="navigateTo('settings')" id="nav-settings" class="nav-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:bg-slate-800/60 hover:text-slate-200">
+                        <span class="flex items-center gap-3">
+                            <i class="fa-solid fa-gear text-base w-5 text-center text-slate-400"></i>
+                            System Settings
+                        </span>
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Sidebar Footer -->
+            <div class="p-4 border-t border-slate-800 bg-slate-900/50 flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-cyan-500 to-purple-600 text-white flex items-center justify-center font-bold text-xs shadow-md">
+                        AD
+                    </div>
+                    <div>
+                        <p class="text-xs font-semibold text-white">Administrator</p>
+                        <p class="text-[10px] text-slate-400 truncate max-w-[110px]">admin@gmail.com</p>
+                    </div>
+                </div>
+                <button onclick="handleLogout()" class="text-slate-400 hover:text-rose-400 transition-colors p-1.5 rounded-lg hover:bg-slate-800" title="Logout">
+                    <i class="fa-solid fa-right-from-bracket text-sm"></i>
+                </button>
+            </div>
+        </aside>
+
+        <!-- 🔔 MAIN WRAPPER -->
+        <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+
+            <!-- 🔔 TOP HEADER BAR -->
+            <header class="h-16 bg-[#111827]/80 backdrop-blur-md border-b border-slate-800 px-6 flex items-center justify-between z-20 shrink-0">
+                <div class="flex items-center space-x-4">
+                    <button onclick="toggleSidebarCollapse()" class="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors">
+                        <i class="fa-solid fa-bars text-lg"></i>
+                    </button>
+
+                    <!-- Breadcrumbs -->
+                    <div class="flex items-center space-x-2 text-xs text-slate-400">
+                        <span>EthioVenture</span>
+                        <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                        <span id="breadcrumbCurrent" class="text-cyan-400 font-medium capitalize">Dashboard</span>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-4">
+                    <!-- Live Supabase Status -->
+                    <div id="liveStatusBadge" class="flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span id="liveStatusText">Supabase Live Connected</span>
+                    </div>
+
+                    <!-- Theme Toggle -->
+                    <button onclick="toggleTheme()" class="p-2 text-slate-400 hover:text-amber-300 rounded-lg hover:bg-slate-800 transition-colors" title="Toggle Light/Dark Theme">
+                        <i class="fa-solid fa-moon text-sm" id="themeIcon"></i>
+                    </button>
+
+                    <!-- Refresh Button -->
+                    <button onclick="reloadAllData()" class="p-2 text-slate-400 hover:text-cyan-400 rounded-lg hover:bg-slate-800 transition-colors flex items-center gap-1.5 text-xs font-medium">
+                        <i class="fa-solid fa-rotate-right" id="refreshIcon"></i>
+                        <span class="hidden md:inline">Refresh</span>
+                    </button>
+
+                    <!-- Notification Dropdown Toggle -->
+                    <div class="relative">
+                        <button onclick="toggleNotificationDropdown()" class="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors relative">
+                            <i class="fa-solid fa-bell text-sm"></i>
+                            <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-cyan-400 rounded-full ring-2 ring-[#111827]"></span>
+                        </button>
+                        <!-- Dropdown Menu -->
+                        <div id="notifDropdown" class="hidden absolute right-0 mt-2 w-80 bg-[#1C2333] border border-slate-700 rounded-2xl shadow-2xl p-4 space-y-3 z-50 animate-fade-in">
+                            <div class="flex items-center justify-between pb-2 border-b border-slate-700">
+                                <h4 class="text-xs font-bold text-white uppercase tracking-wider">System Events</h4>
+                                <span class="text-[10px] text-cyan-400 font-mono">Real-time</span>
+                            </div>
+                            <div class="space-y-2 text-xs">
+                                <div class="p-2 bg-slate-800/60 rounded-xl flex items-start space-x-2">
+                                    <i class="fa-solid fa-rocket text-cyan-400 mt-0.5"></i>
+                                    <div>
+                                        <p class="text-slate-200 font-medium">New Startup Submitted</p>
+                                        <p class="text-[10px] text-slate-400">Yenege Tesfa Fintech · 5m ago</p>
+                                    </div>
+                                </div>
+                                <div class="p-2 bg-slate-800/60 rounded-xl flex items-start space-x-2">
+                                    <i class="fa-solid fa-briefcase text-purple-400 mt-0.5"></i>
+                                    <div>
+                                        <p class="text-slate-200 font-medium">Investor Thesis Updated</p>
+                                        <p class="text-[10px] text-slate-400">Alem Capital Partners · 18m ago</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- 🏠 MAIN CONTENT PAGES CONTAINER -->
+            <main id="mainContainer" class="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar bg-[#0A0F1E]">
+
+                <!-- ==================== 1. DASHBOARD PAGE ==================== -->
+                <div id="page-dashboard" class="page-content space-y-6">
+
+                    <!-- KPI Cards (Top Row) -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                        <!-- Total Users -->
+                        <div class="glass-panel p-5 rounded-2xl card-hover flex items-center justify-between">
+                            <div>
+                                <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Users</p>
+                                <h3 class="text-3xl font-extrabold text-white mt-1" id="kpiTotalUsers">15</h3>
+                                <p class="text-xs text-cyan-400 mt-1 flex items-center gap-1"><i class="fa-solid fa-arrow-trend-up"></i> +14% this month</p>
+                            </div>
+                            <div class="w-12 h-12 rounded-2xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 flex items-center justify-center text-xl">
+                                <i class="fa-solid fa-users"></i>
+                            </div>
+                        </div>
+
+                        <!-- Pending Approvals -->
+                        <div class="glass-panel p-5 rounded-2xl card-hover flex items-center justify-between">
+                            <div>
+                                <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Pending Review</p>
+                                <h3 class="text-3xl font-extrabold text-amber-400 mt-1" id="kpiPendingCount">6</h3>
+                                <p class="text-xs text-amber-400/80 mt-1"><span id="kpiPendingStartups">6</span> Startups · <span id="kpiPendingInvestors">0</span> Investors</p>
+                            </div>
+                            <div class="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center text-xl">
+                                <i class="fa-solid fa-hourglass-half"></i>
+                            </div>
+                        </div>
+
+                        <!-- Approved Profiles -->
+                        <div class="glass-panel p-5 rounded-2xl card-hover flex items-center justify-between">
+                            <div>
+                                <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Approved Members</p>
+                                <h3 class="text-3xl font-extrabold text-emerald-400 mt-1" id="kpiApprovedCount">4</h3>
+                                <p class="text-xs text-emerald-400 mt-1"><i class="fa-solid fa-circle-check"></i> Verified Active</p>
+                            </div>
+                            <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center text-xl">
+                                <i class="fa-solid fa-user-check"></i>
+                            </div>
+                        </div>
+
+                        <!-- Rejected Profiles -->
+                        <div class="glass-panel p-5 rounded-2xl card-hover flex items-center justify-between">
+                            <div>
+                                <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Rejected Profiles</p>
+                                <h3 class="text-3xl font-extrabold text-rose-400 mt-1" id="kpiRejectedCount">0</h3>
+                                <p class="text-xs text-rose-400 mt-1">Declined Applications</p>
+                            </div>
+                            <div class="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-400 border border-rose-500/20 flex items-center justify-center text-xl">
+                                <i class="fa-solid fa-user-xmark"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Charts Section -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- User Growth Line Chart -->
+                        <div class="glass-panel p-6 rounded-2xl lg:col-span-2 space-y-4">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h3 class="text-base font-bold text-white">Monthly User Growth</h3>
+                                    <p class="text-xs text-slate-400">Founder vs Investor registrations (Past 12 Months)</p>
+                                </div>
+                                <span class="text-xs font-mono text-cyan-400 bg-cyan-500/10 px-2.5 py-1 rounded-full border border-cyan-500/20">+38% YoY</span>
+                            </div>
+                            <div class="h-64">
+                                <canvas id="chartUserGrowth"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Approval Ratio Donut Chart -->
+                        <div class="glass-panel p-6 rounded-2xl space-y-4">
+                            <h3 class="text-base font-bold text-white">Approval Status Ratio</h3>
+                            <p class="text-xs text-slate-400">Distribution of pending, approved, and rejected applications</p>
+                            <div class="h-56 relative flex items-center justify-center">
+                                <canvas id="chartApprovalRatio"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Second Charts Row: Industry & Funding Stage -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="glass-panel p-6 rounded-2xl space-y-4">
+                            <h3 class="text-base font-bold text-white">Top Startup Industries</h3>
+                            <p class="text-xs text-slate-400">Distribution of Ethiopian startup verticals</p>
+                            <div class="h-60">
+                                <canvas id="chartIndustries"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="glass-panel p-6 rounded-2xl space-y-4">
+                            <h3 class="text-base font-bold text-white">Funding Stage Distribution</h3>
+                            <p class="text-xs text-slate-400">Target capital rounds (Seed, Pre-Seed, Series A)</p>
+                            <div class="h-60">
+                                <canvas id="chartStages"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bottom Quick Actions & Activity Feed -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Quick Actions -->
+                        <div class="glass-panel p-6 rounded-2xl space-y-4">
+                            <h3 class="text-base font-bold text-white">Quick Operations</h3>
+                            <div class="space-y-3">
+                                <button onclick="navigateTo('approvals')" class="w-full p-3.5 bg-gradient-to-r from-amber-500/20 to-amber-600/10 hover:from-amber-500/30 text-amber-300 rounded-xl border border-amber-500/30 flex items-center justify-between text-xs font-semibold transition-all">
+                                    <span class="flex items-center gap-2.5">
+                                        <i class="fa-solid fa-clipboard-check text-base"></i> Review Pending Approvals
+                                    </span>
+                                    <i class="fa-solid fa-arrow-right"></i>
+                                </button>
+                                <button onclick="navigateTo('users')" class="w-full p-3.5 bg-gradient-to-r from-cyan-500/20 to-blue-600/10 hover:from-cyan-500/30 text-cyan-300 rounded-xl border border-cyan-500/30 flex items-center justify-between text-xs font-semibold transition-all">
+                                    <span class="flex items-center gap-2.5">
+                                        <i class="fa-solid fa-user-gear text-base"></i> Manage All Users
+                                    </span>
+                                    <i class="fa-solid fa-arrow-right"></i>
+                                </button>
+                                <button onclick="navigateTo('notifications')" class="w-full p-3.5 bg-gradient-to-r from-purple-500/20 to-indigo-600/10 hover:from-purple-500/30 text-purple-300 rounded-xl border border-purple-500/30 flex items-center justify-between text-xs font-semibold transition-all">
+                                    <span class="flex items-center gap-2.5">
+                                        <i class="fa-solid fa-paper-plane text-base"></i> Broadcast Platform Alert
+                                    </span>
+                                    <i class="fa-solid fa-arrow-right"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Recent Activity Feed -->
+                        <div class="glass-panel p-6 rounded-2xl lg:col-span-2 space-y-4">
+                            <h3 class="text-base font-bold text-white">Recent Platform Activity</h3>
+                            <div class="space-y-3 text-xs" id="dashboardActivityFeed">
+                                <!-- Populated dynamically -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+                <!-- ==================== 2. APPROVALS PAGE ==================== -->
+                <div id="page-approvals" class="page-content hidden space-y-6">
+
+                    <!-- Header & Tabs -->
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+                        <div>
+                            <h2 class="text-xl font-extrabold text-white">Profile Approvals Workflow</h2>
+                            <p class="text-xs text-slate-400">Review pending startup and investor submissions before publishing them live.</p>
+                        </div>
+
+                        <!-- Tabs Toggle -->
+                        <div class="flex items-center p-1 bg-slate-900 rounded-xl border border-slate-800">
+                            <button onclick="switchApprovalTab('startups')" id="tab-approval-startups" class="px-5 py-2 rounded-lg text-xs font-bold transition-all bg-cyan-500 text-slate-950 shadow">
+                                <i class="fa-solid fa-rocket mr-1.5"></i> Startups (<span id="count-startups-tab">0</span>)
+                            </button>
+                            <button onclick="switchApprovalTab('investors')" id="tab-approval-investors" class="px-5 py-2 rounded-lg text-xs font-bold transition-all text-slate-400 hover:text-white">
+                                <i class="fa-solid fa-briefcase mr-1.5"></i> Investors (<span id="count-investors-tab">0</span>)
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Search & Filter Control Bar -->
+                    <div class="glass-panel p-4 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4">
+                        <div class="relative w-full md:w-80">
+                            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-500 text-xs"></i>
+                            <input type="text" id="approvalSearchInput" oninput="renderApprovals()" placeholder="Search startup or founder..." class="w-full pl-9 pr-4 py-2 text-xs bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                        </div>
+
+                        <div class="flex items-center space-x-3 w-full md:w-auto justify-end flex-wrap gap-y-2">
+                            <select id="approvalIndustryFilter" onchange="renderApprovals()" class="text-xs bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-300 focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                                <option value="ALL">All Industries</option>
+                                <option value="Fintech">Fintech</option>
+                                <option value="AgriTech">AgriTech</option>
+                                <option value="HealthTech">HealthTech</option>
+                                <option value="EdTech">EdTech</option>
+                                <option value="Logistics">Logistics</option>
+                            </select>
+
+                            <select id="approvalSortBy" onchange="renderApprovals()" class="text-xs bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-300 focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                                <option value="NEWEST">Newest First</option>
+                                <option value="OLDEST">Oldest First</option>
+                                <option value="NAME">Name A-Z</option>
+                            </select>
+
+                            <button onclick="toggleBulkSelectMode()" id="btnBulkSelect" class="px-3 py-2 text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl border border-slate-700 font-semibold transition-all">
+                                Select Multiple
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Cards Grid -->
+                    <div id="approvalsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                        <!-- Populated dynamically -->
+                    </div>
+
+                    <!-- Floating Bulk Action Bar -->
+                    <div id="bulkActionBar" class="hidden fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-slate-900/95 border border-cyan-500/40 text-white px-6 py-3 rounded-2xl shadow-2xl backdrop-blur-md z-40 flex items-center space-x-6">
+                        <span class="text-xs font-semibold text-cyan-400" id="selectedCountText">0 selected</span>
+                        <div class="flex items-center space-x-2">
+                            <button onclick="bulkApprove()" class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow transition-all">
+                                Approve Selected
+                            </button>
+                            <button onclick="bulkReject()" class="px-4 py-1.5 bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold rounded-xl shadow transition-all">
+                                Reject Selected
+                            </button>
+                            <button onclick="toggleBulkSelectMode()" class="px-3 py-1.5 text-xs text-slate-400 hover:text-white">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+
+
+                <!-- ==================== 3. USERS PAGE ==================== -->
+                <div id="page-users" class="page-content hidden space-y-6">
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div>
+                            <h2 class="text-xl font-extrabold text-white">Users Management</h2>
+                            <p class="text-xs text-slate-400">Full directory of all registered platform founders and investors.</p>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel p-4 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4">
+                        <div class="relative w-full md:w-80">
+                            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-slate-500 text-xs"></i>
+                            <input type="text" id="userSearchInput" oninput="renderUsersTable()" placeholder="Search user name or email..." class="w-full pl-9 pr-4 py-2 text-xs bg-slate-900 border border-slate-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                        </div>
+
+                        <div class="flex items-center space-x-3 w-full md:w-auto">
+                            <select id="userRoleFilter" onchange="renderUsersTable()" class="text-xs bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-slate-300">
+                                <option value="ALL">All Roles</option>
+                                <option value="founder">Founders Only</option>
+                                <option value="investor">Investors Only</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Users Table -->
+                    <div class="glass-panel rounded-2xl overflow-hidden border border-slate-800">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs text-slate-300">
+                                <thead class="bg-slate-900/80 uppercase font-bold text-slate-400 border-b border-slate-800">
+                                    <tr>
+                                        <th class="px-4 py-3">#</th>
+                                        <th class="px-4 py-3">User</th>
+                                        <th class="px-4 py-3">Role</th>
+                                        <th class="px-4 py-3">Status</th>
+                                        <th class="px-4 py-3">Joined Date</th>
+                                        <th class="px-4 py-3">Last Active</th>
+                                        <th class="px-4 py-3 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="usersTableBody" class="divide-y divide-slate-800/60">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+
+                <!-- ==================== 4. STARTUPS DIRECTORY PAGE ==================== -->
+                <div id="page-startups" class="page-content hidden space-y-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-xl font-extrabold text-white">Startups Directory</h2>
+                            <p class="text-xs text-slate-400">All registered startup ventures across Ethiopia.</p>
+                        </div>
+                        <button onclick="exportToCSV('startups')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-cyan-400 text-xs font-semibold rounded-xl border border-slate-700 flex items-center gap-2">
+                            <i class="fa-solid fa-file-csv text-base"></i> Export CSV
+                        </button>
+                    </div>
+
+                    <div id="startupsDirectoryGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+
+
+                <!-- ==================== 5. INVESTORS DIRECTORY PAGE ==================== -->
+                <div id="page-investors" class="page-content hidden space-y-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-xl font-extrabold text-white">Investors Directory</h2>
+                            <p class="text-xs text-slate-400">Angel investors, VC funds, and institutional impact funds.</p>
+                        </div>
+                        <button onclick="exportToCSV('investors')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-purple-400 text-xs font-semibold rounded-xl border border-slate-700 flex items-center gap-2">
+                            <i class="fa-solid fa-file-csv text-base"></i> Export CSV
+                        </button>
+                    </div>
+
+                    <div id="investorsDirectoryGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+
+
+                <!-- ==================== 6. MESSAGES PAGE ==================== -->
+                <div id="page-messages" class="page-content hidden space-y-6">
+                    <div>
+                        <h2 class="text-xl font-extrabold text-white">Messages & Conversations</h2>
+                        <p class="text-xs text-slate-400">Monitor active founder-investor communication threads.</p>
+                    </div>
+
+                    <div id="conversationsList" class="space-y-3">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+
+
+                <!-- ==================== 7. NOTIFICATIONS PAGE ==================== -->
+                <div id="page-notifications" class="page-content hidden space-y-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Broadcast Form -->
+                        <div class="glass-panel p-6 rounded-2xl space-y-4">
+                            <h3 class="text-base font-bold text-white flex items-center gap-2">
+                                <i class="fa-solid fa-paper-plane text-cyan-400"></i> Broadcast System Alert
+                            </h3>
+                            <form onsubmit="handleSendBroadcast(event)" class="space-y-3 text-xs">
+                                <div>
+                                    <label class="block text-slate-400 font-semibold mb-1">Target Audience</label>
+                                    <select id="broadcastTarget" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white">
+                                        <option value="ALL">All Users</option>
+                                        <option value="FOUNDERS">Founders Only</option>
+                                        <option value="INVESTORS">Investors Only</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-slate-400 font-semibold mb-1">Notification Title</label>
+                                    <input type="text" id="broadcastTitle" required placeholder="e.g. System Maintenance Notice" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white">
+                                </div>
+                                <div>
+                                    <label class="block text-slate-400 font-semibold mb-1">Message Body</label>
+                                    <textarea id="broadcastMessage" rows="4" required placeholder="Type notification content..." class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white"></textarea>
+                                </div>
+                                <button type="submit" class="w-full py-2.5 gradient-accent text-slate-950 font-bold rounded-xl shadow-lg hover:opacity-95 transition-all">
+                                    Send Broadcast Alert
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Notification History -->
+                        <div class="glass-panel p-6 rounded-2xl lg:col-span-2 space-y-4">
+                            <h3 class="text-base font-bold text-white">Notification History</h3>
+                            <div id="notificationHistoryList" class="space-y-3 text-xs">
+                                <!-- Populated dynamically -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+                <!-- ==================== 8. ANALYTICS PAGE ==================== -->
+                <div id="page-analytics" class="page-content hidden space-y-6">
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div>
+                            <h2 class="text-xl font-extrabold text-white">Analytics & System Reports</h2>
+                            <p class="text-xs text-slate-400">Live computed telemetry metrics across registered startups & investors.</p>
+                        </div>
+                        <button onclick="exportAnalyticsReport()" class="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 text-slate-950 text-xs font-bold rounded-xl shadow flex items-center gap-2 transition-all">
+                            <i class="fa-solid fa-download"></i> Export Analytics CSV
+                        </button>
+                    </div>
+
+                    <!-- Live Dynamic KPI Metric Cards -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                        <div class="glass-panel p-5 rounded-2xl border border-slate-800">
+                            <p class="text-xs text-slate-400 uppercase font-semibold">Active Member Engagement</p>
+                            <h3 class="text-3xl font-extrabold text-cyan-400 mt-1" id="analyticsActiveEngagement">88%</h3>
+                            <p class="text-[11px] text-slate-400 mt-1" id="analyticsActiveEngagementSub">Verified & active user ratio</p>
+                        </div>
+                        <div class="glass-panel p-5 rounded-2xl border border-slate-800">
+                            <p class="text-xs text-slate-400 uppercase font-semibold">Match Conversion Rate</p>
+                            <h3 class="text-3xl font-extrabold text-emerald-400 mt-1" id="analyticsConversionRate">75%</h3>
+                            <p class="text-[11px] text-slate-400 mt-1" id="analyticsConversionRateSub">Startups engaged in active discussions</p>
+                        </div>
+                        <div class="glass-panel p-5 rounded-2xl border border-slate-800">
+                            <p class="text-xs text-slate-400 uppercase font-semibold">Total Capital Target</p>
+                            <h3 class="text-3xl font-extrabold text-purple-400 mt-1" id="analyticsCapitalTarget">$0 USD</h3>
+                            <p class="text-[11px] text-slate-400 mt-1" id="analyticsCapitalTargetSub">Across registered startups</p>
+                        </div>
+                    </div>
+
+                    <!-- Analytics Telemetry Charts Row -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="glass-panel p-6 rounded-2xl space-y-4">
+                            <h3 class="text-base font-bold text-white">Live Industry Sector Capital (USD)</h3>
+                            <p class="text-xs text-slate-400">Total capital requested per industry sector in Ethiopia</p>
+                            <div class="h-64">
+                                <canvas id="chartAnalyticsIndustry"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="glass-panel p-6 rounded-2xl space-y-4">
+                            <h3 class="text-base font-bold text-white">Geographic Venture Map</h3>
+                            <p class="text-xs text-slate-400">Distribution of ventures across Ethiopian regions</p>
+                            <div class="h-64 relative flex items-center justify-center">
+                                <canvas id="chartAnalyticsLocation"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+                <!-- ==================== 9. SETTINGS PAGE ==================== -->
+                <div id="page-settings" class="page-content hidden space-y-6">
+                    <div>
+                        <h2 class="text-xl font-extrabold text-white">System Settings</h2>
+                        <p class="text-xs text-slate-400">Platform preferences, email templates, and security configuration.</p>
+                    </div>
+
+                    <div class="glass-panel p-6 rounded-2xl space-y-4 max-w-2xl">
+                        <h3 class="text-base font-bold text-white">Admin Profile</h3>
+                        <div class="grid grid-cols-1 gap-4 text-xs">
+                            <div>
+                                <label class="block text-slate-400 mb-1">Admin Email</label>
+                                <input type="email" value="admin@gmail.com" disabled class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-slate-300 font-mono">
+                            </div>
+                            <div>
+                                <label class="block text-slate-400 mb-1">Platform Name</label>
+                                <input type="text" value="EthioVenture" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-white">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <!-- 🛑 REJECTION REASON MODAL -->
+    <div id="modalReject" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-[#1C2333] border border-slate-700 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl animate-fade-in">
+            <div class="flex items-center justify-between">
+                <h3 class="text-base font-bold text-rose-400 flex items-center gap-2">
+                    <i class="fa-solid fa-triangle-exclamation"></i> Reject Application
+                </h3>
+                <button onclick="closeRejectModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <p class="text-xs text-slate-300">Specify why <strong id="rejectModalName" class="text-white">Profile</strong> is being rejected. This reason will be logged and communicated to the user.</p>
+            <div>
+                <label class="block text-xs font-semibold text-slate-400 mb-1">Rejection Feedback (Required)</label>
+                <textarea id="rejectReasonText" rows="3" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-white focus:ring-2 focus:ring-rose-500 focus:outline-none" placeholder="e.g. Incomplete team details or unverified company registration number."></textarea>
+            </div>
+            <div class="flex justify-end space-x-2 pt-2">
+                <button onclick="closeRejectModal()" class="px-4 py-2 text-xs font-semibold text-slate-400 hover:bg-slate-800 rounded-xl">Cancel</button>
+                <button onclick="confirmSingleReject()" class="px-4 py-2 text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white rounded-xl shadow">Confirm Rejection</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 👁️ FULL PROFILE SIDE DRAWER -->
+    <div id="drawerProfile" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 hidden flex justify-end">
+        <div class="w-full max-w-lg bg-[#111827] border-l border-slate-800 h-full p-6 overflow-y-auto space-y-6 shadow-2xl animate-fade-in">
+            <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+                <h3 class="text-base font-bold text-white">Full Venture Profile</h3>
+                <button onclick="closeProfileDrawer()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <div id="drawerContent" class="space-y-4 text-xs">
+                <!-- Populated dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 🍞 TOAST NOTIFICATION -->
+    <div id="toastBox" class="fixed bottom-6 right-6 z-50 hidden transform transition-all duration-300">
+        <div id="toastContainer" class="bg-slate-900 border border-cyan-500/40 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center space-x-3 text-xs font-semibold">
+            <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400 text-base"></i>
+            <span id="toastMsg">Action executed successfully.</span>
+        </div>
+    </div>
+
+
+    <!-- 📜 JAVASCRIPT APP LOGIC -->
+    <script>
+        // Supabase Defaults
+        const SUPABASE_URL = "https://jmioioqwaazbdxvuochh.supabase.co";
+        const SUPABASE_KEY = "sb_publishable_R4XmWXCYMu1mnAuCz2T7YQ_kNG9cZk1";
+        let supabaseClient = null;
+
+        // Mock Ethiopian Startup Dataset (8 startups)
+        const mockStartups = [
+            { id: 's1', role: 'founder', typeLabel: 'Startup', name: 'Yared Bekele', email: 'yared@yenegetesfa.et', business_name: 'Yenege Tesfa Fintech', description: 'Next-gen micro-lending API for unbanked smallholder merchants in rural Ethiopia.', industry: 'Fintech', funding_stage: 'Seed', funding_amount_sought: 350000, location: 'Addis Ababa', created_at: '2026-08-20T10:30:00Z', approval_status: 'pending' },
+            { id: 's2', role: 'founder', typeLabel: 'Startup', name: 'Kassahun Tadesse', email: 'kassahun@addisagri.et', business_name: 'Addis AgriConnect', description: 'AI-driven crop disease diagnostics & marketplace directly connecting farm cooperatives to urban markets.', industry: 'AgriTech', funding_stage: 'Seed', funding_amount_sought: 250000, location: 'Hawassa', created_at: '2026-08-21T08:15:00Z', approval_status: 'pending' },
+            { id: 's3', role: 'founder', typeLabel: 'Startup', name: 'Dr. Bethlehem Alemu', email: 'beth@ethiohealth.ai', business_name: 'EthioHealth AI', description: 'Telemedicine clinic workflow software with Amharic speech-to-text medical records.', industry: 'HealthTech', funding_stage: 'MVP', funding_amount_sought: 180000, location: 'Adama', created_at: '2026-08-19T14:20:00Z', approval_status: 'pending' },
+            { id: 's4', role: 'founder', typeLabel: 'Startup', name: 'Solomon Worku', email: 'solomon@shegered.et', business_name: 'Sheger EdTech', description: 'Gamified STEM learning mobile platform accessible offline for secondary school students.', industry: 'EdTech', funding_stage: 'Pre-Seed', funding_amount_sought: 90000, location: 'Bahir Dar', created_at: '2026-08-18T11:00:00Z', approval_status: 'pending' },
+            { id: 's5', role: 'founder', typeLabel: 'Startup', name: 'Tigist Haile', email: 'tigist@mela.et', business_name: 'Mela E-Commerce', description: 'Social commerce network empowering female artisans to sell traditional textiles globally.', industry: 'E-Commerce', funding_stage: 'Seed', funding_amount_sought: 200000, location: 'Mekelle', created_at: '2026-08-17T09:45:00Z', approval_status: 'pending' },
+            { id: 's6', role: 'founder', typeLabel: 'Startup', name: 'Aman Girma', email: 'aman@solareth.et', business_name: 'Solar Ethiopia', description: 'Pay-as-you-go solar home kits for off-grid communities.', industry: 'CleanTech', funding_stage: 'Series A', funding_amount_sought: 600000, location: 'Dire Dawa', created_at: '2026-08-16T16:10:00Z', approval_status: 'pending' },
+            { id: 's7', role: 'founder', typeLabel: 'Startup', name: 'Kalkidan Mossisa', email: 'kalkidan@habeshalogistics.et', business_name: 'Habesha Logistics', description: 'Cold-chain freight trucking aggregator for fresh produce export.', industry: 'Logistics', funding_stage: 'Seed', funding_amount_sought: 400000, location: 'Addis Ababa', created_at: '2026-08-15T12:00:00Z', approval_status: 'approved' },
+            { id: 's8', role: 'founder', typeLabel: 'Startup', name: 'Ephrem Tesfaye', email: 'ephrem@codecraft.et', business_name: 'CodeCraft Ethiopia', description: 'B2B SaaS developer tools for East African software agencies.', industry: 'SaaS', funding_stage: 'MVP', funding_amount_sought: 150000, location: 'Addis Ababa', created_at: '2026-08-14T10:00:00Z', approval_status: 'approved' }
+        ];
+
+        // Mock Ethiopian Investor Dataset (6 investors + registered)
+        const mockInvestors = [
+            { id: 'inv_newhere', role: 'investor', typeLabel: 'Investor', name: 'NEWHERE Managing Partner', email: 'contact@newhere.et', business_name: 'NEWHERE', description: 'Investment Firm / Syndicate focusing on Clean Energy & Agri-Tech ($1,000,000 - $5,000,000 USD check size).', industry: 'Clean Energy, Agri-Tech', funding_stage: 'Pre-Seed, Seed', funding_amount_sought: 5000000, location: 'Ethiopia', created_at: '2026-08-21T14:40:00Z', approval_status: 'pending' },
+            { id: 'inv_testcompany', role: 'investor', typeLabel: 'Investor', name: 'TESTCOMPANY Managing Director', email: 'investor@testcompany.et', business_name: 'TESTCOMPANY', description: 'Investment Firm / Syndicate focusing on Clean Energy innovations ($10,000 - $50,000 USD check size).', industry: 'Clean Energy', funding_stage: 'Seed', funding_amount_sought: 50000, location: 'Ethiopia', created_at: '2026-08-21T14:00:00Z', approval_status: 'pending' },
+            { id: 'i1', role: 'investor', typeLabel: 'Investor', name: 'Alemayehu Kebede', email: 'alem@alemcapital.et', business_name: 'Alem Capital Partners', description: 'Early-stage VC fund focusing on Fintech and AgriTech innovations across Ethiopia.', industry: 'Fintech, AgriTech', funding_stage: 'Seed, Series A', funding_amount_sought: 500000, location: 'Addis Ababa', created_at: '2026-08-20T11:00:00Z', approval_status: 'approved' },
+            { id: 'i2', role: 'investor', typeLabel: 'Investor', name: 'Sara Mohammed', email: 'sara@growthfund.et', business_name: 'Ethiopian Growth Fund', description: 'Institutional venture fund supporting high-traction East African startups.', industry: 'HealthTech, SaaS', funding_stage: 'Series A, Series B', funding_amount_sought: 1000000, location: 'Addis Ababa', created_at: '2026-08-19T15:30:00Z', approval_status: 'approved' },
+            { id: 'i3', role: 'investor', typeLabel: 'Investor', name: 'Dawit Isaac', email: 'dawit@nileangel.et', business_name: 'Nile Angel Network', description: 'Angel syndicate of Ethiopian tech diaspora executives.', industry: 'EdTech, Fintech', funding_stage: 'Pre-Seed, Seed', funding_amount_sought: 150000, location: 'Addis Ababa', created_at: '2026-08-21T07:45:00Z', approval_status: 'pending' },
+            { id: 'i4', role: 'investor', typeLabel: 'Investor', name: 'Hannah Roba', email: 'hannah@eastafricavc.com', business_name: 'East Africa Ventures', description: 'Cross-border fund investing in logistics and clean technology.', industry: 'Logistics, CleanTech', funding_stage: 'Seed, Series A', funding_amount_sought: 750000, location: 'Nairobi / Addis', created_at: '2026-08-18T13:20:00Z', approval_status: 'pending' },
+            { id: 'i5', role: 'investor', typeLabel: 'Investor', name: 'Samuel Berhanu', email: 'samuel@hornafrica.et', business_name: 'Horn of Africa VC', description: 'Seed-stage tech fund dedicated to digital transformation.', industry: 'Fintech, E-Commerce', funding_stage: 'Pre-Seed, Seed', funding_amount_sought: 300000, location: 'Addis Ababa', created_at: '2026-08-17T10:15:00Z', approval_status: 'pending' },
+            { id: 'i6', role: 'investor', typeLabel: 'Investor', name: 'Meron Tilahun', email: 'meron@habeshaimpact.et', business_name: 'Habesha Impact Fund', description: 'Impact-focused fund investing in job creation and rural electrification.', industry: 'CleanTech, AgriTech', funding_stage: 'Seed', funding_amount_sought: 450000, location: 'Hawassa', created_at: '2026-08-16T17:00:00Z', approval_status: 'approved' }
+        ];
+
+        // State Store
+        let stateStartups = [...mockStartups];
+        let stateInvestors = [...mockInvestors];
+        let currentApprovalTab = 'startups';
+        let isBulkSelectMode = false;
+        let selectedItemIds = new Set();
+        let activeRejectTarget = null;
+
+        // Initialize Application
+        window.addEventListener('DOMContentLoaded', () => {
+            try {
+                if (window.supabase) {
+                    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                }
+            } catch(e) { console.log('Supabase fallback to local state'); }
+
+            initCharts();
+            reloadAllData();
+        });
+
+        async function reloadAllData() {
+            const icon = document.getElementById('refreshIcon');
+            if (icon) icon.classList.add('fa-spin');
+
+            try {
+                if (supabaseClient) {
+                    const { data: startupData } = await supabaseClient
+                        .from('startup_profiles')
+                        .select('*')
+                        .order('created_at', { ascending: false });
+
+                    const { data: investorData } = await supabaseClient
+                        .from('investor_profiles')
+                        .select('*')
+                        .order('created_at', { ascending: false });
+
+                    if (startupData && startupData.length > 0) {
+                        const liveStartups = startupData.map(s => {
+                            const titleName = s.startup_name || s.business_name || 'Untitled Startup';
+                            const founderContact = s.contact_information || 'No email registered';
+                            return {
+                                id: s.id,
+                                user_id: s.user_id,
+                                role: 'founder',
+                                typeLabel: 'Startup',
+                                name: (s.contact_information && !s.contact_information.includes('@')) ? s.contact_information : (titleName + ' Founder'),
+                                email: founderContact,
+                                business_name: titleName,
+                                description: s.description || 'No description provided.',
+                                industry: s.industry || 'General',
+                                funding_stage: s.funding_stage || 'Seed',
+                                funding_amount_sought: s.funding_amount_needed || s.funding_amount_sought || 0,
+                                location: s.location || 'Ethiopia',
+                                created_at: s.created_at || new Date().toISOString(),
+                                approval_status: s.approval_status || 'pending'
+                            };
+                        });
+                        stateStartups = [...liveStartups, ...mockStartups];
+                    }
+
+                    if (investorData && investorData.length > 0) {
+                        const liveInvestors = investorData.map(i => {
+                            const titleName = i.organization_name || i.business_name || i.name || 'Registered Investor';
+                            const industries = Array.isArray(i.preferred_industries) ? i.preferred_industries.join(', ') : (i.preferred_industries || i.industry || 'All Sectors');
+                            const stages = Array.isArray(i.preferred_stages) ? i.preferred_stages.join(', ') : (i.preferred_stages || i.funding_stage || 'All Stages');
+                            const location = Array.isArray(i.geographic_focus) ? i.geographic_focus.join(', ') : (i.geographic_focus || i.location || 'Ethiopia');
+
+                            return {
+                                id: i.id,
+                                user_id: i.user_id,
+                                role: 'investor',
+                                typeLabel: 'Investor',
+                                name: titleName + ' Representative',
+                                email: i.email || 'No email registered',
+                                business_name: titleName,
+                                description: i.bio || i.description || 'Verified investor profile on EthioVenture.',
+                                industry: industries,
+                                funding_stage: stages,
+                                funding_amount_sought: i.ticket_size_max || i.funding_amount_sought || 500000,
+                                location: location,
+                                created_at: i.created_at || new Date().toISOString(),
+                                approval_status: i.approval_status || 'pending'
+                            };
+                        });
+                        stateInvestors = [...liveInvestors, ...mockInvestors];
+                    }
+                }
+            } catch(e) {} finally {
+                setTimeout(() => {
+                    if (icon) icon.classList.remove('fa-spin');
+                    updateKPICards();
+                    renderApprovals();
+                    renderUsersTable();
+                    renderDirectories();
+                    renderMessages();
+                    renderNotificationsHistory();
+                    updateCharts();
+                }, 300);
+            }
+        }
+
+        // Navigation Switcher
+        function navigateTo(pageId) {
+            const pages = document.querySelectorAll('.page-content');
+            pages.forEach(p => p.classList.add('hidden'));
+
+            const navItems = document.querySelectorAll('.nav-item');
+            navItems.forEach(n => {
+                n.className = "nav-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-400 hover:bg-slate-800/60 hover:text-slate-200";
+            });
+
+            document.getElementById('page-' + pageId).classList.remove('hidden');
+
+            const activeNav = document.getElementById('nav-' + pageId);
+            if (activeNav) {
+                activeNav.className = "nav-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all bg-cyan-500/10 text-cyan-400 border-l-4 border-cyan-400 font-bold";
+            }
+
+            document.getElementById('breadcrumbCurrent').textContent = pageId;
+        }
+
+        // Update KPI Overview
+        function updateKPICards() {
+            const all = [...stateStartups, ...stateInvestors];
+            const pendingS = stateStartups.filter(x => x.approval_status === 'pending');
+            const pendingI = stateInvestors.filter(x => x.approval_status === 'pending');
+            const totalPending = pendingS.length + pendingI.length;
+            const approved = all.filter(x => x.approval_status === 'approved').length;
+            const rejected = all.filter(x => x.approval_status === 'rejected').length;
+
+            document.getElementById('kpiTotalUsers').textContent = all.length + 3; // Total including admins
+            document.getElementById('kpiPendingCount').textContent = totalPending;
+            document.getElementById('kpiPendingStartups').textContent = pendingS.length;
+            document.getElementById('kpiPendingInvestors').textContent = pendingI.length;
+            document.getElementById('kpiApprovedCount').textContent = approved;
+            document.getElementById('kpiRejectedCount').textContent = rejected;
+
+            document.getElementById('badge-pending-total').textContent = totalPending;
+            document.getElementById('count-startups-tab').textContent = pendingS.length;
+            document.getElementById('count-investors-tab').textContent = pendingI.length;
+        }
+
+        // Approval Tab Switcher
+        function switchApprovalTab(tab) {
+            currentApprovalTab = tab;
+            const btnS = document.getElementById('tab-approval-startups');
+            const btnI = document.getElementById('tab-approval-investors');
+
+            if (tab === 'startups') {
+                btnS.className = "px-5 py-2 rounded-lg text-xs font-bold transition-all bg-cyan-500 text-slate-950 shadow";
+                btnI.className = "px-5 py-2 rounded-lg text-xs font-bold transition-all text-slate-400 hover:text-white";
+            } else {
+                btnI.className = "px-5 py-2 rounded-lg text-xs font-bold transition-all bg-purple-500 text-white shadow";
+                btnS.className = "px-5 py-2 rounded-lg text-xs font-bold transition-all text-slate-400 hover:text-white";
+            }
+            renderApprovals();
+        }
+
+        // Render Approvals Grid
+        function renderApprovals() {
+            const grid = document.getElementById('approvalsGrid');
+            let items = currentApprovalTab === 'startups' ? stateStartups.filter(x => x.approval_status === 'pending') : stateInvestors.filter(x => x.approval_status === 'pending');
+
+            const search = document.getElementById('approvalSearchInput').value.toLowerCase().trim();
+            const indFilter = document.getElementById('approvalIndustryFilter').value;
+
+            if (search) {
+                items = items.filter(x => x.name.toLowerCase().includes(search) || x.business_name.toLowerCase().includes(search));
+            }
+            if (indFilter !== 'ALL') {
+                items = items.filter(x => x.industry.toLowerCase().includes(indFilter.toLowerCase()));
+            }
+
+            if (items.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full p-12 text-center glass-panel rounded-2xl space-y-3">
+                        <div class="w-12 h-12 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center text-xl mx-auto">
+                            <i class="fa-solid fa-circle-check text-emerald-400"></i>
+                        </div>
+                        <h4 class="text-sm font-bold text-white">No Pending ${currentApprovalTab === 'startups' ? 'Startups' : 'Investors'}</h4>
+                        <p class="text-xs text-slate-400">All submissions in this queue have been processed. 🎉</p>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = items.map(item => `
+                <div class="glass-panel p-5 rounded-2xl space-y-4 card-hover relative flex flex-col justify-between border ${selectedItemIds.has(item.id) ? 'border-cyan-400 bg-cyan-500/10' : 'border-slate-800'}">
+                    ${isBulkSelectMode ? `
+                        <input type="checkbox" onchange="toggleItemSelection('${item.id}')" ${selectedItemIds.has(item.id) ? 'checked' : ''} class="absolute top-4 right-4 w-4 h-4 rounded text-cyan-500 bg-slate-900 border-slate-700">
+                    ` : ''}
+
+                    <div class="space-y-3">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-11 h-11 rounded-xl ${item.role === 'founder' ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30' : 'bg-purple-500/20 text-purple-400 border border-purple-500/30'} flex items-center justify-center font-bold text-lg">
+                                ${item.business_name.charAt(0)}
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-bold text-white">${item.business_name}</h4>
+                                <p class="text-xs text-slate-400">${item.name} (${item.location})</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-2 flex-wrap text-[11px]">
+                            <span class="px-2.5 py-0.5 rounded-full bg-slate-800 text-cyan-400 font-semibold border border-slate-700">${item.industry}</span>
+                            <span class="px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 font-medium">${item.funding_stage}</span>
+                            <span class="px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-bold border border-emerald-500/20">$${Number(item.funding_amount_sought).toLocaleString()}</span>
+                        </div>
+
+                        <p class="text-xs text-slate-300 line-clamp-2 leading-relaxed">${item.description}</p>
+                    </div>
+
+                    <div class="pt-3 border-t border-slate-800/80 flex items-center justify-between gap-2 text-xs">
+                        <button onclick="openProfileDrawer('${item.id}')" class="text-cyan-400 hover:underline font-semibold text-[11px]">
+                            <i class="fa-solid fa-eye"></i> View Full
+                        </button>
+                        <div class="flex items-center space-x-2">
+                            <button onclick="approveSingle('${item.id}')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg transition-all">
+                                Approve
+                            </button>
+                            <button onclick="openRejectModal('${item.id}')" class="px-3 py-1.5 bg-slate-800 hover:bg-rose-600/30 text-rose-400 font-bold rounded-lg border border-slate-700 transition-all">
+                                Reject
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Single Actions
+        function approveSingle(id) {
+            const item = [...stateStartups, ...stateInvestors].find(x => x.id === id);
+            if (item) {
+                item.approval_status = 'approved';
+                showToast(`Approved ${item.business_name}`, 'success');
+                updateKPICards();
+                renderApprovals();
+            }
+        }
+
+        function openRejectModal(id) {
+            activeRejectTarget = id;
+            const item = [...stateStartups, ...stateInvestors].find(x => x.id === id);
+            if (item) {
+                document.getElementById('rejectModalName').textContent = item.business_name;
+                document.getElementById('rejectReasonText').value = '';
+                document.getElementById('modalReject').classList.remove('hidden');
+            }
+        }
+
+        function closeRejectModal() {
+            document.getElementById('modalReject').classList.add('hidden');
+            activeRejectTarget = null;
+        }
+
+        function confirmSingleReject() {
+            const reason = document.getElementById('rejectReasonText').value.trim();
+            if (!reason) {
+                alert("Please provide a rejection reason.");
+                return;
+            }
+
+            const item = [...stateStartups, ...stateInvestors].find(x => x.id === activeRejectTarget);
+            if (item) {
+                item.approval_status = 'rejected';
+                showToast(`Rejected ${item.business_name}`, 'info');
+                closeRejectModal();
+                updateKPICards();
+                renderApprovals();
+            }
+        }
+
+        // Bulk Actions
+        function toggleBulkSelectMode() {
+            isBulkSelectMode = !isBulkSelectMode;
+            selectedItemIds.clear();
+            document.getElementById('bulkActionBar').classList.toggle('hidden', !isBulkSelectMode);
+            document.getElementById('btnBulkSelect').textContent = isBulkSelectMode ? 'Cancel Selection' : 'Select Multiple';
+            renderApprovals();
+        }
+
+        function toggleItemSelection(id) {
+            if (selectedItemIds.has(id)) selectedItemIds.delete(id);
+            else selectedItemIds.add(id);
+
+            document.getElementById('selectedCountText').textContent = `${selectedItemIds.size} selected`;
+        }
+
+        function bulkApprove() {
+            selectedItemIds.forEach(id => {
+                const item = [...stateStartups, ...stateInvestors].find(x => x.id === id);
+                if (item) item.approval_status = 'approved';
+            });
+            showToast(`Approved ${selectedItemIds.size} items`, 'success');
+            toggleBulkSelectMode();
+            updateKPICards();
+        }
+
+        function bulkReject() {
+            selectedItemIds.forEach(id => {
+                const item = [...stateStartups, ...stateInvestors].find(x => x.id === id);
+                if (item) item.approval_status = 'rejected';
+            });
+            showToast(`Rejected ${selectedItemIds.size} items`, 'info');
+            toggleBulkSelectMode();
+            updateKPICards();
+        }
+
+        // Full Profile Drawer
+        function openProfileDrawer(id) {
+            const item = [...stateStartups, ...stateInvestors].find(x => x.id === id);
+            if (!item) return;
+
+            document.getElementById('drawerContent').innerHTML = `
+                <div class="p-4 bg-slate-900 rounded-xl space-y-2 border border-slate-800">
+                    <span class="text-[10px] uppercase font-bold text-cyan-400">${item.typeLabel} Profile</span>
+                    <h2 class="text-lg font-bold text-white">${item.business_name}</h2>
+                    <p class="text-slate-400">${item.name} · ${item.email}</p>
+                </div>
+                <div class="space-y-3">
+                    <div>
+                        <span class="text-slate-500 font-semibold block">Industry Vertical</span>
+                        <span class="text-white font-medium">${item.industry}</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-500 font-semibold block">Funding Target / Ticket Range</span>
+                        <span class="text-emerald-400 font-bold">$${Number(item.funding_amount_sought).toLocaleString()} USD</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-500 font-semibold block">Location</span>
+                        <span class="text-white font-medium">${item.location}</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-500 font-semibold block">Detailed Business Overview</span>
+                        <p class="text-slate-300 leading-relaxed bg-slate-900 p-3 rounded-xl border border-slate-800 mt-1">${item.description}</p>
+                    </div>
+                </div>
+            `;
+            document.getElementById('drawerProfile').classList.remove('hidden');
+        }
+
+        function closeProfileDrawer() {
+            document.getElementById('drawerProfile').classList.add('hidden');
+        }
+
+        // Render Users Table
+        function renderUsersTable() {
+            const tbody = document.getElementById('usersTableBody');
+            const all = [...stateStartups, ...stateInvestors];
+
+            tbody.innerHTML = all.map((item, idx) => `
+                <tr class="hover:bg-slate-800/40 transition-colors">
+                    <td class="px-4 py-3 font-mono text-slate-500">${idx + 1}</td>
+                    <td class="px-4 py-3 font-medium text-white">${item.name} (${item.business_name})</td>
+                    <td class="px-4 py-3"><span class="px-2 py-0.5 rounded-full ${item.role === 'founder' ? 'bg-cyan-500/10 text-cyan-400' : 'bg-purple-500/10 text-purple-400'} font-semibold">${item.role}</span></td>
+                    <td class="px-4 py-3"><span class="px-2 py-0.5 rounded-full ${item.approval_status === 'approved' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'} font-semibold">${item.approval_status}</span></td>
+                    <td class="px-4 py-3 text-slate-400">2026-08-20</td>
+                    <td class="px-4 py-3 text-slate-400">Just now</td>
+                    <td class="px-4 py-3 text-right">
+                        <button class="text-cyan-400 hover:underline">Manage</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Render Directories
+        function renderDirectories() {
+            const gridS = document.getElementById('startupsDirectoryGrid');
+            gridS.innerHTML = stateStartups.map(s => `
+                <div class="glass-panel p-5 rounded-2xl space-y-3">
+                    <h4 class="font-bold text-white text-sm">${s.business_name}</h4>
+                    <p class="text-xs text-slate-400">${s.industry} · ${s.location}</p>
+                    <p class="text-xs text-slate-300 line-clamp-2">${s.description}</p>
+                </div>
+            `).join('');
+
+            const gridI = document.getElementById('investorsDirectoryGrid');
+            gridI.innerHTML = stateInvestors.map(i => `
+                <div class="glass-panel p-5 rounded-2xl space-y-3">
+                    <h4 class="font-bold text-white text-sm">${i.business_name}</h4>
+                    <p class="text-xs text-purple-400">${i.industry}</p>
+                    <p class="text-xs text-slate-300 line-clamp-2">${i.description}</p>
+                </div>
+            `).join('');
+        }
+
+        function renderMessages() {
+            const list = document.getElementById('conversationsList');
+            list.innerHTML = `
+                <div class="glass-panel p-4 rounded-xl flex items-center justify-between text-xs">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 rounded-full bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold">Y</div>
+                        <div>
+                            <p class="text-white font-bold">Yenege Tesfa Fintech ↔ Alem Capital</p>
+                            <p class="text-slate-400">"We would love to review your latest term sheet..."</p>
+                        </div>
+                    </div>
+                    <span class="text-slate-500">10m ago</span>
+                </div>
+            `;
+        }
+
+        function renderNotificationsHistory() {
+            const list = document.getElementById('notificationHistoryList');
+            list.innerHTML = `
+                <div class="p-3 bg-slate-900/60 rounded-xl border border-slate-800 flex items-center justify-between">
+                    <div>
+                        <p class="text-white font-semibold">Welcome to EthioVenture Admin Panel</p>
+                        <p class="text-slate-400">Target: All Users · In-App Broadcast</p>
+                    </div>
+                    <span class="text-slate-500">Aug 21, 2026</span>
+                </div>
+            `;
+        }
+
+        // Export CSV
+        function exportToCSV(type) {
+            const data = type === 'startups' ? stateStartups : stateInvestors;
+            let csv = "ID,Name,Business,Industry,Stage,Amount,Status\n";
+            data.forEach(d => {
+                csv += `"${d.id}","${d.name}","${d.business_name}","${d.industry}","${d.funding_stage}","${d.funding_amount_sought}","${d.approval_status}"\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `ethioventure_${type}_export.csv`;
+            a.click();
+            showToast(`Exported ${type} to CSV`, 'success');
+        }
+
+        // Toast Feedback
+        function showToast(msg, type = 'success') {
+            const container = document.getElementById('toastBox');
+            const icon = document.getElementById('toastIcon');
+            document.getElementById('toastMsg').textContent = msg;
+
+            if (type === 'success') icon.className = 'fa-solid fa-circle-check text-emerald-400 text-base';
+            else if (type === 'info') icon.className = 'fa-solid fa-circle-info text-cyan-400 text-base';
+            else icon.className = 'fa-solid fa-triangle-exclamation text-rose-400 text-base';
+
+            container.classList.remove('hidden');
+            setTimeout(() => container.classList.add('hidden'), 3500);
+        }
+
+        function toggleTheme() {
+            document.documentElement.classList.toggle('light');
+            showToast("Theme toggled", "info");
+        }
+
+        function toggleNotificationDropdown() {
+            document.getElementById('notifDropdown').classList.toggle('hidden');
+        }
+
+        function toggleSidebarCollapse() {
+            document.getElementById('sidebar').classList.toggle('hidden');
+        }
+
+        // Safe Chart.js Visualizations
+        function initCharts() {
+            if (typeof Chart === 'undefined') return;
+
+            try {
+                const el = document.getElementById('chartUserGrowth');
+                if (el) {
+                    new Chart(el.getContext('2d'), {
+                        type: 'line',
+                        data: {
+                            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'],
+                            datasets: [
+                                { label: 'Founders', data: [2, 4, 7, 10, 14, 18, 22, 28], borderColor: '#00D1FF', backgroundColor: 'rgba(0, 209, 255, 0.1)', fill: true, tension: 0.4 },
+                                { label: 'Investors', data: [1, 2, 3, 5, 8, 10, 12, 16], borderColor: '#7B5CF0', backgroundColor: 'rgba(123, 92, 240, 0.1)', fill: true, tension: 0.4 }
+                            ]
+                        },
+                        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#9CA3AF' } } }, scales: { x: { ticks: { color: '#9CA3AF' }, grid: { color: '#1F2937' } }, y: { ticks: { color: '#9CA3AF' }, grid: { color: '#1F2937' } } } }
+                    });
+                }
+            } catch(e) {}
+
+            try {
+                const el = document.getElementById('chartApprovalRatio');
+                if (el) {
+                    window.chartRatioInstance = new Chart(el.getContext('2d'), {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['Pending', 'Approved', 'Rejected'],
+                            datasets: [{ data: [6, 4, 0], backgroundColor: ['#F59E0B', '#10B981', '#EF4444'], borderWidth: 0 }]
+                        },
+                        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#9CA3AF' } } } }
+                    });
+                }
+            } catch(e) {}
+
+            try {
+                const el = document.getElementById('chartIndustries');
+                if (el) {
+                    new Chart(el.getContext('2d'), {
+                        type: 'bar',
+                        data: {
+                            labels: ['Fintech', 'AgriTech', 'HealthTech', 'EdTech', 'Logistics', 'SaaS'],
+                            datasets: [{ label: 'Startups', data: [3, 2, 1, 1, 1, 1], backgroundColor: '#00D1FF', borderRadius: 8 }]
+                        },
+                        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#9CA3AF' }, grid: { display: false } }, y: { ticks: { color: '#9CA3AF' }, grid: { color: '#1F2937' } } } }
+                    });
+                }
+            } catch(e) {}
+
+            try {
+                const el = document.getElementById('chartStages');
+                if (el) {
+                    new Chart(el.getContext('2d'), {
+                        type: 'bar',
+                        data: {
+                            labels: ['MVP', 'Pre-Seed', 'Seed', 'Series A'],
+                            datasets: [{ label: 'Count', data: [2, 1, 4, 1], backgroundColor: '#7B5CF0', borderRadius: 8 }]
+                        },
+                        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#9CA3AF' }, grid: { display: false } }, y: { ticks: { color: '#9CA3AF' }, grid: { color: '#1F2937' } } } }
+                    });
+                }
+            } catch(e) {}
+
+            try {
+                const el = document.getElementById('chartAnalyticsIndustry');
+                if (el) {
+                    window.chartAnalyticsIndInstance = new Chart(el.getContext('2d'), {
+                        type: 'bar',
+                        data: {
+                            labels: ['Fintech', 'CleanTech', 'AgriTech', 'HealthTech', 'EdTech', 'Logistics', 'E-Commerce'],
+                            datasets: [{ label: 'Capital Sought ($)', data: [350000, 3000, 250000, 180000, 90000, 400000, 200000], backgroundColor: '#00D1FF', borderRadius: 8 }]
+                        },
+                        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#9CA3AF' }, grid: { display: false } }, y: { ticks: { color: '#9CA3AF' }, grid: { color: '#1F2937' } } } }
+                    });
+                }
+            } catch(e) {}
+
+            try {
+                const el = document.getElementById('chartAnalyticsLocation');
+                if (el) {
+                    window.chartAnalyticsLocInstance = new Chart(el.getContext('2d'), {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['Addis Ababa', 'OROMIA', 'Hawassa', 'Adama', 'Bahir Dar', 'Mekelle'],
+                            datasets: [{ data: [5, 1, 2, 1, 1, 1], backgroundColor: ['#00D1FF', '#7B5CF0', '#10B981', '#F59E0B', '#EF4444', '#EC4899'], borderWidth: 0 }]
+                        },
+                        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#9CA3AF' } } } }
+                    });
+                }
+            } catch(e) {}
+        }
+
+        function updateCharts() {
+            if (window.chartRatioInstance) {
+                const pending = stateStartups.filter(x => x.approval_status === 'pending').length + stateInvestors.filter(x => x.approval_status === 'pending').length;
+                const approved = [...stateStartups, ...stateInvestors].filter(x => x.approval_status === 'approved').length;
+                const rejected = [...stateStartups, ...stateInvestors].filter(x => x.approval_status === 'rejected').length;
+                window.chartRatioInstance.data.datasets[0].data = [pending, approved, rejected];
+                window.chartRatioInstance.update();
+            }
+
+            // Live Analytics Computations
+            let totalCapital = 0;
+            const industryMap = {};
+            const locationMap = {};
+
+            stateStartups.forEach(s => {
+                const val = Number(s.funding_amount_sought || s.funding_amount_needed || 0);
+                totalCapital += val;
+
+                const ind = s.industry || 'General';
+                industryMap[ind] = (industryMap[ind] || 0) + val;
+
+                const loc = s.location || 'Ethiopia';
+                locationMap[loc] = (locationMap[loc] || 0) + 1;
+            });
+
+            const elemCap = document.getElementById('analyticsCapitalTarget');
+            if (elemCap) elemCap.textContent = '$' + totalCapital.toLocaleString() + ' USD';
+
+            const elemCapSub = document.getElementById('analyticsCapitalTargetSub');
+            if (elemCapSub) elemCapSub.textContent = `Calculated live across ${stateStartups.length} registered startups`;
+
+            const allMembers = [...stateStartups, ...stateInvestors];
+            const approvedCount = allMembers.filter(x => x.approval_status === 'approved').length;
+            const engagementRate = allMembers.length > 0 ? Math.round((approvedCount / allMembers.length) * 100) : 88;
+
+            const elemEng = document.getElementById('analyticsActiveEngagement');
+            if (elemEng) elemEng.textContent = engagementRate + '%';
+
+            const elemEngSub = document.getElementById('analyticsActiveEngagementSub');
+            if (elemEngSub) elemEngSub.textContent = `${approvedCount} verified active profiles out of ${allMembers.length}`;
+
+            const conversionRate = stateStartups.length > 0 ? Math.round((2 / stateStartups.length) * 100) : 75;
+
+            const elemConv = document.getElementById('analyticsConversionRate');
+            if (elemConv) elemConv.textContent = Math.min(conversionRate, 100) + '%';
+
+            if (window.chartAnalyticsIndInstance && Object.keys(industryMap).length > 0) {
+                window.chartAnalyticsIndInstance.data.labels = Object.keys(industryMap);
+                window.chartAnalyticsIndInstance.data.datasets[0].data = Object.values(industryMap);
+                window.chartAnalyticsIndInstance.update();
+            }
+
+            if (window.chartAnalyticsLocInstance && Object.keys(locationMap).length > 0) {
+                window.chartAnalyticsLocInstance.data.labels = Object.keys(locationMap);
+                window.chartAnalyticsLocInstance.data.datasets[0].data = Object.values(locationMap);
+                window.chartAnalyticsLocInstance.update();
+            }
+        }
+
+        function exportAnalyticsReport() {
+            let csv = "Metric,Value,Description\n";
+            csv += `"Total Capital Sought","${document.getElementById('analyticsCapitalTarget') ? document.getElementById('analyticsCapitalTarget').textContent : '$0 USD'}","Calculated across registered startups"\n`;
+            csv += `"Active Member Engagement","${document.getElementById('analyticsActiveEngagement') ? document.getElementById('analyticsActiveEngagement').textContent : '88%'}","Verified active user ratio"\n`;
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `ethioventure_analytics_report.csv`;
+            a.click();
+            showToast("Exported Analytics Report to CSV", "success");
+        }
+    </script>
+</body>
+</html>
