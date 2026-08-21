@@ -1,8 +1,9 @@
+import 'dart:async';
+
 import 'package:ethioventure/core/constants/app_styles.dart';
-import 'package:ethioventure/core/di/injection_container.dart';
-import 'package:ethioventure/features/messaging/domain/repositories/messaging_repository.dart';
+import 'package:ethioventure/core/services/notification_service.dart';
+import 'package:ethioventure/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_colors.dart';
 
 class DashboardBottomNav extends StatelessWidget {
   final int currentIndex;
@@ -69,65 +70,64 @@ class _NavItem extends StatefulWidget {
 }
 
 class _NavItemState extends State<_NavItem> {
-  Future<int>? _countFuture;
+  StreamSubscription<int>? _unreadSub;
+  int _unreadCount = 0;
 
   @override
   void initState() {
     super.initState();
     if (widget.label.toLowerCase() == 'messages') {
-      _countFuture = _fetchConversationsCount();
-    }
-  }
-
-  Future<int> _fetchConversationsCount() async {
-    try {
-      if (!sl.isRegistered<MessagingRepository>()) return 0;
-      final conversations = await sl<MessagingRepository>().getConversations();
-      return conversations.length;
-    } catch (_) {
-      return 0;
+      // Seed with the cached value so the badge appears instantly.
+      _unreadCount = NotificationService.instance.cachedUnreadCount;
+      // Then listen for live updates.
+      _unreadSub =
+          NotificationService.instance.unreadCountStream.listen((count) {
+        if (mounted) setState(() => _unreadCount = count);
+      });
     }
   }
 
   @override
+  void dispose() {
+    _unreadSub?.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final color = widget.selected ? AppColors.primaryDark : AppColors.textSecondary;
+    final color =
+        widget.selected ? AppColors.primaryDark : AppColors.textSecondary;
     final isMessagesTab = widget.label.toLowerCase() == 'messages';
 
     Widget iconWidget = Icon(widget.icon, size: 20, color: color);
 
     if (isMessagesTab) {
-      iconWidget = FutureBuilder<int>(
-        future: _countFuture,
-        builder: (context, snapshot) {
-          final count = snapshot.data ?? 0;
-          return Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Icon(widget.icon, size: 20, color: color),
-              if (count > 0)
-                Positioned(
-                  top: -5,
-                  right: -8,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
-                    decoration: BoxDecoration(
-                      color: AppColors.coral,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      '$count',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
+      iconWidget = Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Icon(widget.icon, size: 20, color: color),
+          if (_unreadCount > 0)
+            Positioned(
+              top: -5,
+              right: -8,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                decoration: BoxDecoration(
+                  color: AppColors.coral,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  _unreadCount > 99 ? '99+' : '$_unreadCount',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
-            ],
-          );
-        },
+              ),
+            ),
+        ],
       );
     }
 
@@ -145,7 +145,8 @@ class _NavItemState extends State<_NavItem> {
           children: [
             iconWidget,
             const SizedBox(height: 4),
-            Text(widget.label, style: AppTextStyles.navLabel.copyWith(color: color)),
+            Text(widget.label,
+                style: AppTextStyles.navLabel.copyWith(color: color)),
           ],
         ),
       ),

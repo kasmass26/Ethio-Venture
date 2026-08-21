@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart'
     show AuthException, Supabase;
 
+import '../../../../core/services/notification_service.dart';
 import '../../domain/usecases/login_usecase.dart';
 import '../../domain/usecases/logout_user.dart';
 import '../../domain/usecases/register_usecase.dart';
@@ -25,6 +26,10 @@ class AuthCubit extends Cubit<AuthState> {
     try {
       final user = await loginUser(email: email, password: password);
       emit(Authenticated(user));
+      // Register FCM token and start Realtime notification subscription now
+      // that the user is authenticated.
+      final client = Supabase.instance.client;
+      NotificationService.instance.onUserLoggedIn(client);
     } catch (error, stackTrace) {
       developer.log(
         'Login failed for email=$email',
@@ -53,10 +58,13 @@ class AuthCubit extends Cubit<AuthState> {
       );
       // Confirm-email sign-ups create a user without a session. Sending that
       // user to a protected dashboard makes registration look broken.
-      if (Supabase.instance.client.auth.currentSession == null) {
+      final client = Supabase.instance.client;
+      if (client.auth.currentSession == null) {
         emit(const EmailConfirmationRequired());
       } else {
         emit(Authenticated(user));
+        // Register FCM token and start Realtime notification subscription.
+        NotificationService.instance.onUserLoggedIn(client);
       }
     } catch (error, stackTrace) {
       developer.log(
@@ -73,6 +81,9 @@ class AuthCubit extends Cubit<AuthState> {
   Future<void> logout() async {
     emit(const AuthLoading());
     try {
+      // Tear down the notification channel before signing out.
+      final client = Supabase.instance.client;
+      await NotificationService.instance.onUserLoggedOut(client);
       await logoutUser();
       emit(const Unauthenticated());
     } catch (error, stackTrace) {

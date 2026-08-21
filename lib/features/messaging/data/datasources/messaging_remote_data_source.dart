@@ -880,9 +880,23 @@ class MessagingRemoteDataSource {
       }
 
       if (recipientUserId != null && recipientUserId.isNotEmpty) {
+        // Look up sender's display name for a friendlier notification title.
+        String notificationTitle = 'New Message';
+        try {
+          final senderRow = await _client
+              .from(ApiEndpoints.users)
+              .select('full_name')
+              .eq('id', senderId)
+              .maybeSingle();
+          final senderName = senderRow?['full_name']?.toString();
+          if (senderName != null && senderName.isNotEmpty) {
+            notificationTitle = senderName;
+          }
+        } catch (_) {}
+
         await _client.from(ApiEndpoints.notifications).insert({
           'user_id': recipientUserId,
-          'title': 'New Message',
+          'title': notificationTitle,
           'body': content,
           'type': 'message',
           'is_read': false,
@@ -897,7 +911,7 @@ class MessagingRemoteDataSource {
             ApiEndpoints.sendNotificationFunction,
             body: {
               'user_id': recipientUserId,
-              'title': 'New Message',
+              'title': notificationTitle,
               'body': content,
               'data': {
                 'conversation_id': conversationId,
@@ -915,4 +929,3 @@ class MessagingRemoteDataSource {
     }
   }
 }
-

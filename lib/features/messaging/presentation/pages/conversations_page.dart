@@ -4,6 +4,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/di/injection_container.dart';
+import '../../../../core/network/api_endpoints.dart';
+import '../../../../core/services/notification_service.dart';
 import '../../../../core/services/user_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_sizes.dart';
@@ -50,6 +52,30 @@ class _ConversationsViewState extends State<_ConversationsView> {
   void initState() {
     super.initState();
     _detectRole();
+    // Clear the unread notification badge when the user opens their inbox.
+    _clearMessageNotifications();
+  }
+
+  /// Marks all unread 'message' notifications as read for the current user
+  /// and resets the badge counter shown on the bottom navigation.
+  Future<void> _clearMessageNotifications() async {
+    try {
+      final client = Supabase.instance.client;
+      final userId = client.auth.currentUser?.id;
+      if (userId == null) return;
+
+      await client
+          .from(ApiEndpoints.notifications)
+          .update({'is_read': true})
+          .eq('user_id', userId)
+          .eq('type', 'message')
+          .eq('is_read', false);
+
+      // Refresh the live badge count.
+      await NotificationService.instance.refreshUnreadCount(client);
+    } catch (_) {
+      // Non-fatal — badge will self-correct on next Realtime event.
+    }
   }
 
   Future<void> _detectRole() async {

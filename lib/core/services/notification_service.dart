@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:developer' as developer;
 import 'package:firebase_core/firebase_core.dart';
@@ -35,6 +36,23 @@ class NotificationService {
   );
 
   bool _initialized = false;
+
+  // Tracks the Supabase Realtime channel for in-app notifications so we can
+  // cleanly remove it on logout.
+  RealtimeChannel? _notificationChannel;
+
+  // Stream controller that broadcasts the unread notification count so that
+  // bottom-nav badges can stay up to date without polling.
+  final StreamController<int> _unreadCountController =
+      StreamController<int>.broadcast();
+
+  /// A broadcast stream of unread notification counts.
+  /// Bottom-nav widgets listen to this to update their badge.
+  Stream<int> get unreadCountStream => _unreadCountController.stream;
+
+  /// Current cached unread count (for immediate reads after login).
+  int _cachedUnreadCount = 0;
+  int get cachedUnreadCount => _cachedUnreadCount;
 
   /// Initializes FCM and flutter_local_notifications.
   Future<void> initialize({SupabaseClient? supabaseClient}) async {
@@ -114,9 +132,10 @@ class NotificationService {
         _handleNotificationPayload(jsonEncode(message.data));
       });
 
-      // 7. Register FCM token if user is signed in
-      if (supabaseClient != null) {
-        await registerDeviceTokenInSupabase(supabaseClient);
+      // 7. Register FCM token and start realtime subscription if user is already signed in.
+      if (supabaseClient != null &&
+          supabaseClient.auth.currentUser != null) {
+        await onUserLoggedIn(supabaseClient);
       }
 
       // Listen for token refresh
@@ -135,6 +154,137 @@ class NotificationService {
         stackTrace: stackTrace,
       );
     }
+  }
+
+  /// Call this immediately after a user successfully logs in or registers.
+  ///
+  /// Registers the FCM device token and starts a Supabase Realtime channel
+  /// that triggers local notifications whenever a new notification row is
+  /// inserted for the current user — even when the chat screen is closed.
+  Future<void> onUserLoggedIn(SupabaseClient supabaseClient) async {
+    await registerDeviceTokenInSupabase(supabaseClient);
+    await _subscribeToInAppNotifications(supabaseClient);
+  }
+
+  /// Tears down the Realtime notification subscription.
+  /// Call this on logout so the channel is cleaned up.
+  Future<void> onUserLoggedOut(SupabaseClient supabaseClient) async {
+    await _unsubscribeFromInAppNotifications(supabaseClient);
+    _cachedUnreadCount = 0;
+    if (!_unreadCountController.isClosed) {
+      _unreadCountController.add(0);
+    }
+  }
+
+  /// Subscribes to the `notifications` table for the current user via Supabase
+  /// Realtime. When a new row arrives (i.e. the other party sent a message),
+  /// a local notification is shown immediately — regardless of which screen
+  /// the recipient is currently viewing.
+  Future<void> _subscribeToInAppNotifications(
+      SupabaseClient supabaseClient) async {
+    final userId = supabaseClient.auth.currentUser?.id;
+    if (userId == null) return;
+
+    // Remove any stale subscription first.
+    await _unsubscribeFromInAppNotifications(supabaseClient);
+
+    developer.log(
+      'Starting Realtime notification subscription for user $userId',
+      name: 'NotificationService._subscribeToInAppNotifications',
+    );
+
+    // Fetch initial unread count.
+    await _refreshUnreadCount(supabaseClient, userId);
+
+    _notificationChannel = supabaseClient
+        .channel('user_notifications_$userId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: ApiEndpoints.notifications,
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'user_id',
+            value: userId,
+          ),
+          callback: (payload) async {
+            developer.log(
+              'Realtime: new notification received for user $userId',
+              name: 'NotificationService._subscribeToInAppNotifications',
+            );
+
+            final newRow = payload.newRecord;
+            final title = newRow['title']?.toString() ?? 'New Message';
+            final body = newRow['body']?.toString() ?? '';
+            final data = newRow['data'];
+            final type = newRow['type']?.toString() ?? 'message';
+
+            // Show a local notification immediately.
+            showLocalNotification(
+              id: (newRow['id']?.toString() ?? title).hashCode,
+              title: title,
+              body: body,
+              payload: data != null ? jsonEncode(data) : null,
+            );
+
+            // Update unread badge count.
+            _cachedUnreadCount++;
+            if (!_unreadCountController.isClosed) {
+              _unreadCountController.add(_cachedUnreadCount);
+            }
+
+            developer.log(
+              'Local notification shown for type=$type, title=$title',
+              name: 'NotificationService._subscribeToInAppNotifications',
+            );
+          },
+        )
+        .subscribe((status, [error]) {
+      developer.log(
+        'Notification channel status: $status${error != null ? ', error: $error' : ''}',
+        name: 'NotificationService._subscribeToInAppNotifications',
+      );
+    });
+  }
+
+  Future<void> _unsubscribeFromInAppNotifications(
+      SupabaseClient supabaseClient) async {
+    if (_notificationChannel != null) {
+      try {
+        await supabaseClient.removeChannel(_notificationChannel!);
+      } catch (_) {}
+      _notificationChannel = null;
+    }
+  }
+
+  /// Fetches the current unread notification count from Supabase and broadcasts it.
+  Future<void> _refreshUnreadCount(
+      SupabaseClient supabaseClient, String userId) async {
+    try {
+      final response = await supabaseClient
+          .from(ApiEndpoints.notifications)
+          .select('id')
+          .eq('user_id', userId)
+          .eq('is_read', false);
+
+      final count = (response as List).length;
+      _cachedUnreadCount = count;
+      if (!_unreadCountController.isClosed) {
+        _unreadCountController.add(count);
+      }
+    } catch (e) {
+      developer.log(
+        'Error fetching unread count: $e',
+        name: 'NotificationService._refreshUnreadCount',
+      );
+    }
+  }
+
+  /// Refresh the unread count from the outside (e.g. after marking as read).
+  Future<void> refreshUnreadCount(SupabaseClient supabaseClient) async {
+    final userId = supabaseClient.auth.currentUser?.id;
+    if (userId == null) return;
+    await _refreshUnreadCount(supabaseClient, userId);
   }
 
   /// Displays a local notification using flutter_local_notifications.
