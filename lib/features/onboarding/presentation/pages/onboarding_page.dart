@@ -51,18 +51,28 @@ class _OnboardingPageState extends State<OnboardingPage> {
   }
 
   void _goToNext() {
-    _controller.nextPage(
-      duration: const Duration(milliseconds: 320),
-      curve: Curves.easeOutCubic,
-    );
+    if (_controller.hasClients) {
+      if (_page < _slides.length - 1) {
+        _controller.nextPage(
+          duration: const Duration(milliseconds: 320),
+          curve: Curves.easeInOut,
+        );
+      } else {
+        setState(() {
+          _page = _slides.length - 1;
+        });
+      }
+    }
   }
 
   void _skipToEnd() {
-    _controller.animateToPage(
-      _slides.length - 1,
-      duration: const Duration(milliseconds: 380),
-      curve: Curves.easeOutCubic,
-    );
+    if (_controller.hasClients) {
+      _controller.animateToPage(
+        _slides.length - 1,
+        duration: const Duration(milliseconds: 320),
+        curve: Curves.easeInOut,
+      );
+    }
   }
 
   Future<void> _completeAndNavigate(String routeName, {Object? arguments}) async {
@@ -142,7 +152,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                           opacity: animation,
                           child: SizeTransition(
                             sizeFactor: animation,
-                            axisAlignment: -1,
+        
                             child: child,
                           ),
                         ),
@@ -195,12 +205,12 @@ class _TopBar extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(
         AppSizes.lg,
         AppSizes.md,
-        AppSizes.sm,
+        AppSizes.lg,
         0,
       ),
       child: Row(
         children: [
-          Icon(Icons.hub_outlined, color: AppColors.primary, size: 22),
+          Icon(Icons.hub_outlined, color: AppColors.primary, size: 24),
           const SizedBox(width: AppSizes.sm),
           Text(
             AppConstants.appName,
@@ -211,22 +221,27 @@ class _TopBar extends StatelessWidget {
             ),
           ),
           const Spacer(),
-          AnimatedOpacity(
-            duration: const Duration(milliseconds: 200),
-            opacity: showSkip ? 1 : 0,
-            child: IgnorePointer(
-              ignoring: !showSkip,
-              child: TextButton(
-                onPressed: onSkip,
-                style: TextButton.styleFrom(foregroundColor: mutedColor),
-                child: const Text('Skip'),
+          if (showSkip)
+            TextButton(
+              onPressed: onSkip,
+              style: TextButton.styleFrom(
+                foregroundColor: mutedColor,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              ),
+              child: const Text('Skip', style: TextStyle(fontSize: 14)),
+            ),
+          const SizedBox(width: AppSizes.xs),
+          ElevatedButton(
+            onPressed: onSignIn,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: AppColors.secondary,
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppSizes.radiusMd),
               ),
             ),
-          ),
-          TextButton(
-            onPressed: onSignIn,
-            style: TextButton.styleFrom(foregroundColor: AppColors.primary),
-            child: const Text('Sign in'),
+            child: const Text('Sign in', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -243,7 +258,7 @@ class _SlideView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final iconBg =
-        isDark ? AppColors.primary.withOpacity(0.14) : AppColors.primarySoft;
+        isDark ? AppColors.primary.withValues(alpha: 0.14) : AppColors.primarySoft;
     final titleColor =
         isDark ? AppColors.textPrimaryDark : AppColors.secondary;
     final descColor =
@@ -446,7 +461,7 @@ class _RoleCard extends StatelessWidget {
     final descColor =
         isDark ? AppColors.textSecondaryDark : AppColors.textSecondary;
     final iconBg =
-        isDark ? AppColors.primary.withOpacity(0.14) : AppColors.primarySoft;
+        isDark ? AppColors.primary.withValues(alpha: 0.14) : AppColors.primarySoft;
 
     return Container(
       padding: const EdgeInsets.all(AppSizes.md),

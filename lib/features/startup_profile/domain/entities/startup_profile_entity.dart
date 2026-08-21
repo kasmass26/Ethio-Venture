@@ -59,6 +59,13 @@ class StartupProfileEntity {
   final DateTime createdAt;
   final DateTime updatedAt;
 
+  // Schema aliases for matching and investor modules
+  String get profileId => userId;
+  String get name => startupName;
+  String? get summary => description;
+  String get stage => fundingStage;
+  double? get fundingTarget => fundingAmountNeeded;
+
   /// Approval status ('pending', 'approved', 'rejected')
   final String approvalStatus;
 
