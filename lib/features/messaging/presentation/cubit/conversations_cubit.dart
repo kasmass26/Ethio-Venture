@@ -26,19 +26,21 @@ class ConversationsCubit extends Cubit<ConversationsState> {
         name: 'ConversationsCubit.loadConversations',
         level: 900,
       );
-      emit(const ConversationsUnauthenticated());
+      if (!isClosed) emit(const ConversationsUnauthenticated());
       return;
     }
 
-    emit(const ConversationsLoading());
+    if (!isClosed) emit(const ConversationsLoading());
     try {
       final list = await _repository.getConversations();
+      if (isClosed) return;
       developer.log(
         'ConversationsCubit.loadConversations: Loaded ${list.length} conversation(s)',
         name: 'ConversationsCubit.loadConversations',
       );
       emit(ConversationsLoaded(list));
     } catch (e, st) {
+      if (isClosed) return;
       developer.log(
         'ConversationsCubit.loadConversations ERROR: $e',
         name: 'ConversationsCubit.loadConversations',

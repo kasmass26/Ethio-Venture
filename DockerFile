@@ -1,0 +1,36 @@
+# -------------------------------
+# Stage 1: Build Flutter Web App
+# -------------------------------
+FROM ghcr.io/cirruslabs/flutter:stable AS build
+
+WORKDIR /app
+
+# Copy dependency files first
+COPY pubspec.yaml pubspec.lock ./
+
+# Install dependencies
+RUN flutter pub get
+
+# Copy the rest of the project
+COPY . .
+
+# Build Flutter web
+RUN flutter build web --release
+
+
+# -------------------------------
+# Stage 2: Serve with Nginx
+# -------------------------------
+FROM nginx:alpine
+
+# Remove default nginx files
+RUN rm -rf /usr/share/nginx/html/*
+
+# Copy Flutter web build
+COPY --from=build /app/build/web /usr/share/nginx/html
+
+# Expose port
+EXPOSE 80
+
+# Start nginx
+CMD ["nginx", "-g", "daemon off;"]

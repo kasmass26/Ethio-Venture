@@ -32,6 +32,7 @@ class StartupProfileModel extends StartupProfileEntity {
     required super.contactInformation,
     required super.createdAt,
     required super.updatedAt,
+    super.websiteUrl = '',
     super.approvalStatus = 'pending',
     super.rejectionReason,
     super.approvalDate,
@@ -72,6 +73,14 @@ class StartupProfileModel extends StartupProfileEntity {
                     ? cleanString(json['contact_details'])
                     : cleanString(json['contact']);
 
+    final website = cleanString(json['website_url']).isNotEmpty
+        ? cleanString(json['website_url'])
+        : cleanString(json['website']).isNotEmpty
+            ? cleanString(json['website'])
+            : cleanString(json['site_url']).isNotEmpty
+                ? cleanString(json['site_url'])
+                : cleanString(json['app_url']);
+
     DateTime parsedCreated;
     try {
       parsedCreated = json['created_at'] != null
@@ -110,6 +119,7 @@ class StartupProfileModel extends StartupProfileEntity {
       fundingAmountNeeded: amount,
       teamInformation: teamInfo,
       contactInformation: contactInfo,
+      websiteUrl: website,
       createdAt: parsedCreated,
       updatedAt: parsedUpdated,
       approvalStatus: json['approval_status']?.toString() ?? 'pending',
@@ -131,6 +141,7 @@ class StartupProfileModel extends StartupProfileEntity {
       fundingAmountNeeded: entity.fundingAmountNeeded,
       teamInformation: entity.teamInformation,
       contactInformation: entity.contactInformation,
+      websiteUrl: entity.websiteUrl,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
       approvalStatus: entity.approvalStatus,
@@ -152,6 +163,7 @@ class StartupProfileModel extends StartupProfileEntity {
       'funding_amount_needed': fundingAmountNeeded,
       'team_information': teamInformation,
       'contact_information': contactInformation,
+      'website_url': websiteUrl,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
       'approval_status': approvalStatus,
@@ -172,6 +184,7 @@ class StartupProfileModel extends StartupProfileEntity {
       'funding_amount_needed': fundingAmountNeeded,
       'team_information': teamInformation,
       'contact_information': contactInformation,
+      'website_url': websiteUrl,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
       'approval_status': approvalStatus,
@@ -191,6 +204,7 @@ class StartupProfileModel extends StartupProfileEntity {
       'funding_amount_needed': fundingAmountNeeded,
       'team_information': teamInformation,
       'contact_information': contactInformation,
+      'website_url': websiteUrl,
       'updated_at': updatedAt.toIso8601String(),
       'approval_status': approvalStatus,
       'rejection_reason': rejectionReason,

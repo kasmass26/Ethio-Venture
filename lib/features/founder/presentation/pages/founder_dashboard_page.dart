@@ -1,4 +1,3 @@
-import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -10,7 +9,6 @@ import '../../../../core/services/user_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/animated_counter.dart';
 import '../../../../core/widgets/staggered_fade_slide.dart';
-import '../../../../core/widgets/shimmer_loading.dart';
 import '../../../pitch_deck/presentation/cubit/document_cubit.dart';
 import '../../../pitch_deck/presentation/cubit/document_state.dart';
 import '../../../startup_profile/domain/entities/startup_profile_entity.dart';
@@ -736,7 +734,7 @@ class _MetricsRow extends StatelessWidget {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: metrics.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        separatorBuilder: (_, _) => const SizedBox(width: 12),
         itemBuilder: (context, i) {
           return SizedBox(
             width: 155,

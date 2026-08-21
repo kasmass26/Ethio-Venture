@@ -230,7 +230,7 @@ class ConnectionRequestRemoteDataSource {
         'body': body,
         'type': type,
         'is_read': false,
-        if (data != null) 'data': data,
+        'data': ?data,
       });
     } catch (e) {
       developer.log(

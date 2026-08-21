@@ -8,7 +8,7 @@ import '../../domain/entities/startup_profile_entity.dart';
 ///
 /// Styled according to the Ethio Venture Design System tokens.
 /// Features high-contrast field labels, prominent required asterisks,
-/// and clean white input cards.
+/// clean card grouping, and input validation.
 class StartupProfileForm extends StatefulWidget {
   const StartupProfileForm({
     super.key,
@@ -38,6 +38,7 @@ class _StartupProfileFormState extends State<StartupProfileForm> {
   late final TextEditingController _locationController;
   late final TextEditingController _teamController;
   late final TextEditingController _contactController;
+  late final TextEditingController _websiteController;
 
   String _selectedIndustry = 'Fintech';
   String _selectedFundingStage = 'Seed';
@@ -50,6 +51,9 @@ class _StartupProfileFormState extends State<StartupProfileForm> {
     'CleanTech',
     'Logistics',
     'E-commerce',
+    'AI & Data',
+    'SaaS',
+    'Hardware & IoT',
     'Other',
   ];
 
@@ -89,14 +93,21 @@ class _StartupProfileFormState extends State<StartupProfileForm> {
     _nameController = TextEditingController(text: p?.startupName ?? '');
     _descriptionController = TextEditingController(text: p?.description ?? '');
     _fundingAmountController = TextEditingController(
-      text: p != null ? p.fundingAmountNeeded.toStringAsFixed(2) : '',
+      text: p != null && p.fundingAmountNeeded > 0
+          ? p.fundingAmountNeeded.toStringAsFixed(2)
+          : '',
     );
     _locationController = TextEditingController(
-      text: p?.location ?? 'Addis Ababa, Ethiopia',
+      text: p?.location.isNotEmpty == true
+          ? p!.location
+          : 'Addis Ababa, Ethiopia',
     );
     _teamController = TextEditingController(text: p?.teamInformation ?? '');
     _contactController = TextEditingController(
       text: p?.contactInformation ?? '',
+    );
+    _websiteController = TextEditingController(
+      text: p?.websiteUrl ?? '',
     );
 
     if (p != null && p.industry.isNotEmpty) {
@@ -115,6 +126,7 @@ class _StartupProfileFormState extends State<StartupProfileForm> {
     _locationController.dispose();
     _teamController.dispose();
     _contactController.dispose();
+    _websiteController.dispose();
     super.dispose();
   }
 
@@ -125,6 +137,13 @@ class _StartupProfileFormState extends State<StartupProfileForm> {
             _fundingAmountController.text.replaceAll(',', '').trim(),
           ) ??
           0.0;
+
+      String website = _websiteController.text.trim();
+      if (website.isNotEmpty &&
+          !website.startsWith('http://') &&
+          !website.startsWith('https://')) {
+        website = 'https://$website';
+      }
 
       final profile = StartupProfileEntity(
         id: widget.initialProfile?.id ?? '',
@@ -137,6 +156,7 @@ class _StartupProfileFormState extends State<StartupProfileForm> {
         location: _locationController.text.trim(),
         teamInformation: _teamController.text.trim(),
         contactInformation: _contactController.text.trim(),
+        websiteUrl: website,
         createdAt: widget.initialProfile?.createdAt ?? DateTime.now(),
         updatedAt: DateTime.now(),
       );
@@ -148,10 +168,14 @@ class _StartupProfileFormState extends State<StartupProfileForm> {
   InputDecoration _buildInputDecoration({
     required String hintText,
     String? prefixText,
+    IconData? prefixIcon,
   }) {
     return InputDecoration(
       hintText: hintText,
       prefixText: prefixText,
+      prefixIcon: prefixIcon != null
+          ? Icon(prefixIcon, size: 20, color: AppColors.slate)
+          : null,
       prefixStyle: const TextStyle(
         color: AppColors.ink,
         fontWeight: FontWeight.w600,
@@ -183,6 +207,74 @@ class _StartupProfileFormState extends State<StartupProfileForm> {
     );
   }
 
+  Widget _buildSectionCard({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required List<Widget> children,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppSizes.lg),
+      padding: const EdgeInsets.all(AppSizes.lg),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primarySoft,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, size: 20, color: AppColors.primaryDark),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.ink,
+                      ),
+                    ),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.slate,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSizes.md),
+          const Divider(height: 1, color: AppColors.hairline),
+          const SizedBox(height: AppSizes.md),
+          ...children,
+        ],
+      ),
+    );
+  }
+
   Widget _buildFieldLabel(String labelText) {
     final cleanLabel = labelText.replaceAll(' *', '');
     final isRequired = labelText.contains('*');
@@ -193,7 +285,7 @@ class _StartupProfileFormState extends State<StartupProfileForm> {
         text: TextSpan(
           text: cleanLabel,
           style: const TextStyle(
-            fontSize: 15,
+            fontSize: 14.5,
             fontWeight: FontWeight.w700,
             color: AppColors.ink,
           ),
@@ -220,139 +312,196 @@ class _StartupProfileFormState extends State<StartupProfileForm> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Startup Name
-          _buildFieldLabel('Startup Name *'),
-          TextFormField(
-            controller: _nameController,
-            style: const TextStyle(color: AppColors.ink, fontSize: 15),
-            validator: (v) =>
-                InputValidators.notEmpty(v, field: 'Startup name'),
-            decoration: _buildInputDecoration(
-              hintText: 'e.g. EthioPay Solutions',
-            ),
-          ),
-          const SizedBox(height: AppSizes.md),
+          // ── Section 1: Core Details ──────────────────────────────────────
+          _buildSectionCard(
+            title: 'General Information',
+            subtitle: 'Core details about your startup entity',
+            icon: Icons.rocket_launch_rounded,
+            children: [
+              // Startup Name
+              _buildFieldLabel('Startup Name *'),
+              TextFormField(
+                controller: _nameController,
+                style: const TextStyle(color: AppColors.ink, fontSize: 15),
+                validator: (v) =>
+                    InputValidators.notEmpty(v, field: 'Startup name'),
+                decoration: _buildInputDecoration(
+                  hintText: 'e.g. EthioPay Solutions',
+                  prefixIcon: Icons.business_rounded,
+                ),
+              ),
+              const SizedBox(height: AppSizes.md),
 
-          // Startup Description
-          _buildFieldLabel('Startup Description *'),
-          TextFormField(
-            controller: _descriptionController,
-            maxLines: 4,
-            style: const TextStyle(color: AppColors.ink, fontSize: 15),
-            validator: (v) => InputValidators.notEmpty(v, field: 'Description'),
-            decoration: _buildInputDecoration(
-              hintText: 'Describe your vision, product, and target market...',
-            ),
-          ),
-          const SizedBox(height: AppSizes.md),
+              // Startup Description
+              _buildFieldLabel('Startup Description *'),
+              TextFormField(
+                controller: _descriptionController,
+                maxLines: 4,
+                style: const TextStyle(color: AppColors.ink, fontSize: 15),
+                validator: (v) => InputValidators.notEmpty(v, field: 'Description'),
+                decoration: _buildInputDecoration(
+                  hintText: 'Describe your value proposition, target market, and vision...',
+                ),
+              ),
+              const SizedBox(height: AppSizes.md),
 
-          // Industry Sector Dropdown
-          _buildFieldLabel('Industry Sector *'),
-          DropdownButtonFormField<String>(
-            value: _availableIndustries.contains(_selectedIndustry)
-                ? _selectedIndustry
-                : _availableIndustries.first,
-            dropdownColor: AppColors.white,
-            iconEnabledColor: AppColors.primary,
-            style: const TextStyle(color: AppColors.ink, fontSize: 15),
-            items: _availableIndustries
-                .map(
-                  (ind) => DropdownMenuItem(
-                    value: ind,
-                    child: Text(
-                      ind,
-                      style: const TextStyle(color: AppColors.ink),
-                    ),
-                  ),
-                )
-                .toList(),
-            onChanged: (val) {
-              if (val != null) setState(() => _selectedIndustry = val);
-            },
-            decoration: _buildInputDecoration(hintText: 'Select industry'),
+              // Industry Sector Dropdown
+              _buildFieldLabel('Industry Sector *'),
+              DropdownButtonFormField<String>(
+                initialValue: _availableIndustries.contains(_selectedIndustry)
+                    ? _selectedIndustry
+                    : _availableIndustries.first,
+                dropdownColor: AppColors.white,
+                iconEnabledColor: AppColors.primary,
+                style: const TextStyle(color: AppColors.ink, fontSize: 15),
+                items: _availableIndustries
+                    .map(
+                      (ind) => DropdownMenuItem(
+                        value: ind,
+                        child: Text(
+                          ind,
+                          style: const TextStyle(color: AppColors.ink),
+                        ),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (val) {
+                  if (val != null) setState(() => _selectedIndustry = val);
+                },
+                decoration: _buildInputDecoration(
+                  hintText: 'Select industry',
+                  prefixIcon: Icons.category_rounded,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: AppSizes.md),
 
-          // Funding Stage Dropdown
-          _buildFieldLabel('Funding Stage *'),
-          DropdownButtonFormField<String>(
-            value: _availableFundingStages.contains(_selectedFundingStage)
-                ? _selectedFundingStage
-                : _availableFundingStages.first,
-            dropdownColor: AppColors.white,
-            iconEnabledColor: AppColors.primary,
-            style: const TextStyle(color: AppColors.ink, fontSize: 15),
-            items: _availableFundingStages
-                .map(
-                  (stage) => DropdownMenuItem(
-                    value: stage,
-                    child: Text(
-                      stage,
-                      style: const TextStyle(color: AppColors.ink),
-                    ),
-                  ),
-                )
-                .toList(),
-            onChanged: (val) {
-              if (val != null) setState(() => _selectedFundingStage = val);
-            },
-            decoration: _buildInputDecoration(hintText: 'Select funding stage'),
-          ),
-          const SizedBox(height: AppSizes.md),
+          // ── Section 2: Funding & Location ─────────────────────────────────
+          _buildSectionCard(
+            title: 'Funding & Location',
+            subtitle: 'Capital requirements and operating location',
+            icon: Icons.account_balance_wallet_rounded,
+            children: [
+              // Funding Stage Dropdown
+              _buildFieldLabel('Funding Stage *'),
+              DropdownButtonFormField<String>(
+                initialValue: _availableFundingStages.contains(_selectedFundingStage)
+                    ? _selectedFundingStage
+                    : _availableFundingStages.first,
+                dropdownColor: AppColors.white,
+                iconEnabledColor: AppColors.primary,
+                style: const TextStyle(color: AppColors.ink, fontSize: 15),
+                items: _availableFundingStages
+                    .map(
+                      (stage) => DropdownMenuItem(
+                        value: stage,
+                        child: Text(
+                          stage,
+                          style: const TextStyle(color: AppColors.ink),
+                        ),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (val) {
+                  if (val != null) setState(() => _selectedFundingStage = val);
+                },
+                decoration: _buildInputDecoration(
+                  hintText: 'Select funding stage',
+                  prefixIcon: Icons.trending_up_rounded,
+                ),
+              ),
+              const SizedBox(height: AppSizes.md),
 
-          // Funding Amount Needed
-          _buildFieldLabel('Funding Amount Needed (USD) *'),
-          TextFormField(
-            controller: _fundingAmountController,
-            keyboardType: TextInputType.number,
-            style: const TextStyle(color: AppColors.ink, fontSize: 15),
-            validator: (v) =>
-                InputValidators.positiveAmount(v, field: 'Funding amount'),
-            decoration: _buildInputDecoration(
-              hintText: '50000.00',
-              prefixText: '\$ ',
-            ),
-          ),
-          const SizedBox(height: AppSizes.md),
+              // Funding Amount Needed
+              _buildFieldLabel('Funding Amount Needed (USD) *'),
+              TextFormField(
+                controller: _fundingAmountController,
+                keyboardType: TextInputType.number,
+                style: const TextStyle(color: AppColors.ink, fontSize: 15),
+                validator: (v) =>
+                    InputValidators.positiveAmount(v, field: 'Funding amount'),
+                decoration: _buildInputDecoration(
+                  hintText: 'e.g. 100000.00',
+                  prefixText: '\$ ',
+                  prefixIcon: Icons.attach_money_rounded,
+                ),
+              ),
+              const SizedBox(height: AppSizes.md),
 
-          // Location
-          _buildFieldLabel('Location *'),
-          TextFormField(
-            controller: _locationController,
-            style: const TextStyle(color: AppColors.ink, fontSize: 15),
-            validator: (v) => InputValidators.notEmpty(v, field: 'Location'),
-            decoration: _buildInputDecoration(
-              hintText: 'e.g. Addis Ababa, Ethiopia',
-            ),
+              // Location
+              _buildFieldLabel('Headquarters / City *'),
+              TextFormField(
+                controller: _locationController,
+                style: const TextStyle(color: AppColors.ink, fontSize: 15),
+                validator: (v) => InputValidators.notEmpty(v, field: 'Location'),
+                decoration: _buildInputDecoration(
+                  hintText: 'e.g. Addis Ababa, Ethiopia',
+                  prefixIcon: Icons.location_on_rounded,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: AppSizes.md),
 
-          // Team Information
-          _buildFieldLabel('Team Information *'),
-          TextFormField(
-            controller: _teamController,
-            maxLines: 3,
-            style: const TextStyle(color: AppColors.ink, fontSize: 15),
-            validator: (v) =>
-                InputValidators.notEmpty(v, field: 'Team information'),
-            decoration: _buildInputDecoration(
-              hintText: 'Overview of founders, key roles, and skills...',
-            ),
-          ),
-          const SizedBox(height: AppSizes.md),
+          // ── Section 3: Online Presence & Team ─────────────────────────────
+          _buildSectionCard(
+            title: 'Web/App Link & Team',
+            subtitle: 'Showcase your website or app and team composition',
+            icon: Icons.language_rounded,
+            children: [
+              // Website / Mobile App URL (Optional / New requirement)
+              _buildFieldLabel('Website or App URL'),
+              TextFormField(
+                controller: _websiteController,
+                keyboardType: TextInputType.url,
+                style: const TextStyle(color: AppColors.ink, fontSize: 15),
+                decoration: _buildInputDecoration(
+                  hintText: 'e.g. https://www.mystartup.com or App Store link',
+                  prefixIcon: Icons.link_rounded,
+                ),
+              ),
+              const SizedBox(height: AppSizes.xs),
+              const Text(
+                'Provide your website, web app, or mobile app store link so investors can explore live products.',
+                style: TextStyle(fontSize: 12, color: AppColors.slate),
+              ),
+              const SizedBox(height: AppSizes.md),
 
-          // Contact Information
-          _buildFieldLabel('Contact Information *'),
-          TextFormField(
-            controller: _contactController,
-            style: const TextStyle(color: AppColors.ink, fontSize: 15),
-            validator: (v) =>
-                InputValidators.notEmpty(v, field: 'Contact information'),
-            decoration: _buildInputDecoration(
-              hintText: 'e.g. founder@startup.com / +251 91 234 5678',
-            ),
+              // Team Information
+              _buildFieldLabel('Team Overview & Key Roles *'),
+              TextFormField(
+                controller: _teamController,
+                maxLines: 3,
+                style: const TextStyle(color: AppColors.ink, fontSize: 15),
+                validator: (v) =>
+                    InputValidators.notEmpty(v, field: 'Team information'),
+                decoration: _buildInputDecoration(
+                  hintText: 'Founders, background, key engineers, advisor credentials...',
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: AppSizes.xl),
+
+          // ── Section 4: Contact ───────────────────────────────────────────
+          _buildSectionCard(
+            title: 'Contact Details',
+            subtitle: 'Direct contact info for interested investors',
+            icon: Icons.contact_mail_rounded,
+            children: [
+              _buildFieldLabel('Contact Information *'),
+              TextFormField(
+                controller: _contactController,
+                style: const TextStyle(color: AppColors.ink, fontSize: 15),
+                validator: (v) =>
+                    InputValidators.notEmpty(v, field: 'Contact information'),
+                decoration: _buildInputDecoration(
+                  hintText: 'e.g. founder@startup.com / +251 91 123 4567',
+                  prefixIcon: Icons.email_rounded,
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: AppSizes.md),
 
           // Submit Button
           ElevatedButton(
@@ -360,9 +509,10 @@ class _StartupProfileFormState extends State<StartupProfileForm> {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               foregroundColor: AppColors.white,
-              minimumSize: const Size.fromHeight(52),
+              minimumSize: const Size.fromHeight(54),
+              elevation: 2,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+                borderRadius: BorderRadius.circular(14),
               ),
             ),
             child: widget.isSubmitting
@@ -382,6 +532,7 @@ class _StartupProfileFormState extends State<StartupProfileForm> {
                     ),
                   ),
           ),
+          const SizedBox(height: AppSizes.xl),
         ],
       ),
     );

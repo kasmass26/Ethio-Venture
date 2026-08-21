@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:ethioventure/core/constants/app_constants.dart';
 import 'package:ethioventure/core/di/injection_container.dart';
 import 'package:ethioventure/core/theme/app_colors.dart';
@@ -25,6 +27,31 @@ class StartupProfilePage extends StatelessWidget {
       (Match m) => '${m[1]},',
     );
     return '\$$integerPart.${parts[1]} USD';
+  }
+
+  Future<void> _launchWebsite(BuildContext context, String urlString) async {
+    if (urlString.trim().isEmpty) return;
+    var targetUrl = urlString.trim();
+    if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
+      targetUrl = 'https://$targetUrl';
+    }
+    final uri = Uri.tryParse(targetUrl);
+    if (uri != null) {
+      try {
+        final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+        if (!launched && context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Could not open link: $urlString')),
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error launching link: $e')),
+          );
+        }
+      }
+    }
   }
 
   void _confirmLogout(BuildContext context) {
@@ -269,6 +296,8 @@ class StartupProfilePage extends StatelessWidget {
 
                 if (state is StartupProfileLoaded) {
                   final profile = state.profile;
+                  final hasWebsite = profile.websiteUrl.trim().isNotEmpty;
+
                   return SingleChildScrollView(
                     padding: const EdgeInsets.all(18),
                     child: Column(
@@ -381,12 +410,12 @@ class StartupProfilePage extends StatelessWidget {
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(color: AppColors.warning.withOpacity(0.4)),
                             ),
-                            child: Row(
+                            child: const Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Icon(Icons.hourglass_top_rounded, color: AppColors.warning, size: 20),
-                                const SizedBox(width: 10),
-                                const Expanded(
+                                Icon(Icons.hourglass_top_rounded, color: AppColors.warning, size: 20),
+                                SizedBox(width: 10),
+                                Expanded(
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
@@ -439,8 +468,8 @@ class StartupProfilePage extends StatelessWidget {
                               Row(
                                 children: [
                                   Container(
-                                    width: 60,
-                                    height: 60,
+                                    width: 62,
+                                    height: 62,
                                     alignment: Alignment.center,
                                     decoration: BoxDecoration(
                                       color: Colors.white.withValues(alpha: 0.2),
@@ -676,6 +705,122 @@ class StartupProfilePage extends StatelessWidget {
                         ),
                         const SizedBox(height: 18),
 
+                        // Website / App Link Section Card
+                        Card(
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                            side: const BorderSide(color: AppColors.border),
+                          ),
+                          color: AppColors.surface,
+                          child: Padding(
+                            padding: const EdgeInsets.all(18),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Row(
+                                  children: [
+                                    Icon(
+                                      Icons.language_rounded,
+                                      size: 20,
+                                      color: AppColors.primaryDark,
+                                    ),
+                                    SizedBox(width: 10),
+                                    Text(
+                                      'Website & Mobile App',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const Divider(height: 24),
+                                if (hasWebsite) ...[
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                      vertical: 12,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.background,
+                                      borderRadius: BorderRadius.circular(14),
+                                      border: Border.all(color: AppColors.border),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.link_rounded,
+                                          size: 20,
+                                          color: AppColors.primaryDark,
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: Text(
+                                            profile.websiteUrl,
+                                            style: const TextStyle(
+                                              color: AppColors.primaryDark,
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 14,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                        IconButton(
+                                          icon: const Icon(Icons.copy_rounded, size: 18, color: AppColors.slate),
+                                          tooltip: 'Copy Link',
+                                          onPressed: () {
+                                            Clipboard.setData(ClipboardData(text: profile.websiteUrl));
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(
+                                                content: Text('Website link copied to clipboard!'),
+                                                duration: Duration(seconds: 2),
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  ElevatedButton.icon(
+                                    onPressed: () => _launchWebsite(context, profile.websiteUrl),
+                                    icon: const Icon(Icons.open_in_new_rounded, size: 18),
+                                    label: const Text('Visit Website / App'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.primary,
+                                      foregroundColor: AppColors.white,
+                                      minimumSize: const Size.fromHeight(44),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                  ),
+                                ] else ...[
+                                  Row(
+                                    children: [
+                                      const Icon(Icons.info_outline, size: 18, color: AppColors.slate),
+                                      const SizedBox(width: 8),
+                                      const Expanded(
+                                        child: Text(
+                                          'No website or app link provided yet. Add your URL so investors can review your product live.',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: AppColors.slate,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
                         // Description Card
                         _buildInfoSection(
                           context,
@@ -773,7 +918,7 @@ class StartupProfilePage extends StatelessWidget {
                         const SizedBox(height: 24),
 
                         // Bottom Action Button
-                         ElevatedButton.icon(
+                        ElevatedButton.icon(
                           onPressed: profile.hasExhaustedChances
                               ? null
                               : () {

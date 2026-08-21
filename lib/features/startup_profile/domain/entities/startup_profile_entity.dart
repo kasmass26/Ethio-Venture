@@ -16,6 +16,7 @@ class StartupProfileEntity {
     required this.contactInformation,
     required this.createdAt,
     required this.updatedAt,
+    this.websiteUrl = '',
     this.approvalStatus = 'pending',
     this.rejectionReason,
     this.approvalDate,
@@ -51,6 +52,9 @@ class StartupProfileEntity {
 
   /// Contact information.
   final String contactInformation;
+
+  /// Website or mobile application URL for the startup.
+  final String websiteUrl;
 
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -91,6 +95,7 @@ class StartupProfileEntity {
     String? location,
     String? teamInformation,
     String? contactInformation,
+    String? websiteUrl,
     DateTime? createdAt,
     DateTime? updatedAt,
     String? approvalStatus,
@@ -109,6 +114,7 @@ class StartupProfileEntity {
       location: location ?? this.location,
       teamInformation: teamInformation ?? this.teamInformation,
       contactInformation: contactInformation ?? this.contactInformation,
+      websiteUrl: websiteUrl ?? this.websiteUrl,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       approvalStatus: approvalStatus ?? this.approvalStatus,
@@ -132,6 +138,7 @@ class StartupProfileEntity {
             fundingAmountNeeded == other.fundingAmountNeeded &&
             teamInformation == other.teamInformation &&
             contactInformation == other.contactInformation &&
+            websiteUrl == other.websiteUrl &&
             createdAt == other.createdAt &&
             updatedAt == other.updatedAt &&
             approvalStatus == other.approvalStatus &&
@@ -151,6 +158,7 @@ class StartupProfileEntity {
         fundingAmountNeeded,
         teamInformation,
         contactInformation,
+        websiteUrl,
         createdAt,
         updatedAt,
         approvalStatus,

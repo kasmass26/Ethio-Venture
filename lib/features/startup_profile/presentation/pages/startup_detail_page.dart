@@ -2,6 +2,7 @@ import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/di/injection_container.dart';
@@ -96,6 +97,31 @@ class _StartupDetailPageState extends State<StartupDetailPage> {
       return '\$${k == k.truncateToDouble() ? k.toStringAsFixed(0) : k.toStringAsFixed(1)}K USD';
     }
     return '\$${amount.toStringAsFixed(0)} USD';
+  }
+
+  Future<void> _launchWebsite(BuildContext context, String urlString) async {
+    if (urlString.trim().isEmpty) return;
+    var targetUrl = urlString.trim();
+    if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
+      targetUrl = 'https://$targetUrl';
+    }
+    final uri = Uri.tryParse(targetUrl);
+    if (uri != null) {
+      try {
+        final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+        if (!launched && context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Could not open link: $urlString')),
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error launching link: $e')),
+          );
+        }
+      }
+    }
   }
 
   void _showInterestDialog(BuildContext context, StartupProfileEntity startup) {
@@ -340,6 +366,7 @@ class _StartupDetailPageState extends State<StartupDetailPage> {
     }
 
     final startup = _startup!;
+    final hasWebsite = startup.websiteUrl.trim().isNotEmpty;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -406,6 +433,16 @@ class _StartupDetailPageState extends State<StartupDetailPage> {
                 isDark: isDark,
               ),
               const SizedBox(height: 16),
+
+              // ── Website / Mobile App Card ──────────────────────────────────
+              if (hasWebsite) ...[
+                _WebsiteSectionCard(
+                  websiteUrl: startup.websiteUrl,
+                  onLaunch: () => _launchWebsite(context, startup.websiteUrl),
+                  isDark: isDark,
+                ),
+                const SizedBox(height: 16),
+              ],
 
               // ── Overview & Vision ─────────────────────────────────────────
               _ContentSectionCard(
@@ -813,6 +850,106 @@ class _MetricItem extends StatelessWidget {
               fontSize: 11.5,
               color: AppColors.textSecondary,
               fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WebsiteSectionCard extends StatelessWidget {
+  const _WebsiteSectionCard({
+    required this.websiteUrl,
+    required this.onLaunch,
+    required this.isDark,
+  });
+
+  final String websiteUrl;
+  final VoidCallback onLaunch;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.language_rounded, size: 18, color: AppColors.primaryDark),
+              SizedBox(width: 8),
+              Text(
+                'Website & App Platform',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          const Divider(height: 1, color: AppColors.divider),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceVariant,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.link_rounded,
+                  size: 18,
+                  color: AppColors.primaryDark,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: SelectableText(
+                    websiteUrl,
+                    style: const TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primaryDark,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.copy_rounded, size: 18, color: AppColors.textSecondary),
+                  tooltip: 'Copy Website Link',
+                  onPressed: () {
+                    Clipboard.setData(ClipboardData(text: websiteUrl));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Website URL copied to clipboard!'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          ElevatedButton.icon(
+            onPressed: onLaunch,
+            icon: const Icon(Icons.open_in_new_rounded, size: 16),
+            label: const Text('Visit Product / Website'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: AppColors.white,
+              minimumSize: const Size.fromHeight(42),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
           ),
         ],

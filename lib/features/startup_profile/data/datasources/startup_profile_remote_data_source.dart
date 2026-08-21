@@ -40,6 +40,7 @@ class StartupProfileRemoteDataSourceImpl
       'funding_amount_needed': profile.fundingAmountNeeded,
       'team_information': profile.teamInformation,
       'contact_information': profile.contactInformation,
+      'website_url': profile.websiteUrl,
       'updated_at': DateTime.now().toIso8601String(),
     };
 
@@ -51,7 +52,7 @@ class StartupProfileRemoteDataSourceImpl
           .single();
       return StartupProfileModel.fromJson(response);
     } catch (e) {
-      // If table uses business_name / funding_amount_sought columns
+      // If table uses business_name / funding_amount_sought or doesn't have website_url column yet
       if (e is PostgrestException && (e.code == '42703' || e.message.contains('column'))) {
         try {
           final fallbackPayload = {
@@ -66,6 +67,7 @@ class StartupProfileRemoteDataSourceImpl
             'funding_amount_sought': profile.fundingAmountNeeded,
             'team_information': profile.teamInformation,
             'contact_information': profile.contactInformation,
+            'website_url': profile.websiteUrl,
             'updated_at': DateTime.now().toIso8601String(),
           };
           final response = await _client
@@ -172,6 +174,7 @@ class StartupProfileRemoteDataSourceImpl
       'funding_amount_needed': profile.fundingAmountNeeded,
       'team_information': profile.teamInformation,
       'contact_information': profile.contactInformation,
+      'website_url': profile.websiteUrl,
       'updated_at': DateTime.now().toIso8601String(),
       'approval_status': approvalStatus,
       'rejection_reason': rejectionReason,
@@ -200,6 +203,7 @@ class StartupProfileRemoteDataSourceImpl
             'funding_amount_sought': profile.fundingAmountNeeded,
             'team_information': profile.teamInformation,
             'contact_information': profile.contactInformation,
+            'website_url': profile.websiteUrl,
             'updated_at': DateTime.now().toIso8601String(),
             'approval_status': approvalStatus,
             'rejection_reason': rejectionReason,

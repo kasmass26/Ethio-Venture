@@ -33,12 +33,12 @@ class ChatCubit extends Cubit<ChatState> {
         name: 'ChatCubit.loadMessages',
         level: 900,
       );
-      emit(const ChatUnauthenticated());
+      if (!isClosed) emit(const ChatUnauthenticated());
       return;
     }
 
     _conversationId = conversationId;
-    emit(const ChatLoading());
+    if (!isClosed) emit(const ChatLoading());
 
     try {
       final myProfileId = await _resolveProfileId(user.id);
@@ -48,6 +48,7 @@ class ChatCubit extends Cubit<ChatState> {
       );
 
       final messages = await _repository.getMessages(conversationId);
+      if (isClosed) return;
       developer.log(
         'ChatCubit.loadMessages: Received ${messages.length} message(s)',
         name: 'ChatCubit.loadMessages',
@@ -55,6 +56,7 @@ class ChatCubit extends Cubit<ChatState> {
       emit(ChatLoaded(messages: messages, myProfileId: myProfileId));
       _subscribeToNewMessages(conversationId);
     } catch (e, st) {
+      if (isClosed) return;
       developer.log(
         'ChatCubit.loadMessages ERROR: $e',
         name: 'ChatCubit.loadMessages',
@@ -94,6 +96,7 @@ class ChatCubit extends Cubit<ChatState> {
     );
     _subscription =
         _repository.subscribeToMessages(conversationId).listen((newMsg) {
+      if (isClosed) return;
       developer.log(
         'ChatCubit: Received realtime message: "${newMsg.content}" (id: ${newMsg.id})',
         name: 'ChatCubit.stream',
@@ -103,7 +106,7 @@ class ChatCubit extends Cubit<ChatState> {
         final updated = List<MessageEntity>.from(current.messages);
         if (!updated.any((m) => m.id == newMsg.id)) {
           updated.add(newMsg);
-          emit(current.copyWith(messages: updated));
+          if (!isClosed) emit(current.copyWith(messages: updated));
 
           final currentUserId = Supabase.instance.client.auth.currentUser?.id;
           if (newMsg.senderId != current.myProfileId &&
@@ -147,12 +150,13 @@ class ChatCubit extends Cubit<ChatState> {
       name: 'ChatCubit.sendMessage',
     );
 
-    emit(current.copyWith(isSending: true));
+    if (!isClosed) emit(current.copyWith(isSending: true));
     try {
       final msg = await _repository.sendMessage(
         conversationId: conversationId,
         content: content,
       );
+      if (isClosed) return;
       developer.log(
         'ChatCubit.sendMessage: Successfully sent message id "${msg.id}"',
         name: 'ChatCubit.sendMessage',
@@ -163,6 +167,7 @@ class ChatCubit extends Cubit<ChatState> {
       }
       emit(current.copyWith(messages: updated, isSending: false));
     } catch (e, st) {
+      if (isClosed) return;
       developer.log(
         'ChatCubit.sendMessage ERROR: $e',
         name: 'ChatCubit.sendMessage',

@@ -711,7 +711,7 @@ class _InvestorDetailSheetState extends State<InvestorDetailSheet> {
                 Row(
                   children: [
                     Text(
-                      '${investor.matchScore}% AI Match',
+                      '${investor.matchScore}% Match',
                       style: TextStyle(
                         color: isDark ? Colors.white : AppColors.secondary,
                         fontWeight: FontWeight.w800,

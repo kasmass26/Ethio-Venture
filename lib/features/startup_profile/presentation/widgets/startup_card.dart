@@ -104,6 +104,17 @@ class StartupCard extends StatelessWidget {
                                   ? AppColors.surfaceDark
                                   : AppColors.surfaceVariant,
                             ),
+                            if (startup.websiteUrl.trim().isNotEmpty)
+                              _Badge(
+                                label: 'Web/App',
+                                color: isDark
+                                    ? AppColors.primary
+                                    : AppColors.primaryDark,
+                                background: isDark
+                                    ? AppColors.primaryDark.withAlpha(77)
+                                    : AppColors.primarySoft,
+                                icon: Icons.language_rounded,
+                              ),
                           ],
                         ),
                       ],
@@ -200,11 +211,13 @@ class _Badge extends StatelessWidget {
     required this.label,
     required this.color,
     required this.background,
+    this.icon,
   });
 
   final String label;
   final Color color;
   final Color background;
+  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
@@ -217,12 +230,21 @@ class _Badge extends StatelessWidget {
         color: background,
         borderRadius: BorderRadius.circular(AppSizes.radiusXl),
       ),
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: color,
-              fontWeight: FontWeight.w600,
-            ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 12, color: color),
+            const SizedBox(width: 4),
+          ],
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: color,
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+        ],
       ),
     );
   }
