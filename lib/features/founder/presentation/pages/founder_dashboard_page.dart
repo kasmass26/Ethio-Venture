@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -6,6 +8,9 @@ import '../../../../core/constants/app_constants.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/services/user_service.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/animated_counter.dart';
+import '../../../../core/widgets/staggered_fade_slide.dart';
+import '../../../../core/widgets/shimmer_loading.dart';
 import '../../../pitch_deck/presentation/cubit/document_cubit.dart';
 import '../../../pitch_deck/presentation/cubit/document_state.dart';
 import '../../../startup_profile/domain/entities/startup_profile_entity.dart';
@@ -160,11 +165,19 @@ class _FounderDashboardPageState extends State<FounderDashboardPage> {
       iconAsset: 'interest',
       isPositive: true,
     ),
+    DashboardMetric(
+      label: 'Conversations',
+      value: '7',
+      deltaText: '2 active now',
+      iconAsset: 'conversations',
+      isPositive: true,
+    ),
   ];
 
   static const _metricIcons = [
     Icons.visibility_outlined,
     Icons.favorite_border_rounded,
+    Icons.chat_bubble_outline_rounded,
   ];
 
   @override
@@ -235,84 +248,125 @@ class _FounderDashboardPageState extends State<FounderDashboardPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        BlocBuilder<StartupProfileCubit, StartupProfileState>(
-                          builder: (context, profileState) {
-                            final profile = profileState is StartupProfileLoaded
-                                ? profileState.profile
-                                : null;
-                            final isProfileEmpty =
-                                profileState is StartupProfileEmpty;
-                            final isProfileLoading =
-                                profileState is StartupProfileLoading;
+                        // ── Hero Card (stagger index 0) ──
+                        StaggeredFadeSlide(
+                          index: 0,
+                          totalItems: 5,
+                          child: BlocBuilder<StartupProfileCubit, StartupProfileState>(
+                            builder: (context, profileState) {
+                              final profile = profileState is StartupProfileLoaded
+                                  ? profileState.profile
+                                  : null;
+                              final isProfileEmpty =
+                                  profileState is StartupProfileEmpty;
+                              final isProfileLoading =
+                                  profileState is StartupProfileLoading;
 
-                            return BlocBuilder<DocumentCubit, DocumentState>(
-                              builder: (context, docState) {
-                                final hasDocuments =
-                                    docState is DocumentsLoaded &&
-                                    docState.documents.isNotEmpty;
-                                final isDocLoading =
-                                    docState is DocumentLoading;
+                              return BlocBuilder<DocumentCubit, DocumentState>(
+                                builder: (context, docState) {
+                                  final hasDocuments =
+                                      docState is DocumentsLoaded &&
+                                      docState.documents.isNotEmpty;
+                                  final isDocLoading =
+                                      docState is DocumentLoading;
 
-                                final strength = _calculateProfileStrength(
-                                  profile,
-                                  isProfileEmpty,
-                                  hasDocuments: hasDocuments,
-                                );
+                                  final strength = _calculateProfileStrength(
+                                    profile,
+                                    isProfileEmpty,
+                                    hasDocuments: hasDocuments,
+                                  );
 
-                                return _HeroWelcomeCard(
-                                  userName: _userName,
-                                  strength: strength,
-                                  isLoading: isProfileLoading || isDocLoading,
-                                  onTap: () {
-                                    if (profile != null) {
-                                      Navigator.of(context)
-                                          .pushNamed(
-                                            AppConstants.routeStartupProfile,
-                                          )
-                                          .then((_) {
-                                            if (context.mounted) {
-                                              context
-                                                  .read<StartupProfileCubit>()
-                                                  .loadProfile(currentUserId);
-                                              context
-                                                  .read<DocumentCubit>()
-                                                  .loadDocuments(
-                                                    startupId: profile.id,
-                                                  );
-                                            }
-                                          });
-                                    } else {
-                                      Navigator.of(context)
-                                          .pushNamed(
-                                            AppConstants
-                                                .routeStartupProfileSetup,
-                                          )
-                                          .then((_) {
-                                            if (context.mounted) {
-                                              context
-                                                  .read<StartupProfileCubit>()
-                                                  .loadProfile(currentUserId);
-                                            }
-                                          });
-                                    }
-                                  },
-                                );
-                              },
-                            );
-                          },
+                                  return _HeroWelcomeCard(
+                                    userName: _userName,
+                                    strength: strength,
+                                    isLoading: isProfileLoading || isDocLoading,
+                                    onTap: () {
+                                      if (profile != null) {
+                                        Navigator.of(context)
+                                            .pushNamed(
+                                              AppConstants.routeStartupProfile,
+                                            )
+                                            .then((_) {
+                                              if (context.mounted) {
+                                                context
+                                                    .read<StartupProfileCubit>()
+                                                    .loadProfile(currentUserId);
+                                                context
+                                                    .read<DocumentCubit>()
+                                                    .loadDocuments(
+                                                      startupId: profile.id,
+                                                    );
+                                              }
+                                            });
+                                      } else {
+                                        Navigator.of(context)
+                                            .pushNamed(
+                                              AppConstants
+                                                  .routeStartupProfileSetup,
+                                            )
+                                            .then((_) {
+                                              if (context.mounted) {
+                                                context
+                                                    .read<StartupProfileCubit>()
+                                                    .loadProfile(currentUserId);
+                                              }
+                                            });
+                                      }
+                                    },
+                                  );
+                                },
+                              );
+                            },
+                          ),
                         ),
+
                         const SizedBox(height: 24),
-                        const _SectionHeading(title: 'Your Momentum'),
-                        const SizedBox(height: 12),
-                        _MetricsGrid(metrics: _metrics, icons: _metricIcons),
+
+                        // ── Metrics Section (stagger index 1) ──
+                        StaggeredFadeSlide(
+                          index: 1,
+                          totalItems: 5,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const _SectionHeading(title: 'Your Momentum'),
+                              const SizedBox(height: 12),
+                              _MetricsRow(metrics: _metrics, icons: _metricIcons),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(height: 24),
+
+                        // ── Quick Actions (stagger index 2) ──
+                        StaggeredFadeSlide(
+                          index: 2,
+                          totalItems: 5,
+                          child: const _QuickActionsGrid(),
+                        ),
+
+                        const SizedBox(height: 24),
+
+                        // ── Tip of the Day (stagger index 3) ──
+                        StaggeredFadeSlide(
+                          index: 3,
+                          totalItems: 5,
+                          child: const _TipOfTheDayCard(),
+                        ),
                       ],
                     ),
                   ),
                 ),
-                const SliverToBoxAdapter(
-                  child: Padding(
-                    padding: EdgeInsets.only(top: 14),
-                    child: RecommendedInvestorsSection(),
+
+                // ── Recommended Investors (stagger index 4) ──
+                SliverToBoxAdapter(
+                  child: StaggeredFadeSlide(
+                    index: 4,
+                    totalItems: 5,
+                    child: const Padding(
+                      padding: EdgeInsets.only(top: 14),
+                      child: RecommendedInvestorsSection(),
+                    ),
                   ),
                 ),
                 const SliverToBoxAdapter(child: SizedBox(height: 32)),
@@ -441,6 +495,16 @@ class _AvatarBubble extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
+// Time-aware greeting helper
+// ---------------------------------------------------------------------------
+String _timeGreeting() {
+  final hour = DateTime.now().hour;
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  return 'Good evening';
+}
+
+// ---------------------------------------------------------------------------
 // Hero card — greeting + profile-strength ring, combined into one focal point
 // ---------------------------------------------------------------------------
 class _HeroWelcomeCard extends StatelessWidget {
@@ -482,7 +546,7 @@ class _HeroWelcomeCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Welcome back, $userName',
+                        '${_timeGreeting()}, $userName 👋',
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 20,
@@ -494,7 +558,7 @@ class _HeroWelcomeCard extends StatelessWidget {
                       Text(
                         strength.subtitle,
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.85),
+                          color: Colors.white.withValues(alpha: 0.85),
                           fontSize: 13,
                           height: 1.4,
                         ),
@@ -510,7 +574,7 @@ class _HeroWelcomeCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.12),
+                color: Colors.white.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Column(
@@ -547,7 +611,7 @@ class _ProgressRing extends StatelessWidget {
               value: isLoading ? null : percent / 100,
               strokeWidth: 6,
               strokeCap: StrokeCap.round,
-              backgroundColor: Colors.white.withOpacity(0.25),
+              backgroundColor: Colors.white.withValues(alpha: 0.25),
               valueColor: const AlwaysStoppedAnimation(Colors.white),
             ),
           ),
@@ -593,7 +657,7 @@ class _ChecklistRow extends StatelessWidget {
               child: Text(
                 item.label,
                 style: TextStyle(
-                  color: Colors.white.withOpacity(item.isComplete ? 0.7 : 1),
+                  color: Colors.white.withValues(alpha: item.isComplete ? 0.7 : 1.0),
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
                   decoration: item.isComplete
@@ -658,25 +722,28 @@ class _SectionHeading extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Metrics grid
+// Metrics row — now 3 cards with animated counters, scrollable
 // ---------------------------------------------------------------------------
-class _MetricsGrid extends StatelessWidget {
+class _MetricsRow extends StatelessWidget {
   final List<DashboardMetric> metrics;
   final List<IconData> icons;
-  const _MetricsGrid({required this.metrics, required this.icons});
+  const _MetricsRow({required this.metrics, required this.icons});
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: _MetricCard(metric: metrics[0], icon: icons[0]),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _MetricCard(metric: metrics[1], icon: icons[1]),
-        ),
-      ],
+    return SizedBox(
+      height: 164,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: metrics.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        itemBuilder: (context, i) {
+          return SizedBox(
+            width: 155,
+            child: _MetricCard(metric: metrics[i], icon: icons[i]),
+          );
+        },
+      ),
     );
   }
 }
@@ -695,8 +762,12 @@ class _MetricCard extends StatelessWidget {
         ? AppColors.successSoft
         : AppColors.warningSoft;
 
+    final numericValue = int.tryParse(
+      metric.value.replaceAll(RegExp(r'[^0-9]'), ''),
+    );
+
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(20),
@@ -706,11 +777,17 @@ class _MetricCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _MetricIconBadge(icon: icon),
-          const SizedBox(height: 12),
-          Text(metric.value, style: _valueStyle),
+          const SizedBox(height: 10),
+          if (numericValue != null)
+            AnimatedCounter(
+              end: numericValue,
+              style: _valueStyle,
+            )
+          else
+            Text(metric.value, style: _valueStyle),
           const SizedBox(height: 2),
           Text(metric.label, style: _labelStyle),
-          const SizedBox(height: 10),
+          const Spacer(),
           _DeltaChip(text: metric.deltaText, fg: deltaFg, bg: deltaBg),
         ],
       ),
@@ -766,6 +843,273 @@ class _DeltaChip extends StatelessWidget {
       child: Text(
         text,
         style: TextStyle(color: fg, fontSize: 11, fontWeight: FontWeight.w700),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Quick Actions — 2×2 grid of shortcut tiles
+// ---------------------------------------------------------------------------
+class _QuickActionsGrid extends StatelessWidget {
+  const _QuickActionsGrid();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _SectionHeading(title: 'Quick Actions'),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _QuickActionTile(
+                icon: Icons.description_outlined,
+                label: 'Upload\nPitch Deck',
+                gradient: const [Color(0xFF0A2540), Color(0xFF21496E)],
+                onTap: () => Navigator.of(context).pushNamed(
+                  AppConstants.routeStartupProfile,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _QuickActionTile(
+                icon: Icons.people_alt_outlined,
+                label: 'Find\nInvestors',
+                gradient: const [Color(0xFF009BC2), Color(0xFF00D1FF)],
+                onTap: () => Navigator.of(context).pushReplacementNamed(
+                  AppConstants.routeFounderInvestors,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _QuickActionTile(
+                icon: Icons.send_rounded,
+                label: 'My\nRequests',
+                gradient: const [Color(0xFF11845B), Color(0xFF1DB67E)],
+                onTap: () => Navigator.of(context).pushNamed(
+                  AppConstants.routeFounderRequests,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _QuickActionTile(
+                icon: Icons.edit_outlined,
+                label: 'Edit\nProfile',
+                gradient: const [Color(0xFF7F77DD), Color(0xFFA49AFF)],
+                onTap: () => Navigator.of(context).pushNamed(
+                  AppConstants.routeStartupProfile,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _QuickActionTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final List<Color> gradient;
+  final VoidCallback onTap;
+
+  const _QuickActionTile({
+    required this.icon,
+    required this.label,
+    required this.gradient,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: gradient,
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [
+              BoxShadow(
+                color: gradient.first.withValues(alpha: 0.25),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: Colors.white, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                    height: 1.3,
+                  ),
+                ),
+              ),
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: Colors.white.withValues(alpha: 0.5),
+                size: 14,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Tip of the Day — rotating insights card
+// ---------------------------------------------------------------------------
+class _TipOfTheDayCard extends StatelessWidget {
+  const _TipOfTheDayCard();
+
+  static const _tips = [
+    (
+      icon: Icons.lightbulb_outline_rounded,
+      title: 'Did you know?',
+      body:
+          'Investors spend an average of 3 minutes 44 seconds reviewing a pitch deck. Make your first 3 slides count!',
+    ),
+    (
+      icon: Icons.trending_up_rounded,
+      title: 'Growth tip',
+      body:
+          'Startups with complete profiles receive 4× more investor inquiries than incomplete ones.',
+    ),
+    (
+      icon: Icons.handshake_outlined,
+      title: 'Networking insight',
+      body:
+          '73% of successful seed deals close within 90 days of the first investor meeting.',
+    ),
+    (
+      icon: Icons.star_outline_rounded,
+      title: 'Pro tip',
+      body:
+          'Adding a team section to your profile increases investor confidence by 62%.',
+    ),
+    (
+      icon: Icons.rocket_launch_outlined,
+      title: 'Momentum matters',
+      body:
+          'Founders who update their pitch deck monthly are 3× more likely to secure funding.',
+    ),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    // Pick a tip based on the day of the year for stable daily rotation.
+    final dayIndex = DateTime.now().difference(DateTime(2025)).inDays;
+    final tip = _tips[dayIndex % _tips.length];
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFFFFF4D6), Color(0xFFFFE8A3)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(tip.icon, color: AppColors.warning, size: 20),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      tip.title,
+                      style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primarySoft,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Text(
+                        'DAILY TIP',
+                        style: TextStyle(
+                          color: AppColors.primaryDark,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  tip.body,
+                  style: const TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 12.5,
+                    height: 1.45,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
