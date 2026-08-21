@@ -13,6 +13,9 @@ import '../../../pitch_deck/presentation/cubit/document_cubit.dart';
 import '../../../pitch_deck/presentation/widgets/pitch_deck_section_widget.dart';
 import '../../domain/entities/startup_profile_entity.dart';
 import '../../domain/usecases/get_startup_by_id.dart';
+import '../../../tracked_startups/domain/usecases/is_startup_tracked.dart';
+import '../../../tracked_startups/domain/usecases/track_startup.dart';
+import '../../../tracked_startups/domain/usecases/untrack_startup.dart';
 
 /// Detailed view of a startup profile for investors and public discovery.
 class StartupDetailPage extends StatefulWidget {
@@ -47,8 +50,60 @@ class _StartupDetailPageState extends State<StartupDetailPage> {
     super.initState();
     if (widget.startup != null) {
       _startup = widget.startup;
+      _checkIfTracked(widget.startup!.id);
     } else if (widget.startupId != null) {
       _loadStartup();
+    }
+  }
+
+  Future<void> _checkIfTracked(String startupId) async {
+    if (startupId.isEmpty) return;
+    try {
+      final isTracked = await sl<IsStartupTracked>()(startupId);
+      if (mounted) {
+        setState(() {
+          _isTracked = isTracked;
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _toggleTracking(StartupProfileEntity startup) async {
+    final targetId = startup.id.isNotEmpty ? startup.id : startup.userId;
+    if (targetId.isEmpty) return;
+
+    final previousState = _isTracked;
+    final newState = !previousState;
+
+    setState(() {
+      _isTracked = newState;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        duration: const Duration(seconds: 2),
+        backgroundColor: AppColors.secondary,
+        content: Text(
+          newState
+              ? '${startup.startupName} added to your tracked startups.'
+              : '${startup.startupName} removed from tracking.',
+        ),
+      ),
+    );
+
+    try {
+      if (newState) {
+        await sl<TrackStartup>()(targetId);
+      } else {
+        await sl<UntrackStartup>()(targetId);
+      }
+    } catch (e) {
+      developer.log('Error toggling track startup: $e', name: 'StartupDetailPage');
+      if (mounted) {
+        setState(() {
+          _isTracked = previousState;
+        });
+      }
     }
   }
 
@@ -70,6 +125,7 @@ class _StartupDetailPageState extends State<StartupDetailPage> {
             _startup = result;
             _isLoading = false;
           });
+          _checkIfTracked(result.id);
         } else {
           setState(() {
             _errorMessage = 'Startup profile not found.';
@@ -392,22 +448,7 @@ class _StartupDetailPageState extends State<StartupDetailPage> {
               color: _isTracked ? AppColors.primary : AppColors.textPrimary,
             ),
             tooltip: _isTracked ? 'Stop Tracking' : 'Track Startup',
-            onPressed: () {
-              setState(() {
-                _isTracked = !_isTracked;
-              });
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  duration: const Duration(seconds: 2),
-                  backgroundColor: AppColors.secondary,
-                  content: Text(
-                    _isTracked
-                        ? '${startup.startupName} added to your tracked startups.'
-                        : '${startup.startupName} removed from tracking.',
-                  ),
-                ),
-              );
-            },
+            onPressed: () => _toggleTracking(startup),
           ),
           const SizedBox(width: 8),
         ],
@@ -504,22 +545,7 @@ class _StartupDetailPageState extends State<StartupDetailPage> {
           children: [
             Expanded(
               child: OutlinedButton.icon(
-                onPressed: () {
-                  setState(() {
-                    _isTracked = !_isTracked;
-                  });
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      duration: const Duration(seconds: 2),
-                      backgroundColor: AppColors.secondary,
-                      content: Text(
-                        _isTracked
-                            ? 'Tracking ${startup.startupName}'
-                            : 'Un-tracked ${startup.startupName}',
-                      ),
-                    ),
-                  );
-                },
+                onPressed: () => _toggleTracking(startup),
                 icon: Icon(
                   _isTracked ? Icons.check_circle_outline : Icons.bookmark_add_outlined,
                   size: 18,

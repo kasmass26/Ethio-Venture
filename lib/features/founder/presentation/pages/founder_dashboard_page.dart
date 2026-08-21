@@ -29,6 +29,7 @@ class FounderDashboardPage extends StatefulWidget {
 
 class _FounderDashboardPageState extends State<FounderDashboardPage> {
   String _userName = 'User';
+  String _userEmail = '';
   bool _isLoading = true;
 
   @override
@@ -45,6 +46,7 @@ class _FounderDashboardPageState extends State<FounderDashboardPage> {
       if (user != null && mounted) {
         setState(() {
           _userName = userService.getFirstName(user.name);
+          _userEmail = user.email;
           _isLoading = false;
         });
       } else if (mounted) {
@@ -253,7 +255,7 @@ class _FounderDashboardPageState extends State<FounderDashboardPage> {
             bottom: false,
             child: CustomScrollView(
               slivers: [
-                _TopBar(userName: _userName),
+                _TopBar(userName: _userName, userEmail: _userEmail),
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
@@ -290,6 +292,7 @@ class _FounderDashboardPageState extends State<FounderDashboardPage> {
 
                                   return _HeroWelcomeCard(
                                     userName: _userName,
+                                    userEmail: _userEmail,
                                     strength: strength,
                                     isLoading: isProfileLoading || isDocLoading,
                                     onTap: () {
@@ -421,7 +424,134 @@ class _FounderDashboardPageState extends State<FounderDashboardPage> {
 // ---------------------------------------------------------------------------
 class _TopBar extends StatelessWidget {
   final String userName;
-  const _TopBar({required this.userName});
+  final String userEmail;
+  const _TopBar({required this.userName, required this.userEmail});
+
+  void _showAccountSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      backgroundColor: AppColors.surface,
+      builder: (context) => Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 50,
+                  height: 50,
+                  alignment: Alignment.center,
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [AppColors.secondary, AppColors.secondaryLight],
+                    ),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(
+                    userName.isNotEmpty ? userName[0].toUpperCase() : '?',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 22,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        userName,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      const Text(
+                        'Founder Account',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const Divider(height: 32),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AppColors.background,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.email_outlined,
+                    color: AppColors.primaryDark,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Account Sign-in Email',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        SelectableText(
+                          userEmail.isNotEmpty ? userEmail : 'No email address',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, AppConstants.routeStartupProfile);
+              },
+              icon: const Icon(Icons.business_center_outlined, size: 18),
+              label: const Text('View Startup Profile'),
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size.fromHeight(48),
+                backgroundColor: AppColors.primary,
+                foregroundColor: AppColors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -447,7 +577,10 @@ class _TopBar extends StatelessWidget {
           onTap: () {},
         ),
         const SizedBox(width: 8),
-        _AvatarBubble(initials: userName.isNotEmpty ? userName[0] : '?'),
+        _AvatarBubble(
+          initials: userName.isNotEmpty ? userName[0] : '?',
+          onTap: () => _showAccountSheet(context),
+        ),
         const SizedBox(width: 20),
       ],
     );
@@ -503,28 +636,33 @@ class _IconBadgeButton extends StatelessWidget {
 
 class _AvatarBubble extends StatelessWidget {
   final String initials;
-  const _AvatarBubble({required this.initials});
+  final VoidCallback? onTap;
+  const _AvatarBubble({required this.initials, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 42,
-      height: 42,
-      alignment: Alignment.center,
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [AppColors.secondary, AppColors.secondaryLight],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(21),
+      child: Container(
+        width: 42,
+        height: 42,
+        alignment: Alignment.center,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [AppColors.secondary, AppColors.secondaryLight],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          shape: BoxShape.circle,
         ),
-        shape: BoxShape.circle,
-      ),
-      child: Text(
-        initials.toUpperCase(),
-        style: const TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.w700,
-          fontSize: 16,
+        child: Text(
+          initials.toUpperCase(),
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+            fontSize: 16,
+          ),
         ),
       ),
     );
@@ -546,12 +684,14 @@ String _timeGreeting() {
 // ---------------------------------------------------------------------------
 class _HeroWelcomeCard extends StatelessWidget {
   final String userName;
+  final String userEmail;
   final ProfileStrength strength;
   final VoidCallback onTap;
   final bool isLoading;
 
   const _HeroWelcomeCard({
     required this.userName,
+    required this.userEmail,
     required this.strength,
     required this.onTap,
     this.isLoading = false,
@@ -591,6 +731,30 @@ class _HeroWelcomeCard extends StatelessWidget {
                           height: 1.25,
                         ),
                       ),
+                      if (userEmail.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.email_outlined,
+                              size: 14,
+                              color: Colors.white70,
+                            ),
+                            const SizedBox(width: 5),
+                            Expanded(
+                              child: Text(
+                                userEmail,
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                       const SizedBox(height: 6),
                       Text(
                         strength.subtitle,

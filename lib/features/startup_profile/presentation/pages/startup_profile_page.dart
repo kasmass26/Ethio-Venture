@@ -89,9 +89,10 @@ class StartupProfilePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final currentUser = sl<SupabaseClient>().auth.currentUser;
     final currentUserId =
-        sl<SupabaseClient>().auth.currentUser?.id ??
-        '00000000-0000-0000-0000-000000000000';
+        currentUser?.id ?? '00000000-0000-0000-0000-000000000000';
+    final userEmail = currentUser?.email ?? '';
 
     return MultiBlocProvider(
       providers: [
@@ -550,6 +551,31 @@ class StartupProfilePage extends StatelessWidget {
                                             ),
                                           ],
                                         ),
+                                        if (userEmail.isNotEmpty) ...[
+                                          const SizedBox(height: 4),
+                                          Row(
+                                            children: [
+                                              const Icon(
+                                                Icons.email_outlined,
+                                                size: 15,
+                                                color: Colors.white70,
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Expanded(
+                                                child: Text(
+                                                  userEmail,
+                                                  style: const TextStyle(
+                                                    color: Colors.white70,
+                                                    fontSize: 13,
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
                                       ],
                                     ),
                                   ),
@@ -923,7 +949,7 @@ class StartupProfilePage extends StatelessWidget {
                         ),
                         const SizedBox(height: 16),
 
-                        // Contact Information Card
+                        // Contact & Account Information Card
                         Card(
                           elevation: 0,
                           shape: RoundedRectangleBorder(
@@ -945,7 +971,7 @@ class StartupProfilePage extends StatelessWidget {
                                     ),
                                     SizedBox(width: 10),
                                     Text(
-                                      'Contact Details',
+                                      'Contact & Account Details',
                                       style: TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.bold,
@@ -955,6 +981,79 @@ class StartupProfilePage extends StatelessWidget {
                                   ],
                                 ),
                                 const Divider(height: 24),
+                                if (userEmail.isNotEmpty) ...[
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                      vertical: 10,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.background,
+                                      borderRadius: BorderRadius.circular(12),
+                                      border:
+                                          Border.all(color: AppColors.border),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.mark_email_read_outlined,
+                                          size: 18,
+                                          color: AppColors.primaryDark,
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              const Text(
+                                                'Account Sign-in Email',
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w600,
+                                                  color:
+                                                      AppColors.textSecondary,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 2),
+                                              SelectableText(
+                                                userEmail,
+                                                style: const TextStyle(
+                                                  color: AppColors.textPrimary,
+                                                  fontWeight: FontWeight.w600,
+                                                  fontSize: 14,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        IconButton(
+                                          icon: const Icon(
+                                            Icons.copy_rounded,
+                                            size: 18,
+                                            color: AppColors.textSecondary,
+                                          ),
+                                          tooltip: 'Copy Email',
+                                          onPressed: () {
+                                            Clipboard.setData(
+                                              ClipboardData(text: userEmail),
+                                            );
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                              const SnackBar(
+                                                content: Text(
+                                                  'Account email copied to clipboard!',
+                                                ),
+                                                duration: Duration(seconds: 2),
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                ],
                                 Container(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 14,
@@ -968,7 +1067,8 @@ class StartupProfilePage extends StatelessWidget {
                                   child: Row(
                                     children: [
                                       Icon(
-                                        profile.contactInformation.contains('@')
+                                        profile.contactInformation
+                                                .contains('@')
                                             ? Icons.email_outlined
                                             : Icons.phone_outlined,
                                         size: 18,
@@ -976,13 +1076,33 @@ class StartupProfilePage extends StatelessWidget {
                                       ),
                                       const SizedBox(width: 10),
                                       Expanded(
-                                        child: SelectableText(
-                                          profile.contactInformation,
-                                          style: const TextStyle(
-                                            color: AppColors.textPrimary,
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 14,
-                                          ),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            const Text(
+                                              'Public Contact Details',
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w600,
+                                                color: AppColors.textSecondary,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 2),
+                                            SelectableText(
+                                              profile.contactInformation
+                                                      .isNotEmpty
+                                                  ? profile.contactInformation
+                                                  : (userEmail.isNotEmpty
+                                                      ? userEmail
+                                                      : 'No contact details provided'),
+                                              style: const TextStyle(
+                                                color: AppColors.textPrimary,
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ),
                                     ],

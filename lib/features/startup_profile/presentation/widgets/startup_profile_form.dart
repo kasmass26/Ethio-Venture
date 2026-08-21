@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:ethioventure/core/di/injection_container.dart';
 import 'package:ethioventure/core/theme/app_colors.dart';
 import 'package:ethioventure/core/theme/app_sizes.dart';
 import 'package:ethioventure/core/utils/input_validators.dart';
@@ -90,6 +92,8 @@ class _StartupProfileFormState extends State<StartupProfileForm> {
   void initState() {
     super.initState();
     final p = widget.initialProfile;
+    final userEmail = sl<SupabaseClient>().auth.currentUser?.email ?? '';
+
     _nameController = TextEditingController(text: p?.startupName ?? '');
     _descriptionController = TextEditingController(text: p?.description ?? '');
     _fundingAmountController = TextEditingController(
@@ -104,7 +108,9 @@ class _StartupProfileFormState extends State<StartupProfileForm> {
     );
     _teamController = TextEditingController(text: p?.teamInformation ?? '');
     _contactController = TextEditingController(
-      text: p?.contactInformation ?? '',
+      text: (p?.contactInformation.trim().isNotEmpty == true)
+          ? p!.contactInformation
+          : userEmail,
     );
     _websiteController = TextEditingController(
       text: p?.websiteUrl ?? '',
@@ -487,6 +493,58 @@ class _StartupProfileFormState extends State<StartupProfileForm> {
             subtitle: 'Direct contact info for interested investors',
             icon: Icons.contact_mail_rounded,
             children: [
+              Builder(
+                builder: (context) {
+                  final userEmail =
+                      sl<SupabaseClient>().auth.currentUser?.email ?? '';
+                  if (userEmail.isEmpty) return const SizedBox.shrink();
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: AppSizes.md),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.primarySoft.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: AppColors.primary.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.info_outline,
+                          size: 20,
+                          color: AppColors.primaryDark,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Signed-in Account Email:',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.primaryDark,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                userEmail,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
               _buildFieldLabel('Contact Information *'),
               TextFormField(
                 controller: _contactController,

@@ -17,6 +17,9 @@ import 'package:ethioventure/features/matching/presentation/cubit/recommendation
 import 'package:ethioventure/features/connection_requests/presentation/cubit/connection_request_cubit.dart';
 import 'package:ethioventure/features/connection_requests/presentation/cubit/connection_request_state.dart';
 import 'package:ethioventure/features/connection_requests/domain/entities/connection_request_entity.dart';
+import 'package:ethioventure/features/tracked_startups/presentation/cubit/tracked_startups_cubit.dart';
+import 'package:ethioventure/features/tracked_startups/presentation/cubit/tracked_startups_state.dart';
+import 'package:ethioventure/features/tracked_startups/domain/entities/tracked_startup_entity.dart';
 
 /// ============================================================================
 /// INVESTOR DASHBOARD — PREMIUM REDESIGN
@@ -63,33 +66,6 @@ class _InvestorDashboardPageState extends State<InvestorDashboardPage> {
     }
   }
 
-  // --- Mock data (replace with real state from a Cubit/Bloc) ---------------
-
-  static const _metrics = [
-    InvestorMetric(
-      label: 'Active Deals',
-      value: '12',
-      deltaText: '+2 this month',
-      tone: DeltaTone.positive,
-      icon: Icons.sell_outlined,
-    ),
-    InvestorMetric(
-      label: 'Startups Tracked',
-      value: '48',
-      deltaText: 'No change',
-      tone: DeltaTone.neutral,
-      icon: Icons.visibility_outlined,
-    ),
-    InvestorMetric(
-      label: 'Conversion',
-      value: '24',
-      deltaText: '24% close rate',
-      tone: DeltaTone.positive,
-      icon: Icons.trending_up_rounded,
-    ),
-  ];
-
-
   // _recommended is now loaded dynamically via RecommendedStartupsCubit.
 
   static const _activity = [
@@ -112,29 +88,6 @@ class _InvestorDashboardPageState extends State<InvestorDashboardPage> {
       kind: ActivityKind.milestone,
     ),
   ];
-
-  static const _tracked = [
-    TrackedStartup(
-      id: 'ts-1',
-      name: 'Lomi Logistics',
-      fundingGoalLabel: 'Seeking \$500k Seed',
-      progressPercent: 75,
-    ),
-    TrackedStartup(
-      id: 'ts-2',
-      name: 'Solaris Grid',
-      fundingGoalLabel: 'Seeking \$2M Series A',
-      progressPercent: 40,
-    ),
-    TrackedStartup(
-      id: 'ts-3',
-      name: 'Kifiya Pay',
-      fundingGoalLabel: 'Seeking \$150k Pre-Seed',
-      progressPercent: 98,
-    ),
-  ];
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -160,6 +113,9 @@ class _InvestorDashboardPageState extends State<InvestorDashboardPage> {
         BlocProvider<ConnectionRequestCubit>(
           create: (_) => sl<ConnectionRequestCubit>()..loadInvestorRequests(),
         ),
+        BlocProvider<TrackedStartupsCubit>(
+          create: (_) => sl<TrackedStartupsCubit>()..loadTrackedStartups(),
+        ),
       ],
       child: BlocListener<InvestorProfileCubit, InvestorProfileState>(
         listener: (context, profileState) {
@@ -169,9 +125,7 @@ class _InvestorDashboardPageState extends State<InvestorDashboardPage> {
         },
         child: _DashboardScaffold(
           userName: _userName,
-          metrics: _metrics,
           activity: _activity,
-          tracked: _tracked,
         ),
       ),
     );
@@ -184,15 +138,11 @@ class _InvestorDashboardPageState extends State<InvestorDashboardPage> {
 class _DashboardScaffold extends StatelessWidget {
   const _DashboardScaffold({
     required this.userName,
-    required this.metrics,
     required this.activity,
-    required this.tracked,
   });
 
   final String userName;
-  final List<InvestorMetric> metrics;
   final List<ActivityItem> activity;
-  final List<TrackedStartup> tracked;
 
   @override
   Widget build(BuildContext context) {
@@ -241,22 +191,31 @@ class _DashboardScaffold extends StatelessWidget {
       ),
       body: SafeArea(
         top: false,
-        child: ListView(
-          padding: const EdgeInsets.only(top: 16, bottom: 28),
-          children: [
-            // ── Portfolio Pulse Strip (stagger 0) ──
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: StaggeredFadeSlide(
-                index: 0,
-                totalItems: 7,
-                child: _PortfolioPulseStrip(
-                  activeDeals: '12',
-                  userName: userName,
+        child: RefreshIndicator(
+          color: AppColors.primary,
+          onRefresh: () async {
+            context.read<InvestorProfileCubit>().loadProfile();
+            context.read<RecommendationsCubit>().loadRecommendations();
+            context.read<ConnectionRequestCubit>().loadInvestorRequests();
+            await context.read<TrackedStartupsCubit>().loadTrackedStartups();
+          },
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.only(top: 16, bottom: 28),
+            children: [
+              // ── Portfolio Pulse Strip (stagger 0) ──
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: StaggeredFadeSlide(
+                  index: 0,
+                  totalItems: 7,
+                  child: _PortfolioPulseStrip(
+                    activeDeals: '12',
+                    userName: userName,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
+              const SizedBox(height: 20),
 
             // ── Metrics (stagger 1) ──
             Padding(
@@ -269,7 +228,61 @@ class _DashboardScaffold extends StatelessWidget {
                   children: [
                     const _SectionHeading(title: 'Your Overview'),
                     const SizedBox(height: 12),
-                    _MetricsRow(metrics: metrics),
+                    BlocBuilder<TrackedStartupsCubit, TrackedStartupsState>(
+                      builder: (context, trackedState) {
+                        return BlocBuilder<ConnectionRequestCubit, ConnectionRequestState>(
+                          builder: (context, connectionState) {
+                            final trackedCount = trackedState is TrackedStartupsLoaded
+                                ? trackedState.startups.length
+                                : 0;
+
+                            final requests = connectionState is ConnectionRequestLoaded
+                                ? connectionState.requests
+                                : <ConnectionRequestEntity>[];
+                            final activeDealsCount =
+                                requests.where((r) => r.isAccepted).length;
+                            final pendingCount =
+                                requests.where((r) => r.isPending).length;
+
+                            final dynamicMetrics = [
+                              InvestorMetric(
+                                label: 'Active Deals',
+                                value: activeDealsCount.toString(),
+                                deltaText: pendingCount > 0
+                                    ? '+$pendingCount pending'
+                                    : (activeDealsCount > 0
+                                        ? 'Active portfolio'
+                                        : 'No active deals'),
+                                tone: activeDealsCount > 0
+                                    ? DeltaTone.positive
+                                    : DeltaTone.neutral,
+                                icon: Icons.sell_outlined,
+                              ),
+                              InvestorMetric(
+                                label: 'Startups Tracked',
+                                value: trackedCount.toString(),
+                                deltaText: trackedCount > 0
+                                    ? '$trackedCount in watchlist'
+                                    : 'No startups tracked',
+                                tone: trackedCount > 0
+                                    ? DeltaTone.positive
+                                    : DeltaTone.neutral,
+                                icon: Icons.visibility_outlined,
+                              ),
+                              InvestorMetric(
+                                label: 'Connections',
+                                value: requests.length.toString(),
+                                deltaText: '${requests.length} total requests',
+                                tone: DeltaTone.neutral,
+                                icon: Icons.connect_without_contact_rounded,
+                              ),
+                            ];
+
+                            return _MetricsRow(metrics: dynamicMetrics);
+                          },
+                        );
+                      },
+                    ),
                   ],
                 ),
               ),
@@ -431,11 +444,14 @@ class _DashboardScaffold extends StatelessWidget {
                         AppConstants.routeRecommendations,
                       );
                     },
-                    onViewProfile: (match) {
-                      Navigator.of(context).pushNamed(
+                    onViewProfile: (match) async {
+                      await Navigator.of(context).pushNamed(
                         AppConstants.routeStartupDetail,
                         arguments: match,
                       );
+                      if (context.mounted) {
+                        context.read<TrackedStartupsCubit>().loadTrackedStartups();
+                      }
                     },
                   );
                 },
@@ -458,17 +474,27 @@ class _DashboardScaffold extends StatelessWidget {
                       },
                     ),
                     const SizedBox(height: 16),
-                    _TrackedStartupsSection(
-                      startups: tracked,
-                      onManage: () {
-                        Navigator.of(context).pushNamed(
-                          AppConstants.routeStartupSearch,
-                        );
-                      },
-                      onTapStartup: (startup) {
-                        Navigator.of(context).pushNamed(
-                          AppConstants.routeStartupDetail,
-                          arguments: startup.id,
+                    BlocBuilder<TrackedStartupsCubit, TrackedStartupsState>(
+                      builder: (context, state) {
+                        return _TrackedStartupsSection(
+                          state: state,
+                          onManage: () async {
+                            await Navigator.of(context).pushNamed(
+                              AppConstants.routeStartupSearch,
+                            );
+                            if (context.mounted) {
+                              context.read<TrackedStartupsCubit>().loadTrackedStartups();
+                            }
+                          },
+                          onTapStartup: (startup) async {
+                            await Navigator.of(context).pushNamed(
+                              AppConstants.routeStartupDetail,
+                              arguments: startup.startup,
+                            );
+                            if (context.mounted) {
+                              context.read<TrackedStartupsCubit>().loadTrackedStartups();
+                            }
+                          },
                         );
                       },
                     ),
@@ -479,8 +505,9 @@ class _DashboardScaffold extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 class _IconBadgeButton extends StatelessWidget {
@@ -858,9 +885,14 @@ class _QuickActionsGrid extends StatelessWidget {
                 icon: Icons.search_rounded,
                 label: 'Browse\nStartups',
                 gradient: const [Color(0xFF0A2540), Color(0xFF21496E)],
-                onTap: () => Navigator.of(context).pushReplacementNamed(
-                  AppConstants.routeStartupSearch,
-                ),
+                onTap: () async {
+                  await Navigator.of(context).pushNamed(
+                    AppConstants.routeStartupSearch,
+                  );
+                  if (context.mounted) {
+                    context.read<TrackedStartupsCubit>().loadTrackedStartups();
+                  }
+                },
               ),
             ),
             const SizedBox(width: 12),
@@ -1538,17 +1570,52 @@ class _ActivityRow extends StatelessWidget {
 // Tracked startups — funding progress instead of a delta chip
 // ---------------------------------------------------------------------------
 class _TrackedStartupsSection extends StatelessWidget {
-  final List<TrackedStartup> startups;
+  final TrackedStartupsState state;
   final VoidCallback onManage;
-  final ValueChanged<TrackedStartup> onTapStartup;
+  final ValueChanged<TrackedStartupEntity> onTapStartup;
   const _TrackedStartupsSection({
-    required this.startups,
+    required this.state,
     required this.onManage,
     required this.onTapStartup,
   });
 
   @override
   Widget build(BuildContext context) {
+    if (state is TrackedStartupsLoading) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _SectionHeading(
+            title: 'Tracked Startups',
+            onAction: onManage,
+            actionLabel: 'Manage',
+          ),
+          const SizedBox(height: 12),
+          Container(
+            height: 90,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: const SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.5,
+                valueColor: AlwaysStoppedAnimation(AppColors.primary),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    final startups = state is TrackedStartupsLoaded
+        ? (state as TrackedStartupsLoaded).startups
+        : <TrackedStartupEntity>[];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1558,22 +1625,86 @@ class _TrackedStartupsSection extends StatelessWidget {
           actionLabel: 'Manage',
         ),
         const SizedBox(height: 12),
-        ...startups.map(
-          (s) => Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: _TrackedStartupCard(
-              startup: s,
-              onTap: () => onTapStartup(s),
+        if (startups.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Column(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: AppColors.secondarySoft,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.bookmark_outline_rounded,
+                    color: AppColors.secondary,
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'No Startups Tracked Yet',
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Track innovative startups to keep an eye on their funding progress and milestones.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 12,
+                    height: 1.35,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                OutlinedButton.icon(
+                  onPressed: onManage,
+                  icon: const Icon(Icons.explore_outlined, size: 16),
+                  label: const Text('Discover Startups'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.secondary,
+                    side: const BorderSide(color: AppColors.secondary),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 8,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          )
+        else
+          ...startups.map(
+            (s) => Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _TrackedStartupCard(
+                startup: s,
+                onTap: () => onTapStartup(s),
+              ),
             ),
           ),
-        ),
       ],
     );
   }
 }
 
 class _TrackedStartupCard extends StatelessWidget {
-  final TrackedStartup startup;
+  final TrackedStartupEntity startup;
   final VoidCallback onTap;
   const _TrackedStartupCard({required this.startup, required this.onTap});
 
@@ -1607,7 +1738,7 @@ class _TrackedStartupCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
-                startup.name.isNotEmpty ? startup.name[0] : '?',
+                startup.name.isNotEmpty ? startup.name[0].toUpperCase() : '?',
                 style: const TextStyle(
                   color: AppColors.secondary,
                   fontWeight: FontWeight.w800,
@@ -1726,20 +1857,6 @@ class ActivityItem {
     required this.action,
     required this.timeAgo,
     required this.kind,
-  });
-}
-
-class TrackedStartup {
-  final String id;
-  final String name;
-  final String fundingGoalLabel;
-  final int progressPercent;
-
-  const TrackedStartup({
-    required this.id,
-    required this.name,
-    required this.fundingGoalLabel,
-    required this.progressPercent,
   });
 }
 

@@ -76,6 +76,15 @@ import 'package:ethioventure/features/connection_requests/data/repositories/conn
 import 'package:ethioventure/features/connection_requests/domain/repositories/connection_request_repository.dart';
 import 'package:ethioventure/features/connection_requests/presentation/cubit/connection_request_cubit.dart';
 
+import 'package:ethioventure/features/tracked_startups/data/datasources/tracked_startups_remote_data_source.dart';
+import 'package:ethioventure/features/tracked_startups/data/repositories/tracked_startups_repository_impl.dart';
+import 'package:ethioventure/features/tracked_startups/domain/repositories/tracked_startups_repository.dart';
+import 'package:ethioventure/features/tracked_startups/domain/usecases/get_tracked_startups.dart';
+import 'package:ethioventure/features/tracked_startups/domain/usecases/track_startup.dart';
+import 'package:ethioventure/features/tracked_startups/domain/usecases/untrack_startup.dart';
+import 'package:ethioventure/features/tracked_startups/domain/usecases/is_startup_tracked.dart';
+import 'package:ethioventure/features/tracked_startups/presentation/cubit/tracked_startups_cubit.dart';
+
 import 'package:ethioventure/core/services/user_service.dart';
 
 import 'package:get_it/get_it.dart';
@@ -567,6 +576,59 @@ Future<void> configureDependencies({SupabaseClient? supabaseClient}) async {
     sl.registerFactory<ConnectionRequestCubit>(
       () => ConnectionRequestCubit(
         repository: sl<ConnectionRequestRepository>(),
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Tracked Startups Feature
+  // ---------------------------------------------------------------------------
+  if (!sl.isRegistered<TrackedStartupsRemoteDataSource>()) {
+    sl.registerLazySingleton<TrackedStartupsRemoteDataSource>(
+      () => TrackedStartupsRemoteDataSourceImpl(
+        supabaseClient: sl<SupabaseClient>(),
+      ),
+    );
+  }
+
+  if (!sl.isRegistered<TrackedStartupsRepository>()) {
+    sl.registerLazySingleton<TrackedStartupsRepository>(
+      () => TrackedStartupsRepositoryImpl(
+        remoteDataSource: sl<TrackedStartupsRemoteDataSource>(),
+      ),
+    );
+  }
+
+  if (!sl.isRegistered<GetTrackedStartups>()) {
+    sl.registerLazySingleton<GetTrackedStartups>(
+      () => GetTrackedStartups(sl<TrackedStartupsRepository>()),
+    );
+  }
+
+  if (!sl.isRegistered<TrackStartup>()) {
+    sl.registerLazySingleton<TrackStartup>(
+      () => TrackStartup(sl<TrackedStartupsRepository>()),
+    );
+  }
+
+  if (!sl.isRegistered<UntrackStartup>()) {
+    sl.registerLazySingleton<UntrackStartup>(
+      () => UntrackStartup(sl<TrackedStartupsRepository>()),
+    );
+  }
+
+  if (!sl.isRegistered<IsStartupTracked>()) {
+    sl.registerLazySingleton<IsStartupTracked>(
+      () => IsStartupTracked(sl<TrackedStartupsRepository>()),
+    );
+  }
+
+  if (!sl.isRegistered<TrackedStartupsCubit>()) {
+    sl.registerFactory<TrackedStartupsCubit>(
+      () => TrackedStartupsCubit(
+        getTrackedStartups: sl<GetTrackedStartups>(),
+        trackStartup: sl<TrackStartup>(),
+        untrackStartup: sl<UntrackStartup>(),
       ),
     );
   }
