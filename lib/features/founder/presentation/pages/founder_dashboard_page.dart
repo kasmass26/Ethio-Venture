@@ -15,6 +15,8 @@ import '../../../startup_profile/domain/entities/startup_profile_entity.dart';
 import '../../../startup_profile/presentation/cubit/startup_profile_cubit.dart';
 import '../../../startup_profile/presentation/cubit/startup_profile_state.dart';
 import '../cubit/recommended_investors_cubit.dart';
+import '../cubit/founder_metrics_cubit.dart';
+import '../cubit/founder_metrics_state.dart';
 import '../widgets/dashboard_bottom_nav.dart';
 import '../widgets/recommended_investor_section.dart';
 
@@ -148,34 +150,34 @@ class _FounderDashboardPageState extends State<FounderDashboardPage> {
     );
   }
 
-  static const _metrics = [
+  static const _defaultMetrics = [
     DashboardMetric(
-      label: 'Profile Views',
-      value: '248',
-      deltaText: '+12% this week',
-      iconAsset: 'views',
-      isPositive: true,
-    ),
-    DashboardMetric(
-      label: 'Investor Interest',
-      value: '15',
-      deltaText: '3 new saves',
+      label: 'Investor Requests',
+      value: '0',
+      deltaText: '0 requests sent',
       iconAsset: 'interest',
-      isPositive: true,
+      isPositive: false,
     ),
     DashboardMetric(
       label: 'Conversations',
-      value: '7',
-      deltaText: '2 active now',
+      value: '0',
+      deltaText: 'No active chats',
       iconAsset: 'conversations',
-      isPositive: true,
+      isPositive: false,
+    ),
+    DashboardMetric(
+      label: 'Pitch Deck & Docs',
+      value: '0',
+      deltaText: 'No documents uploaded',
+      iconAsset: 'views',
+      isPositive: false,
     ),
   ];
 
-  static const _metricIcons = [
-    Icons.visibility_outlined,
-    Icons.favorite_border_rounded,
+  static const _defaultMetricIcons = [
+    Icons.handshake_outlined,
     Icons.chat_bubble_outline_rounded,
+    Icons.description_outlined,
   ];
 
   @override
@@ -202,6 +204,10 @@ class _FounderDashboardPageState extends State<FounderDashboardPage> {
           create: (_) => sl<RecommendedInvestorsCubit>()..load(),
         ),
         BlocProvider<DocumentCubit>(create: (_) => sl<DocumentCubit>()),
+        BlocProvider<FounderMetricsCubit>(
+          create: (_) => sl<FounderMetricsCubit>()
+            ..loadMetrics(userId: currentUserId),
+        ),
       ],
       child: BlocListener<StartupProfileCubit, StartupProfileState>(
         listener: (context, startupState) {
@@ -212,9 +218,17 @@ class _FounderDashboardPageState extends State<FounderDashboardPage> {
             context.read<DocumentCubit>().loadDocuments(
               startupId: startupState.profile.id,
             );
+            context.read<FounderMetricsCubit>().loadMetrics(
+              userId: currentUserId,
+              startupProfileId: startupState.profile.id,
+              industry: startupState.profile.industry,
+            );
           } else if (startupState is StartupProfileEmpty ||
               startupState is StartupProfileError) {
             context.read<RecommendedInvestorsCubit>().load();
+            context.read<FounderMetricsCubit>().loadMetrics(
+              userId: currentUserId,
+            );
           }
         },
         child: Scaffold(
@@ -329,7 +343,32 @@ class _FounderDashboardPageState extends State<FounderDashboardPage> {
                             children: [
                               const _SectionHeading(title: 'Your Momentum'),
                               const SizedBox(height: 12),
-                              _MetricsRow(metrics: _metrics, icons: _metricIcons),
+                              BlocBuilder<FounderMetricsCubit, FounderMetricsState>(
+                                builder: (context, metricsState) {
+                                  if (metricsState is FounderMetricsLoaded) {
+                                    return _MetricsRow(
+                                      metrics: metricsState.metrics,
+                                      icons: metricsState.icons,
+                                    );
+                                  }
+                                  if (metricsState is FounderMetricsLoading) {
+                                    return const SizedBox(
+                                      height: 164,
+                                      child: Center(
+                                        child: CircularProgressIndicator(
+                                          valueColor: AlwaysStoppedAnimation(
+                                            AppColors.primary,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                  return _MetricsRow(
+                                    metrics: _defaultMetrics,
+                                    icons: _defaultMetricIcons,
+                                  );
+                                },
+                              ),
                             ],
                           ),
                         ),
@@ -683,38 +722,17 @@ class _ChecklistRow extends StatelessWidget {
 // ---------------------------------------------------------------------------
 class _SectionHeading extends StatelessWidget {
   final String title;
-  final VoidCallback? onSeeAll;
-  const _SectionHeading({required this.title, this.onSeeAll});
+  const _SectionHeading({required this.title});
 
   @override
   Widget build(BuildContext context) {
-    final onSeeAllCallback = onSeeAll;
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        if (onSeeAllCallback != null)
-          TextButton(
-            onPressed: onSeeAllCallback,
-            style: TextButton.styleFrom(
-              foregroundColor: AppColors.primaryDark,
-              padding: EdgeInsets.zero,
-              minimumSize: const Size(0, 0),
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-            child: const Text(
-              'See all',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-            ),
-          ),
-      ],
+    return Text(
+      title,
+      style: const TextStyle(
+        color: AppColors.textPrimary,
+        fontSize: 16,
+        fontWeight: FontWeight.w700,
+      ),
     );
   }
 }
@@ -730,7 +748,7 @@ class _MetricsRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 164,
+      height: 176,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: metrics.length,
@@ -765,7 +783,7 @@ class _MetricCard extends StatelessWidget {
     );
 
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(20),
@@ -775,7 +793,7 @@ class _MetricCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _MetricIconBadge(icon: icon),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           if (numericValue != null)
             AnimatedCounter(
               end: numericValue,
@@ -784,7 +802,12 @@ class _MetricCard extends StatelessWidget {
           else
             Text(metric.value, style: _valueStyle),
           const SizedBox(height: 2),
-          Text(metric.label, style: _labelStyle),
+          Text(
+            metric.label,
+            style: _labelStyle,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
           const Spacer(),
           _DeltaChip(text: metric.deltaText, fg: deltaFg, bg: deltaBg),
         ],

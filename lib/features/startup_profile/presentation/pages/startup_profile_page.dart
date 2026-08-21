@@ -38,7 +38,10 @@ class StartupProfilePage extends StatelessWidget {
     final uri = Uri.tryParse(targetUrl);
     if (uri != null) {
       try {
-        final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+        final launched = await launchUrl(
+          uri,
+          mode: LaunchMode.externalApplication,
+        );
         if (!launched && context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Could not open link: $urlString')),
@@ -46,9 +49,9 @@ class StartupProfilePage extends StatelessWidget {
         }
       } catch (e) {
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error launching link: $e')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Error launching link: $e')));
         }
       }
     }
@@ -96,9 +99,7 @@ class StartupProfilePage extends StatelessWidget {
           create: (context) =>
               sl<StartupProfileCubit>()..loadProfile(currentUserId),
         ),
-        BlocProvider<DocumentCubit>(
-          create: (context) => sl<DocumentCubit>(),
-        ),
+        BlocProvider<DocumentCubit>(create: (context) => sl<DocumentCubit>()),
       ],
       child: BlocListener<StartupProfileCubit, StartupProfileState>(
         listener: (context, state) {
@@ -122,9 +123,7 @@ class StartupProfilePage extends StatelessWidget {
                   context,
                 ).pushReplacementNamed(AppConstants.routeFounderInvestors);
               } else if (index == 2) {
-                Navigator.of(
-                  context,
-                ).pushNamed(AppConstants.routeMessages);
+                Navigator.of(context).pushNamed(AppConstants.routeMessages);
               }
             },
           ),
@@ -222,9 +221,9 @@ class StartupProfilePage extends StatelessWidget {
                                 '/startup-profile-setup',
                               ).then((_) {
                                 if (context.mounted) {
-                                  context.read<StartupProfileCubit>().loadProfile(
-                                    currentUserId,
-                                  );
+                                  context
+                                      .read<StartupProfileCubit>()
+                                      .loadProfile(currentUserId);
                                 }
                               });
                             },
@@ -311,7 +310,9 @@ class StartupProfilePage extends StatelessWidget {
                             decoration: BoxDecoration(
                               color: AppColors.error.withOpacity(0.08),
                               borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: AppColors.error.withOpacity(0.4)),
+                              border: Border.all(
+                                color: AppColors.error.withOpacity(0.4),
+                              ),
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -319,7 +320,9 @@ class StartupProfilePage extends StatelessWidget {
                                 Row(
                                   children: [
                                     Icon(
-                                      profile.hasExhaustedChances ? Icons.lock : Icons.cancel,
+                                      profile.hasExhaustedChances
+                                          ? Icons.lock
+                                          : Icons.cancel,
                                       color: AppColors.error,
                                       size: 22,
                                     ),
@@ -378,9 +381,9 @@ class StartupProfilePage extends StatelessWidget {
                                           arguments: profile,
                                         ).then((_) {
                                           if (context.mounted) {
-                                            context.read<StartupProfileCubit>().loadProfile(
-                                              currentUserId,
-                                            );
+                                            context
+                                                .read<StartupProfileCubit>()
+                                                .loadProfile(currentUserId);
                                           }
                                         });
                                       },
@@ -390,9 +393,14 @@ class StartupProfilePage extends StatelessWidget {
                                         backgroundColor: AppColors.error,
                                         foregroundColor: AppColors.white,
                                         elevation: 0,
-                                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 14,
+                                          vertical: 8,
+                                        ),
                                         shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(10),
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
                                         ),
                                       ),
                                     ),
@@ -408,16 +416,23 @@ class StartupProfilePage extends StatelessWidget {
                             decoration: BoxDecoration(
                               color: AppColors.warning.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: AppColors.warning.withOpacity(0.4)),
+                              border: Border.all(
+                                color: AppColors.warning.withOpacity(0.4),
+                              ),
                             ),
                             child: const Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Icon(Icons.hourglass_top_rounded, color: AppColors.warning, size: 20),
+                                Icon(
+                                  Icons.hourglass_top_rounded,
+                                  color: AppColors.warning,
+                                  size: 20,
+                                ),
                                 SizedBox(width: 10),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         'Pending Admin Approval',
@@ -450,13 +465,18 @@ class StartupProfilePage extends StatelessWidget {
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(24),
                             gradient: const LinearGradient(
-                              colors: [AppColors.secondary, AppColors.secondaryLight],
+                              colors: [
+                                AppColors.secondary,
+                                AppColors.secondaryLight,
+                              ],
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: AppColors.secondary.withValues(alpha: 0.25),
+                                color: AppColors.secondary.withValues(
+                                  alpha: 0.25,
+                                ),
                                 blurRadius: 16,
                                 offset: const Offset(0, 6),
                               ),
@@ -472,9 +492,14 @@ class StartupProfilePage extends StatelessWidget {
                                     height: 62,
                                     alignment: Alignment.center,
                                     decoration: BoxDecoration(
-                                      color: Colors.white.withValues(alpha: 0.2),
+                                      color: Colors.white.withValues(
+                                        alpha: 0.2,
+                                      ),
                                       shape: BoxShape.circle,
-                                      border: Border.all(color: Colors.white38, width: 1.5),
+                                      border: Border.all(
+                                        color: Colors.white38,
+                                        width: 1.5,
+                                      ),
                                     ),
                                     child: Text(
                                       profile.startupName.isNotEmpty
@@ -490,7 +515,8 @@ class StartupProfilePage extends StatelessWidget {
                                   const SizedBox(width: 16),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           profile.startupName,
@@ -535,15 +561,24 @@ class StartupProfilePage extends StatelessWidget {
                                 runSpacing: 8,
                                 children: [
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 5,
+                                    ),
                                     decoration: BoxDecoration(
-                                      color: Colors.white.withValues(alpha: 0.18),
+                                      color: Colors.white.withValues(
+                                        alpha: 0.18,
+                                      ),
                                       borderRadius: BorderRadius.circular(10),
                                     ),
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        const Icon(Icons.domain_rounded, size: 14, color: Colors.white),
+                                        const Icon(
+                                          Icons.domain_rounded,
+                                          size: 14,
+                                          color: Colors.white,
+                                        ),
                                         const SizedBox(width: 6),
                                         Text(
                                           profile.industry,
@@ -557,15 +592,24 @@ class StartupProfilePage extends StatelessWidget {
                                     ),
                                   ),
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 5,
+                                    ),
                                     decoration: BoxDecoration(
-                                      color: Colors.white.withValues(alpha: 0.18),
+                                      color: Colors.white.withValues(
+                                        alpha: 0.18,
+                                      ),
                                       borderRadius: BorderRadius.circular(10),
                                     ),
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        const Icon(Icons.trending_up_rounded, size: 14, color: Colors.white),
+                                        const Icon(
+                                          Icons.trending_up_rounded,
+                                          size: 14,
+                                          color: Colors.white,
+                                        ),
                                         const SizedBox(width: 6),
                                         Text(
                                           profile.fundingStage,
@@ -579,7 +623,10 @@ class StartupProfilePage extends StatelessWidget {
                                     ),
                                   ),
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 5,
+                                    ),
                                     decoration: BoxDecoration(
                                       color: AppColors.primarySoft,
                                       borderRadius: BorderRadius.circular(10),
@@ -587,7 +634,11 @@ class StartupProfilePage extends StatelessWidget {
                                     child: const Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        Icon(Icons.verified_rounded, size: 14, color: AppColors.primaryDark),
+                                        Icon(
+                                          Icons.verified_rounded,
+                                          size: 14,
+                                          color: AppColors.primaryDark,
+                                        ),
                                         SizedBox(width: 6),
                                         Text(
                                           'Verified Venture',
@@ -635,7 +686,9 @@ class StartupProfilePage extends StatelessWidget {
                                     ),
                                     const SizedBox(height: 12),
                                     Text(
-                                      _formatCurrency(profile.fundingAmountNeeded),
+                                      _formatCurrency(
+                                        profile.fundingAmountNeeded,
+                                      ),
                                       style: const TextStyle(
                                         fontSize: 18,
                                         fontWeight: FontWeight.w800,
@@ -746,7 +799,9 @@ class StartupProfilePage extends StatelessWidget {
                                     decoration: BoxDecoration(
                                       color: AppColors.background,
                                       borderRadius: BorderRadius.circular(14),
-                                      border: Border.all(color: AppColors.border),
+                                      border: Border.all(
+                                        color: AppColors.border,
+                                      ),
                                     ),
                                     child: Row(
                                       children: [
@@ -769,13 +824,25 @@ class StartupProfilePage extends StatelessWidget {
                                           ),
                                         ),
                                         IconButton(
-                                          icon: const Icon(Icons.copy_rounded, size: 18, color: AppColors.slate),
+                                          icon: const Icon(
+                                            Icons.copy_rounded,
+                                            size: 18,
+                                            color: AppColors.slate,
+                                          ),
                                           tooltip: 'Copy Link',
                                           onPressed: () {
-                                            Clipboard.setData(ClipboardData(text: profile.websiteUrl));
-                                            ScaffoldMessenger.of(context).showSnackBar(
+                                            Clipboard.setData(
+                                              ClipboardData(
+                                                text: profile.websiteUrl,
+                                              ),
+                                            );
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(
                                               const SnackBar(
-                                                content: Text('Website link copied to clipboard!'),
+                                                content: Text(
+                                                  'Website link copied to clipboard!',
+                                                ),
                                                 duration: Duration(seconds: 2),
                                               ),
                                             );
@@ -786,8 +853,14 @@ class StartupProfilePage extends StatelessWidget {
                                   ),
                                   const SizedBox(height: 12),
                                   ElevatedButton.icon(
-                                    onPressed: () => _launchWebsite(context, profile.websiteUrl),
-                                    icon: const Icon(Icons.open_in_new_rounded, size: 18),
+                                    onPressed: () => _launchWebsite(
+                                      context,
+                                      profile.websiteUrl,
+                                    ),
+                                    icon: const Icon(
+                                      Icons.open_in_new_rounded,
+                                      size: 18,
+                                    ),
                                     label: const Text('Visit Website / App'),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: AppColors.primary,
@@ -801,7 +874,11 @@ class StartupProfilePage extends StatelessWidget {
                                 ] else ...[
                                   Row(
                                     children: [
-                                      const Icon(Icons.info_outline, size: 18, color: AppColors.slate),
+                                      const Icon(
+                                        Icons.info_outline,
+                                        size: 18,
+                                        color: AppColors.slate,
+                                      ),
                                       const SizedBox(width: 8),
                                       const Expanded(
                                         child: Text(
@@ -928,30 +1005,34 @@ class StartupProfilePage extends StatelessWidget {
                                     arguments: profile,
                                   ).then((_) {
                                     if (context.mounted) {
-                                      context.read<StartupProfileCubit>().loadProfile(
-                                        currentUserId,
-                                      );
+                                      context
+                                          .read<StartupProfileCubit>()
+                                          .loadProfile(currentUserId);
                                     }
                                   });
                                 },
                           icon: Icon(
-                            profile.hasExhaustedChances ? Icons.lock : Icons.edit_outlined,
+                            profile.hasExhaustedChances
+                                ? Icons.lock
+                                : Icons.edit_outlined,
                             size: 20,
                           ),
                           label: Text(
                             profile.hasExhaustedChances
                                 ? 'Resubmission Locked (3/3 Attempts Used)'
                                 : 'Edit Startup Profile',
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.primary,
                             foregroundColor: AppColors.white,
-                            disabledBackgroundColor: AppColors.slate.withOpacity(0.12),
+                            disabledBackgroundColor: AppColors.slate
+                                .withOpacity(0.12),
                             disabledForegroundColor: AppColors.slate,
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 16,
-                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16),
                             ),

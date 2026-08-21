@@ -50,8 +50,9 @@ Future<void> main() async {
     if (supabaseClient != null) {
       await configureDependencies(supabaseClient: supabaseClient);
       Bloc.observer = const AppBlocObserver();
-      await NotificationService.instance
-          .initialize(supabaseClient: supabaseClient);
+      await NotificationService.instance.initialize(
+        supabaseClient: supabaseClient,
+      );
     } else {
       initError ??=
           'Supabase client is not initialized. Please check your .env configuration.';

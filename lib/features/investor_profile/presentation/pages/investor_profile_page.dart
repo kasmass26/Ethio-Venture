@@ -152,6 +152,49 @@ class _InvestorProfileViewState extends State<_InvestorProfileView>
     super.dispose();
   }
 
+  void _confirmLogout(BuildContext context) {
+    showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+        ),
+        title: const Row(
+          children: [
+            Icon(Icons.logout_rounded, color: AppColors.coral, size: 22),
+            SizedBox(width: 10),
+            Text('Sign Out'),
+          ],
+        ),
+        content: const Text(
+          'Are you sure you want to sign out of your EthioVenture investor portal session?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(dialogContext, true);
+              Supabase.instance.client.auth.signOut();
+              Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.coral,
+              foregroundColor: AppColors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+              ),
+            ),
+            child: const Text('Sign Out'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _switchMode(bool editing) {
     _fadeCtrl.reverse().then((_) {
       if (mounted) {
@@ -250,7 +293,7 @@ class _InvestorProfileViewState extends State<_InvestorProfileView>
               ),
             ),
           Container(
-            margin: const EdgeInsets.only(right: AppSizes.md, left: AppSizes.xs),
+            margin: const EdgeInsets.only(right: AppSizes.xs, left: AppSizes.xs),
             padding: const EdgeInsets.symmetric(
               horizontal: AppSizes.sm,
               vertical: AppSizes.xs,
@@ -278,6 +321,12 @@ class _InvestorProfileViewState extends State<_InvestorProfileView>
               ],
             ),
           ),
+          IconButton(
+            icon: const Icon(Icons.logout_outlined, color: AppColors.coral),
+            tooltip: 'Sign Out',
+            onPressed: () => _confirmLogout(context),
+          ),
+          const SizedBox(width: AppSizes.xs),
         ],
       ),
       body: BlocConsumer<InvestorProfileCubit, InvestorProfileState>(

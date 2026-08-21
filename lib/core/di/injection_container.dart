@@ -18,6 +18,7 @@ import 'package:ethioventure/features/investor_profile/domain/usecases/get_inves
 import 'package:ethioventure/features/investor_profile/domain/usecases/update_investor_profile.dart';
 import 'package:ethioventure/features/investor_profile/presentation/cubit/investor_profile_cubit.dart';
 import 'package:ethioventure/features/founder/presentation/cubit/recommended_investors_cubit.dart';
+import 'package:ethioventure/features/founder/presentation/cubit/founder_metrics_cubit.dart';
 import 'package:ethioventure/features/startup_profile/data/datasources/startup_remote_data_source.dart';
 import 'package:ethioventure/features/startup_profile/data/repositories/startup_repository_impl.dart';
 import 'package:ethioventure/features/startup_profile/domain/repositories/startup_repository.dart';
@@ -225,6 +226,14 @@ Future<void> configureDependencies({SupabaseClient? supabaseClient}) async {
     sl.registerFactory<RecommendedInvestorsCubit>(
       () => RecommendedInvestorsCubit(
         getApprovedInvestorsUseCase: sl<GetApprovedInvestorsUseCase>(),
+      ),
+    );
+  }
+
+  if (!sl.isRegistered<FounderMetricsCubit>()) {
+    sl.registerFactory<FounderMetricsCubit>(
+      () => FounderMetricsCubit(
+        supabaseClient: sl<SupabaseClient>(),
       ),
     );
   }
