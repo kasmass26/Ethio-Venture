@@ -98,6 +98,7 @@ class _InvestorsPageState extends State<InvestorsPage> {
 
   Widget _buildAppBar() {
     return SliverAppBar(
+      automaticallyImplyLeading: false,
       backgroundColor: AppColors.background,
       surfaceTintColor: Colors.transparent,
       elevation: 0,

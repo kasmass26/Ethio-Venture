@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart'
     show AuthException, Supabase;
 
 import '../../../../core/services/notification_service.dart';
+import '../../../../core/utils/storage_service.dart';
 import '../../domain/usecases/login_usecase.dart';
 import '../../domain/usecases/logout_user.dart';
 import '../../domain/usecases/register_usecase.dart';
@@ -25,6 +26,10 @@ class AuthCubit extends Cubit<AuthState> {
     emit(const AuthLoading());
     try {
       final user = await loginUser(email: email, password: password);
+      try {
+        final storage = await StorageService.init();
+        await storage.setOnboardingCompleted();
+      } catch (_) {}
       emit(Authenticated(user));
       // Register FCM token and start Realtime notification subscription now
       // that the user is authenticated.
@@ -56,6 +61,10 @@ class AuthCubit extends Cubit<AuthState> {
         password: password,
         role: role,
       );
+      try {
+        final storage = await StorageService.init();
+        await storage.setOnboardingCompleted();
+      } catch (_) {}
       // Confirm-email sign-ups create a user without a session. Sending that
       // user to a protected dashboard makes registration look broken.
       final client = Supabase.instance.client;

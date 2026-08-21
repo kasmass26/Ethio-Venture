@@ -1,6 +1,8 @@
 import 'dart:ui';
 
+import 'package:ethioventure/core/constants/app_constants.dart';
 import 'package:ethioventure/core/enums/app_enums.dart';
+import 'package:ethioventure/core/services/notification_service.dart';
 import 'package:ethioventure/core/theme/app_colors.dart';
 import 'package:ethioventure/core/theme/app_sizes.dart';
 import 'package:ethioventure/features/investor_profile/domain/entities/investor_profile_entity.dart';
@@ -65,13 +67,10 @@ class InvestorProfileDisplayWidget extends StatelessWidget {
     showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppSizes.radiusLg),
-        ),
         title: const Row(
           children: [
             Icon(Icons.logout_rounded, color: AppColors.coral, size: 22),
-            SizedBox(width: 10),
+            SizedBox(width: 8),
             Text('Sign Out'),
           ],
         ),
@@ -84,10 +83,22 @@ class InvestorProfileDisplayWidget extends StatelessWidget {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(dialogContext, true);
-              Supabase.instance.client.auth.signOut();
-              Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+              final client = Supabase.instance.client;
+              try {
+                await NotificationService.instance.onUserLoggedOut(client);
+              } catch (_) {}
+              try {
+                await client.auth.signOut();
+              } catch (_) {}
+              if (context.mounted) {
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  AppConstants.routeLogin,
+                  (route) => false,
+                );
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.coral,

@@ -1,5 +1,6 @@
 import 'package:ethioventure/core/constants/app_constants.dart';
 import 'package:ethioventure/core/di/injection_container.dart';
+import 'package:ethioventure/core/services/notification_service.dart';
 import 'package:ethioventure/core/theme/app_colors.dart';
 import 'package:ethioventure/core/theme/app_sizes.dart';
 import 'package:ethioventure/features/investor/presentation/widgets/app_bottom_nav.dart';
@@ -59,6 +60,7 @@ class _UnauthenticatedView extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: const Text('Investor Portal'),
         centerTitle: false,
       ),
@@ -119,8 +121,6 @@ class _UnauthenticatedView extends StatelessWidget {
   }
 }
 
-// ── Authenticated profile view ────────────────────────────────────────────────
-
 class _InvestorProfileView extends StatefulWidget {
   const _InvestorProfileView();
 
@@ -175,10 +175,22 @@ class _InvestorProfileViewState extends State<_InvestorProfileView>
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(dialogContext, true);
-              Supabase.instance.client.auth.signOut();
-              Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+              final client = Supabase.instance.client;
+              try {
+                await NotificationService.instance.onUserLoggedOut(client);
+              } catch (_) {}
+              try {
+                await client.auth.signOut();
+              } catch (_) {}
+              if (context.mounted) {
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  AppConstants.routeLogin,
+                  (route) => false,
+                );
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.coral,
@@ -259,6 +271,7 @@ class _InvestorProfileViewState extends State<_InvestorProfileView>
         },
       ),
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: AnimatedSwitcher(
           duration: const Duration(milliseconds: 200),
           child: Text(

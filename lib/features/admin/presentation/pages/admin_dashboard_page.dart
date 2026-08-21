@@ -60,6 +60,7 @@ class AdminDashboardPage extends StatelessWidget {
         builder: (context) => Scaffold(
           backgroundColor: AppColors.fog,
           appBar: AppBar(
+            automaticallyImplyLeading: false,
             backgroundColor: AppColors.white,
             foregroundColor: AppColors.ink,
             elevation: 0,

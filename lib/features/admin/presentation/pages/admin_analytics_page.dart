@@ -20,6 +20,7 @@ class AdminAnalyticsPage extends StatelessWidget {
       child: Scaffold(
         backgroundColor: AppColors.fog,
         appBar: AppBar(
+          automaticallyImplyLeading: false,
           backgroundColor: AppColors.white,
           foregroundColor: AppColors.ink,
           elevation: 0,

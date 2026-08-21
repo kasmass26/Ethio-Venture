@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:ethioventure/core/constants/app_constants.dart';
 import 'package:ethioventure/core/di/injection_container.dart';
+import 'package:ethioventure/core/services/notification_service.dart';
 import 'package:ethioventure/core/theme/app_colors.dart';
 import 'package:ethioventure/core/theme/app_sizes.dart';
 import '../../../founder/presentation/widgets/dashboard_bottom_nav.dart';
@@ -71,10 +72,22 @@ class StartupProfilePage extends StatelessWidget {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(dialogContext, true);
-              sl<SupabaseClient>().auth.signOut();
-              Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+              final client = sl<SupabaseClient>();
+              try {
+                await NotificationService.instance.onUserLoggedOut(client);
+              } catch (_) {}
+              try {
+                await client.auth.signOut();
+              } catch (_) {}
+              if (context.mounted) {
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  AppConstants.routeLogin,
+                  (route) => false,
+                );
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.coral,

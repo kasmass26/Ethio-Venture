@@ -28,7 +28,10 @@ class UserService {
 
       if (profile != null) {
         fullName = profile['full_name']?.toString() ?? fullName;
-        userRole = _appRoleFromAccountType(profile['account_type']?.toString());
+        final mappedRole = _appRoleFromAccountType(profile['account_type']?.toString());
+        if (mappedRole.isNotEmpty) {
+          userRole = mappedRole;
+        }
       }
     } catch (e) {
       // Fall back to metadata if profile fetch fails
@@ -55,14 +58,17 @@ class UserService {
   }
 
   static String _roleFromUser(User user) {
-    final meta = user.userMetadata;
-    return meta?['role']?.toString() ?? '';
+    final role = user.userMetadata?['role']?.toString() ?? '';
+    return _appRoleFromAccountType(role).isNotEmpty
+        ? _appRoleFromAccountType(role)
+        : role;
   }
 
   static String _appRoleFromAccountType(String? accountType) {
-    return switch (accountType) {
-      'startup' => 'founder',
+    return switch (accountType?.toLowerCase().trim()) {
+      'startup' || 'founder' => 'founder',
       'investor' => 'investor',
+      'admin' => 'admin',
       _ => '',
     };
   }

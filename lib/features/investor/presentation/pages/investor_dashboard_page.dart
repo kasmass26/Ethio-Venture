@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -46,7 +45,7 @@ class _InvestorDashboardPageState extends State<InvestorDashboardPage> {
     try {
       final userService = sl<UserService>();
       final user = await userService.getCurrentUser();
-      
+
       if (user != null && mounted) {
         setState(() {
           _userName = userService.getFirstName(user.name);
@@ -123,10 +122,7 @@ class _InvestorDashboardPageState extends State<InvestorDashboardPage> {
             context.read<RecommendationsCubit>().loadRecommendations();
           }
         },
-        child: _DashboardScaffold(
-          userName: _userName,
-          activity: _activity,
-        ),
+        child: _DashboardScaffold(userName: _userName, activity: _activity),
       ),
     );
   }
@@ -136,10 +132,7 @@ class _InvestorDashboardPageState extends State<InvestorDashboardPage> {
 // Scaffold widget
 // ─────────────────────────────────────────────────────────────────────────────
 class _DashboardScaffold extends StatelessWidget {
-  const _DashboardScaffold({
-    required this.userName,
-    required this.activity,
-  });
+  const _DashboardScaffold({required this.userName, required this.activity});
 
   final String userName;
   final List<ActivityItem> activity;
@@ -175,17 +168,15 @@ class _DashboardScaffold extends StatelessWidget {
         currentIndex: 0,
         onTap: (index) {
           if (index == 1) {
-            Navigator.of(context).pushReplacementNamed(
-              AppConstants.routeStartupSearch,
-            );
+            Navigator.of(
+              context,
+            ).pushReplacementNamed(AppConstants.routeStartupSearch);
           } else if (index == 2) {
-            Navigator.of(context).pushNamed(
-              AppConstants.routeMessages,
-            );
+            Navigator.of(context).pushNamed(AppConstants.routeMessages);
           } else if (index == 3) {
-            Navigator.of(context).pushReplacementNamed(
-              AppConstants.routeInvestorProfile,
-            );
+            Navigator.of(
+              context,
+            ).pushReplacementNamed(AppConstants.routeInvestorProfile);
           }
         },
       ),
@@ -217,297 +208,319 @@ class _DashboardScaffold extends StatelessWidget {
               ),
               const SizedBox(height: 20),
 
-            // ── Metrics (stagger 1) ──
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: StaggeredFadeSlide(
-                index: 1,
-                totalItems: 7,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const _SectionHeading(title: 'Your Overview'),
-                    const SizedBox(height: 12),
-                    BlocBuilder<TrackedStartupsCubit, TrackedStartupsState>(
-                      builder: (context, trackedState) {
-                        return BlocBuilder<ConnectionRequestCubit, ConnectionRequestState>(
-                          builder: (context, connectionState) {
-                            final trackedCount = trackedState is TrackedStartupsLoaded
-                                ? trackedState.startups.length
-                                : 0;
+              // ── Metrics (stagger 1) ──
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: StaggeredFadeSlide(
+                  index: 1,
+                  totalItems: 7,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const _SectionHeading(title: 'Your Overview'),
+                      const SizedBox(height: 12),
+                      BlocBuilder<TrackedStartupsCubit, TrackedStartupsState>(
+                        builder: (context, trackedState) {
+                          return BlocBuilder<
+                            ConnectionRequestCubit,
+                            ConnectionRequestState
+                          >(
+                            builder: (context, connectionState) {
+                              final trackedCount =
+                                  trackedState is TrackedStartupsLoaded
+                                  ? trackedState.startups.length
+                                  : 0;
 
-                            final requests = connectionState is ConnectionRequestLoaded
-                                ? connectionState.requests
-                                : <ConnectionRequestEntity>[];
-                            final activeDealsCount =
-                                requests.where((r) => r.isAccepted).length;
-                            final pendingCount =
-                                requests.where((r) => r.isPending).length;
+                              final requests =
+                                  connectionState is ConnectionRequestLoaded
+                                  ? connectionState.requests
+                                  : <ConnectionRequestEntity>[];
+                              final activeDealsCount = requests
+                                  .where((r) => r.isAccepted)
+                                  .length;
+                              final pendingCount = requests
+                                  .where((r) => r.isPending)
+                                  .length;
 
-                            final dynamicMetrics = [
-                              InvestorMetric(
-                                label: 'Active Deals',
-                                value: activeDealsCount.toString(),
-                                deltaText: pendingCount > 0
-                                    ? '+$pendingCount pending'
-                                    : (activeDealsCount > 0
-                                        ? 'Active portfolio'
-                                        : 'No active deals'),
-                                tone: activeDealsCount > 0
-                                    ? DeltaTone.positive
-                                    : DeltaTone.neutral,
-                                icon: Icons.sell_outlined,
-                              ),
-                              InvestorMetric(
-                                label: 'Startups Tracked',
-                                value: trackedCount.toString(),
-                                deltaText: trackedCount > 0
-                                    ? '$trackedCount in watchlist'
-                                    : 'No startups tracked',
-                                tone: trackedCount > 0
-                                    ? DeltaTone.positive
-                                    : DeltaTone.neutral,
-                                icon: Icons.visibility_outlined,
-                              ),
-                              InvestorMetric(
-                                label: 'Connections',
-                                value: requests.length.toString(),
-                                deltaText: '${requests.length} total requests',
-                                tone: DeltaTone.neutral,
-                                icon: Icons.connect_without_contact_rounded,
-                              ),
-                            ];
+                              final dynamicMetrics = [
+                                InvestorMetric(
+                                  label: 'Active Deals',
+                                  value: activeDealsCount.toString(),
+                                  deltaText: pendingCount > 0
+                                      ? '+$pendingCount pending'
+                                      : (activeDealsCount > 0
+                                            ? 'Active portfolio'
+                                            : 'No active deals'),
+                                  tone: activeDealsCount > 0
+                                      ? DeltaTone.positive
+                                      : DeltaTone.neutral,
+                                  icon: Icons.sell_outlined,
+                                ),
+                                InvestorMetric(
+                                  label: 'Startups Tracked',
+                                  value: trackedCount.toString(),
+                                  deltaText: trackedCount > 0
+                                      ? '$trackedCount in watchlist'
+                                      : 'No startups tracked',
+                                  tone: trackedCount > 0
+                                      ? DeltaTone.positive
+                                      : DeltaTone.neutral,
+                                  icon: Icons.visibility_outlined,
+                                ),
+                                InvestorMetric(
+                                  label: 'Connections',
+                                  value: requests.length.toString(),
+                                  deltaText:
+                                      '${requests.length} total requests',
+                                  tone: DeltaTone.neutral,
+                                  icon: Icons.connect_without_contact_rounded,
+                                ),
+                              ];
 
-                            return _MetricsRow(metrics: dynamicMetrics);
-                          },
-                        );
-                      },
-                    ),
-                  ],
+                              return _MetricsRow(metrics: dynamicMetrics);
+                            },
+                          );
+                        },
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 24),
+              const SizedBox(height: 24),
 
-            // ── Quick Actions (stagger 2) ──
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: StaggeredFadeSlide(
-                index: 2,
-                totalItems: 7,
-                child: _QuickActionsGrid(),
+              // ── Quick Actions (stagger 2) ──
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: StaggeredFadeSlide(
+                  index: 2,
+                  totalItems: 7,
+                  child: _QuickActionsGrid(),
+                ),
               ),
-            ),
-            const SizedBox(height: 24),
+              const SizedBox(height: 24),
 
-            // ── Connection Requests Card (stagger 3) ──
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: StaggeredFadeSlide(
-                index: 3,
-                totalItems: 7,
-                child: BlocBuilder<ConnectionRequestCubit, ConnectionRequestState>(
-                  builder: (context, state) {
-                    final requests = state is ConnectionRequestLoaded
-                        ? state.requests
-                        : <ConnectionRequestEntity>[];
-                    final pendingCount =
-                        requests.where((r) => r.isPending).length;
-                    final acceptedCount =
-                        requests.where((r) => r.isAccepted).length;
+              // ── Connection Requests Card (stagger 3) ──
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: StaggeredFadeSlide(
+                  index: 3,
+                  totalItems: 7,
+                  child:
+                      BlocBuilder<
+                        ConnectionRequestCubit,
+                        ConnectionRequestState
+                      >(
+                        builder: (context, state) {
+                          final requests = state is ConnectionRequestLoaded
+                              ? state.requests
+                              : <ConnectionRequestEntity>[];
+                          final pendingCount = requests
+                              .where((r) => r.isPending)
+                              .length;
+                          final acceptedCount = requests
+                              .where((r) => r.isAccepted)
+                              .length;
 
-                    return GestureDetector(
-                      onTap: () => Navigator.of(context)
-                          .pushNamed(AppConstants.routeInvestorRequests),
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF0A2540), Color(0xFF21496E)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(18),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.secondary.withValues(alpha: 0.18),
-                              blurRadius: 14,
-                              offset: const Offset(0, 6),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(10),
+                          return GestureDetector(
+                            onTap: () => Navigator.of(
+                              context,
+                            ).pushNamed(AppConstants.routeInvestorRequests),
+                            child: Container(
+                              padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Stack(
-                                clipBehavior: Clip.none,
-                                children: [
-                                  const Icon(
-                                    Icons.connect_without_contact_rounded,
-                                    color: Colors.white,
-                                    size: 22,
+                                gradient: const LinearGradient(
+                                  colors: [
+                                    Color(0xFF0A2540),
+                                    Color(0xFF21496E),
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                borderRadius: BorderRadius.circular(18),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.secondary.withValues(
+                                      alpha: 0.18,
+                                    ),
+                                    blurRadius: 14,
+                                    offset: const Offset(0, 6),
                                   ),
-                                  if (pendingCount > 0)
-                                    Positioned(
-                                      top: -6,
-                                      right: -6,
-                                      child: Container(
-                                        padding: const EdgeInsets.all(3),
-                                        decoration: const BoxDecoration(
-                                          color: Color(0xFFFF5252),
-                                          shape: BoxShape.circle,
+                                ],
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(
+                                        alpha: 0.15,
+                                      ),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Stack(
+                                      clipBehavior: Clip.none,
+                                      children: [
+                                        const Icon(
+                                          Icons.connect_without_contact_rounded,
+                                          color: Colors.white,
+                                          size: 22,
                                         ),
-                                        child: Text(
-                                          '$pendingCount',
-                                          style: const TextStyle(
+                                        if (pendingCount > 0)
+                                          Positioned(
+                                            top: -6,
+                                            right: -6,
+                                            child: Container(
+                                              padding: const EdgeInsets.all(3),
+                                              decoration: const BoxDecoration(
+                                                color: Color(0xFFFF5252),
+                                                shape: BoxShape.circle,
+                                              ),
+                                              child: Text(
+                                                '$pendingCount',
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 9,
+                                                  fontWeight: FontWeight.w800,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 14),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        const Text(
+                                          'Connection Requests',
+                                          style: TextStyle(
                                             color: Colors.white,
-                                            fontSize: 9,
-                                            fontWeight: FontWeight.w800,
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w700,
                                           ),
                                         ),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    'Connection Requests',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w700,
+                                        const SizedBox(height: 4),
+                                        Row(
+                                          children: [
+                                            _RequestStatChip(
+                                              label: '$pendingCount Pending',
+                                              color: const Color(0xFFFFD54F),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            _RequestStatChip(
+                                              label: '$acceptedCount Accepted',
+                                              color: const Color(0xFF69F0AE),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                  const SizedBox(height: 4),
-                                  Row(
-                                    children: [
-                                      _RequestStatChip(
-                                        label: '$pendingCount Pending',
-                                        color: const Color(0xFFFFD54F),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      _RequestStatChip(
-                                        label: '$acceptedCount Accepted',
-                                        color: const Color(0xFF69F0AE),
-                                      ),
-                                    ],
+                                  const Icon(
+                                    Icons.arrow_forward_ios_rounded,
+                                    color: Colors.white54,
+                                    size: 16,
                                   ),
                                 ],
                               ),
                             ),
-                            const Icon(
-                              Icons.arrow_forward_ios_rounded,
-                              color: Colors.white54,
-                              size: 16,
-                            ),
-                          ],
-                        ),
+                          );
+                        },
                       ),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // ── Investment Insight Card (stagger 4) ──
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: StaggeredFadeSlide(
+                  index: 4,
+                  totalItems: 7,
+                  child: const _InvestmentInsightCard(),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // ── Dynamic recommendations (stagger 5) ──
+              StaggeredFadeSlide(
+                index: 5,
+                totalItems: 7,
+                child: BlocBuilder<RecommendationsCubit, RecommendationsState>(
+                  builder: (context, state) {
+                    return _RecommendedStartupsSection(
+                      state: state,
+                      onViewAll: () {
+                        Navigator.of(
+                          context,
+                        ).pushNamed(AppConstants.routeRecommendations);
+                      },
+                      onViewProfile: (match) async {
+                        await Navigator.of(context).pushNamed(
+                          AppConstants.routeStartupDetail,
+                          arguments: match,
+                        );
+                        if (context.mounted) {
+                          context
+                              .read<TrackedStartupsCubit>()
+                              .loadTrackedStartups();
+                        }
+                      },
                     );
                   },
                 ),
               ),
-            ),
-            const SizedBox(height: 24),
+              const SizedBox(height: 24),
 
-            // ── Investment Insight Card (stagger 4) ──
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: StaggeredFadeSlide(
-                index: 4,
-                totalItems: 7,
-                child: const _InvestmentInsightCard(),
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // ── Dynamic recommendations (stagger 5) ──
-            StaggeredFadeSlide(
-              index: 5,
-              totalItems: 7,
-              child: BlocBuilder<RecommendationsCubit, RecommendationsState>(
-                builder: (context, state) {
-                  return _RecommendedStartupsSection(
-                    state: state,
-                    onViewAll: () {
-                      Navigator.of(context).pushNamed(
-                        AppConstants.routeRecommendations,
-                      );
-                    },
-                    onViewProfile: (match) async {
-                      await Navigator.of(context).pushNamed(
-                        AppConstants.routeStartupDetail,
-                        arguments: match,
-                      );
-                      if (context.mounted) {
-                        context.read<TrackedStartupsCubit>().loadTrackedStartups();
-                      }
-                    },
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // ── Activity & Tracked (stagger 6) ──
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: StaggeredFadeSlide(
-                index: 6,
-                totalItems: 7,
-                child: Column(
-                  children: [
-                    _RecentActivityCard(
-                      items: activity,
-                      onViewAll: () {
-                        // TODO: navigate to full activity feed.
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    BlocBuilder<TrackedStartupsCubit, TrackedStartupsState>(
-                      builder: (context, state) {
-                        return _TrackedStartupsSection(
-                          state: state,
-                          onManage: () async {
-                            await Navigator.of(context).pushNamed(
-                              AppConstants.routeStartupSearch,
-                            );
-                            if (context.mounted) {
-                              context.read<TrackedStartupsCubit>().loadTrackedStartups();
-                            }
-                          },
-                          onTapStartup: (startup) async {
-                            await Navigator.of(context).pushNamed(
-                              AppConstants.routeStartupDetail,
-                              arguments: startup.startup,
-                            );
-                            if (context.mounted) {
-                              context.read<TrackedStartupsCubit>().loadTrackedStartups();
-                            }
-                          },
-                        );
-                      },
-                    ),
-                  ],
+              // ── Activity & Tracked (stagger 6) ──
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: StaggeredFadeSlide(
+                  index: 6,
+                  totalItems: 7,
+                  child: Column(
+                    children: [
+                      BlocBuilder<TrackedStartupsCubit, TrackedStartupsState>(
+                        builder: (context, state) {
+                          return _TrackedStartupsSection(
+                            state: state,
+                            onManage: () async {
+                              await Navigator.of(
+                                context,
+                              ).pushNamed(AppConstants.routeStartupSearch);
+                              if (context.mounted) {
+                                context
+                                    .read<TrackedStartupsCubit>()
+                                    .loadTrackedStartups();
+                              }
+                            },
+                            onTapStartup: (startup) async {
+                              await Navigator.of(context).pushNamed(
+                                AppConstants.routeStartupDetail,
+                                arguments: startup.startup,
+                              );
+                              if (context.mounted) {
+                                context
+                                    .read<TrackedStartupsCubit>()
+                                    .loadTrackedStartups();
+                              }
+                            },
+                          );
+                        },
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 }
 
 class _IconBadgeButton extends StatelessWidget {
@@ -616,8 +629,9 @@ class _PortfolioPulseStrip extends StatelessWidget {
                           RecommendationsInitial() =>
                             'Finding startups matching your thesis...',
                           RecommendationsLoaded(:final results) ||
-                          RecommendationsOpeningConversation(:final results) =>
-                            _formatMatchCount(results),
+                          RecommendationsOpeningConversation(
+                            :final results,
+                          ) => _formatMatchCount(results),
                           RecommendationsNotInvestor() =>
                             'Set up your investor thesis to see matches',
                           RecommendationsError() =>
@@ -653,7 +667,10 @@ class _PortfolioPulseStrip extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.14),
                   borderRadius: BorderRadius.circular(14),
@@ -755,10 +772,7 @@ class _MetricsRow extends StatelessWidget {
         itemCount: metrics.length,
         separatorBuilder: (_, __) => const SizedBox(width: 12),
         itemBuilder: (context, i) {
-          return SizedBox(
-            width: 155,
-            child: _MetricCard(metric: metrics[i]),
-          );
+          return SizedBox(width: 155, child: _MetricCard(metric: metrics[i]));
         },
       ),
     );
@@ -837,10 +851,7 @@ class _MetricCard extends StatelessWidget {
           iconBadge,
           const SizedBox(height: 10),
           if (numericValue != null)
-            AnimatedCounter(
-              end: numericValue,
-              style: _valueStyle,
-            )
+            AnimatedCounter(end: numericValue, style: _valueStyle)
           else
             Text(metric.value, style: _valueStyle),
           const SizedBox(height: 2),
@@ -886,9 +897,9 @@ class _QuickActionsGrid extends StatelessWidget {
                 label: 'Browse\nStartups',
                 gradient: const [Color(0xFF0A2540), Color(0xFF21496E)],
                 onTap: () async {
-                  await Navigator.of(context).pushNamed(
-                    AppConstants.routeStartupSearch,
-                  );
+                  await Navigator.of(
+                    context,
+                  ).pushNamed(AppConstants.routeStartupSearch);
                   if (context.mounted) {
                     context.read<TrackedStartupsCubit>().loadTrackedStartups();
                   }
@@ -901,9 +912,9 @@ class _QuickActionsGrid extends StatelessWidget {
                 icon: Icons.connect_without_contact_rounded,
                 label: 'View\nRequests',
                 gradient: const [Color(0xFF009BC2), Color(0xFF00D1FF)],
-                onTap: () => Navigator.of(context).pushNamed(
-                  AppConstants.routeInvestorRequests,
-                ),
+                onTap: () => Navigator.of(
+                  context,
+                ).pushNamed(AppConstants.routeInvestorRequests),
               ),
             ),
           ],
@@ -916,9 +927,8 @@ class _QuickActionsGrid extends StatelessWidget {
                 icon: Icons.chat_bubble_outline_rounded,
                 label: 'Messages',
                 gradient: const [Color(0xFF11845B), Color(0xFF1DB67E)],
-                onTap: () => Navigator.of(context).pushNamed(
-                  AppConstants.routeMessages,
-                ),
+                onTap: () =>
+                    Navigator.of(context).pushNamed(AppConstants.routeMessages),
               ),
             ),
             const SizedBox(width: 12),
@@ -927,9 +937,9 @@ class _QuickActionsGrid extends StatelessWidget {
                 icon: Icons.person_outline_rounded,
                 label: 'My\nProfile',
                 gradient: const [Color(0xFF7F77DD), Color(0xFFA49AFF)],
-                onTap: () => Navigator.of(context).pushReplacementNamed(
-                  AppConstants.routeInvestorProfile,
-                ),
+                onTap: () => Navigator.of(
+                  context,
+                ).pushReplacementNamed(AppConstants.routeInvestorProfile),
               ),
             ),
           ],
@@ -1171,26 +1181,20 @@ class _RecommendedStartupsSection extends StatelessWidget {
         const SizedBox(height: 12),
         switch (state) {
           RecommendationsLoading() ||
-          RecommendationsInitial() =>
-            const _RecommendedShimmer(),
+          RecommendationsInitial() => const _RecommendedShimmer(),
           RecommendationsLoaded(:final results) when results.isEmpty =>
             const _RecommendedEmpty(),
-          RecommendationsLoaded(:final results) =>
-            _RecommendedRail(
-              startups: results,
-              onViewProfile: onViewProfile,
-            ),
+          RecommendationsLoaded(:final results) => _RecommendedRail(
+            startups: results,
+            onViewProfile: onViewProfile,
+          ),
           RecommendationsOpeningConversation(:final results) =>
-            _RecommendedRail(
-              startups: results,
-              onViewProfile: onViewProfile,
-            ),
-          RecommendationsError(:final message) =>
-            _RecommendedError(message: message),
-          RecommendationsNotInvestor() =>
-            const SizedBox.shrink(),
-          RecommendationsUnauthenticated() =>
-            const SizedBox.shrink(),
+            _RecommendedRail(startups: results, onViewProfile: onViewProfile),
+          RecommendationsError(:final message) => _RecommendedError(
+            message: message,
+          ),
+          RecommendationsNotInvestor() => const SizedBox.shrink(),
+          RecommendationsUnauthenticated() => const SizedBox.shrink(),
         },
       ],
     );
@@ -1199,10 +1203,7 @@ class _RecommendedStartupsSection extends StatelessWidget {
 
 /// Horizontal scrolling rail of real startup cards from matching.
 class _RecommendedRail extends StatelessWidget {
-  const _RecommendedRail({
-    required this.startups,
-    required this.onViewProfile,
-  });
+  const _RecommendedRail({required this.startups, required this.onViewProfile});
 
   final List<MatchResultEntity> startups;
   final ValueChanged<MatchResultEntity> onViewProfile;
@@ -1218,10 +1219,7 @@ class _RecommendedRail extends StatelessWidget {
         separatorBuilder: (_, index) => const SizedBox(width: 12),
         itemBuilder: (context, i) {
           final match = startups[i];
-          return _StartupCard(
-            match: match,
-            onTap: () => onViewProfile(match),
-          );
+          return _StartupCard(match: match, onTap: () => onViewProfile(match));
         },
       ),
     );
@@ -1287,8 +1285,11 @@ class _RecommendedError extends StatelessWidget {
         ),
         child: Row(
           children: [
-            const Icon(Icons.warning_amber_rounded,
-                color: AppColors.warning, size: 18),
+            const Icon(
+              Icons.warning_amber_rounded,
+              color: AppColors.warning,
+              size: 18,
+            ),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
@@ -1314,7 +1315,8 @@ class _StartupCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final startup = match.startup;
-    final description = (startup.description != null && startup.description!.trim().isNotEmpty)
+    final description =
+        (startup.description != null && startup.description!.trim().isNotEmpty)
         ? startup.description!.trim()
         : 'High-potential venture matching your investment criteria.';
 
@@ -1349,7 +1351,10 @@ class _StartupCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 7,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.primarySoft,
                     borderRadius: BorderRadius.circular(8),
@@ -1383,33 +1388,36 @@ class _StartupCard extends StatelessWidget {
             Wrap(
               spacing: 6,
               runSpacing: 6,
-              children: [
-                if (startup.industry != null && startup.industry!.isNotEmpty)
-                  startup.industry!,
-                if (startup.fundingStage != null && startup.fundingStage!.isNotEmpty)
-                  startup.fundingStage!,
-              ]
-                  .map(
-                    (tag) => Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.secondarySoft,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        tag,
-                        style: const TextStyle(
-                          color: AppColors.secondary,
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w700,
+              children:
+                  [
+                        if (startup.industry != null &&
+                            startup.industry!.isNotEmpty)
+                          startup.industry!,
+                        if (startup.fundingStage != null &&
+                            startup.fundingStage!.isNotEmpty)
+                          startup.fundingStage!,
+                      ]
+                      .map(
+                        (tag) => Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.secondarySoft,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            tag,
+                            style: const TextStyle(
+                              color: AppColors.secondary,
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                  )
-                  .toList(),
+                      )
+                      .toList(),
             ),
             const SizedBox(height: 10),
             SizedBox(
@@ -1433,135 +1441,6 @@ class _StartupCard extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Recent activity card — with accent left border per kind
-// ---------------------------------------------------------------------------
-class _RecentActivityCard extends StatelessWidget {
-  final List<ActivityItem> items;
-  final VoidCallback onViewAll;
-  const _RecentActivityCard({required this.items, required this.onViewAll});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _SectionHeading(title: 'Recent Activity', onAction: onViewAll),
-          const SizedBox(height: 4),
-          ...List.generate(items.length, (i) {
-            final item = items[i];
-            final isLast = i == items.length - 1;
-            return _ActivityRow(item: item, showDivider: !isLast);
-          }),
-        ],
-      ),
-    );
-  }
-}
-
-class _ActivityRow extends StatelessWidget {
-  final ActivityItem item;
-  final bool showDivider;
-  const _ActivityRow({required this.item, required this.showDivider});
-
-  ({IconData icon, Color fg, Color bg}) _kindStyle(ActivityKind kind) {
-    switch (kind) {
-      case ActivityKind.document:
-        return (
-          icon: Icons.description_outlined,
-          fg: AppColors.secondary,
-          bg: AppColors.secondarySoft,
-        );
-      case ActivityKind.meeting:
-        return (
-          icon: Icons.event_outlined,
-          fg: AppColors.primaryDark,
-          bg: AppColors.primarySoft,
-        );
-      case ActivityKind.milestone:
-        return (
-          icon: Icons.flag_outlined,
-          fg: AppColors.success,
-          bg: AppColors.successSoft,
-        );
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final style = _kindStyle(item.kind);
-    return Column(
-      children: [
-        Container(
-          margin: const EdgeInsets.symmetric(vertical: 4),
-          decoration: BoxDecoration(
-            border: Border(
-              left: BorderSide(color: style.fg, width: 3),
-            ),
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(3),
-              bottomLeft: Radius.circular(3),
-            ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 34,
-                  height: 34,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: style.bg,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(style.icon, size: 16, color: style.fg),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: RichText(
-                    text: TextSpan(
-                      style: const TextStyle(
-                        fontSize: 13,
-                        height: 1.4,
-                        color: AppColors.textPrimary,
-                      ),
-                      children: [
-                        TextSpan(
-                          text: item.actorName,
-                          style: const TextStyle(fontWeight: FontWeight.w700),
-                        ),
-                        TextSpan(text: ' ${item.action}'),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  item.timeAgo,
-                  style: const TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 11.5,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        if (showDivider) const Divider(height: 1, color: AppColors.divider),
-      ],
     );
   }
 }
@@ -1803,8 +1682,6 @@ class _TrackedStartupCard extends StatelessWidget {
     );
   }
 }
-
-
 
 // ---------------------------------------------------------------------------
 // Domain models — field-for-field matches of your originals

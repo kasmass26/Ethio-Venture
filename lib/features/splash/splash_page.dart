@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/constants/app_constants.dart';
+import '../../core/di/injection_container.dart';
+import '../../core/routing/app_router.dart';
+import '../../core/services/notification_service.dart';
+import '../../core/services/user_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/storage_service.dart';
+import '../auth/data/models/user_model.dart';
 
-/// Splash screen that determines the initial route based on onboarding state
+/// Splash screen that determines the initial route based on auth and onboarding state
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
 
@@ -20,27 +26,67 @@ class _SplashPageState extends State<SplashPage> {
   }
 
   Future<void> _initializeApp() async {
-    // Add a small delay for smooth splash experience
-    await Future.delayed(const Duration(milliseconds: 1500));
-
-    if (!mounted) return;
+    // Add a minimum delay for a smooth, premium splash experience
+    final minSplashDuration = Future.delayed(const Duration(milliseconds: 1200));
 
     try {
       final storageService = await StorageService.init();
       final hasSeenOnboarding = storageService.hasCompletedOnboarding();
 
+      // Check if user is already logged in with an active session
+      SupabaseClient? supabaseClient;
+      try {
+        supabaseClient = Supabase.instance.client;
+      } catch (_) {
+        supabaseClient = null;
+      }
+
+      final session = supabaseClient?.auth.currentSession;
+      final currentUser = supabaseClient?.auth.currentUser;
+
+      if (session != null && currentUser != null) {
+        // User has an active session: fetch role and destination
+        UserModel? userModel;
+        try {
+          if (sl.isRegistered<UserService>()) {
+            userModel = await sl<UserService>().getCurrentUser();
+          }
+        } catch (e) {
+          debugPrint('Error retrieving user details in splash: $e');
+        }
+
+        final role = userModel?.role ??
+            currentUser.userMetadata?['role']?.toString() ??
+            AppConstants.roleFounder;
+        final email = userModel?.email ?? currentUser.email ?? '';
+
+        // Ensure notification service is initialized for the active user
+        if (supabaseClient != null) {
+          NotificationService.instance.onUserLoggedIn(supabaseClient);
+        }
+
+        // Wait for minimum splash duration before navigation
+        await minSplashDuration;
+        if (!mounted) return;
+
+        final destination = AppRouter.dashboardRouteForRole(role, email);
+        Navigator.of(context).pushReplacementNamed(destination);
+        return;
+      }
+
+      // No active session: wait for minimum splash duration
+      await minSplashDuration;
       if (!mounted) return;
 
-      // Navigate to appropriate screen
+      // Navigate to appropriate screen based on onboarding state
       if (hasSeenOnboarding) {
-        // User has seen onboarding, go directly to login
         Navigator.of(context).pushReplacementNamed(AppConstants.routeLogin);
       } else {
-        // First time user, show onboarding
         Navigator.of(context).pushReplacementNamed(AppConstants.routeOnboarding);
       }
     } catch (e) {
-      // If there's any error, show onboarding to be safe
+      debugPrint('Error in splash initialization: $e');
+      await minSplashDuration;
       if (mounted) {
         Navigator.of(context).pushReplacementNamed(AppConstants.routeOnboarding);
       }

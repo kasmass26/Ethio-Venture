@@ -103,18 +103,6 @@ class _ConversationsViewState extends State<_ConversationsView> {
     }
   }
 
-  void _handleBack() {
-    if (Navigator.of(context).canPop()) {
-      Navigator.of(context).pop();
-    } else {
-      Navigator.of(context).pushReplacementNamed(
-        _isInvestor
-            ? AppConstants.routeInvestorDashboard
-            : AppConstants.routeFounderDashboard,
-      );
-    }
-  }
-
   List<ConversationEntity> _filterConversations(List<ConversationEntity> all) {
     var list = all;
 
@@ -143,15 +131,11 @@ class _ConversationsViewState extends State<_ConversationsView> {
 
       // ── App bar ──────────────────────────────────────────────────────────
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         backgroundColor: AppColors.surface,
         elevation: 0,
         scrolledUnderElevation: 1,
         shadowColor: AppColors.secondary.withValues(alpha: 0.08),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              size: 20, color: AppColors.textPrimary),
-          onPressed: _handleBack,
-        ),
         title: const Text(
           'Messages',
           style: TextStyle(
