@@ -5,6 +5,7 @@ class AppConstants {
 
   static const String appName = 'Ethio Venture';
   static const String appTagline = 'Where ventures meet opportunity.';
+  static const String appLogo = 'assets/icons/app_icon.png';
 
   // User roles — mirrors the three actors from the system design:
   // Startup Founder, Investor, Administrator.

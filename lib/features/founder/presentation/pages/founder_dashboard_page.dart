@@ -699,6 +699,8 @@ class _HeroWelcomeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isComplete = strength.isComplete;
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(24),
@@ -768,22 +770,58 @@ class _HeroWelcomeCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 16),
-                _ProgressRing(percent: strength.percent, isLoading: isLoading),
+                if (!isComplete)
+                  _ProgressRing(percent: strength.percent, isLoading: isLoading)
+                else
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.2),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: const [
+                        Icon(
+                          Icons.verified_rounded,
+                          color: AppColors.primary,
+                          size: 16,
+                        ),
+                        SizedBox(width: 5),
+                        Text(
+                          'Ready',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
               ],
             ),
-            const SizedBox(height: 20),
-            Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(16),
+            if (!isComplete) ...[
+              const SizedBox(height: 20),
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  children: strength.checklist
+                      .map((item) => _ChecklistRow(item: item, onTap: onTap))
+                      .toList(),
+                ),
               ),
-              child: Column(
-                children: strength.checklist
-                    .map((item) => _ChecklistRow(item: item, onTap: onTap))
-                    .toList(),
-              ),
-            ),
+            ],
           ],
         ),
       ),
@@ -1323,6 +1361,8 @@ class ProfileStrength {
     required this.subtitle,
     required this.checklist,
   });
+
+  bool get isComplete => percent >= 100;
 }
 
 /// One metric tile (Profile Views, Investor Interest, Active Conversations...).

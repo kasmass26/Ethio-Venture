@@ -7,6 +7,7 @@ import '../../../../core/routing/app_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_sizes.dart';
 import '../../../../core/utils/input_validators.dart';
+import '../../../../core/widgets/app_logo.dart';
 import '../cubit/auth_cubit.dart';
 import '../cubit/auth_state.dart';
 import '../widgets/auth_text_field.dart';
@@ -104,19 +105,12 @@ class _LoginFormViewState extends State<_LoginFormView> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Center(
-                      child: Container(
-                        width: 64,
-                        height: 64,
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withOpacity(0.12),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.rocket_launch_outlined,
-                          color: AppColors.primary,
-                          size: 30,
-                        ),
+                    const Center(
+                      child: AppLogo(
+                        size: 64,
+                        isCircular: true,
+                        showShadow: true,
+                        showBorder: true,
                       ),
                     ),
                     const SizedBox(height: AppSizes.lg),

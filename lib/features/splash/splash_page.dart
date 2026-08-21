@@ -8,6 +8,7 @@ import '../../core/services/notification_service.dart';
 import '../../core/services/user_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/storage_service.dart';
+import '../../core/widgets/app_logo.dart';
 import '../auth/data/models/user_model.dart';
 
 /// Splash screen that determines the initial route based on auth and onboarding state
@@ -104,19 +105,12 @@ class _SplashPageState extends State<SplashPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Logo/Icon
-            Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                color: AppColors.primarySoft,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.hub_outlined,
-                color: AppColors.primary,
-                size: 60,
-              ),
+            // App Logo
+            const AppLogo(
+              size: 96,
+              isCircular: true,
+              showShadow: true,
+              showBorder: true,
             ),
             const SizedBox(height: 24),
             // App Name

@@ -11,6 +11,9 @@ class ProfileStrengthCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (data.isComplete) {
+      return const SizedBox.shrink();
+    }
     return DashboardSurfaceCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
