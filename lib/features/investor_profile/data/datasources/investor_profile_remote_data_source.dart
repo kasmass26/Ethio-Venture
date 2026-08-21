@@ -120,7 +120,51 @@ class InvestorProfileRemoteDataSourceImpl
   Future<InvestorProfileModel> updateInvestorProfile(
     InvestorProfileModel profile,
   ) async {
+    final currentUserId = profile.userId;
+
+    // Fetch existing profile to check approval status and rejection count
+    Map<String, dynamic>? existingData;
+    try {
+      existingData = await _client
+          .from(_tableName)
+          .select('approval_status, rejection_count, rejection_reason')
+          .eq('user_id', currentUserId)
+          .maybeSingle();
+    } catch (_) {
+      // Ignore select error or let it fallback
+    }
+
+    String approvalStatus = 'pending';
+    String? rejectionReason;
+    int rejectionCount = 0;
+
+    if (existingData != null) {
+      final existingStatus = existingData['approval_status']?.toString();
+      final existingCount = (existingData['rejection_count'] as num?)?.toInt() ?? 0;
+
+      if (existingStatus == 'rejected') {
+        if (existingCount >= 3) {
+          throw ServerException(
+            message: 'Maximum review submissions reached (3/3 attempts used). Resubmissions are locked.',
+          );
+        }
+        // If rejected and count < 3, transition back to pending and clear rejection reason
+        approvalStatus = 'pending';
+        rejectionReason = null;
+        rejectionCount = existingCount;
+      } else {
+        // Keep the existing status and count if not rejected
+        approvalStatus = existingStatus ?? 'pending';
+        rejectionReason = existingData['rejection_reason']?.toString();
+        rejectionCount = existingCount;
+      }
+    }
+
     final payload = profile.toJson();
+    payload['approval_status'] = approvalStatus;
+    payload['rejection_reason'] = rejectionReason;
+    payload['rejection_count'] = rejectionCount;
+
     developer.log(
       'Updating investor profile id "${profile.id}" in table "$_tableName" with payload: $payload',
       name: 'InvestorProfileRemoteDataSource.updateInvestorProfile',
@@ -166,7 +210,7 @@ class InvestorProfileRemoteDataSourceImpl
     try {
       List<dynamic> rows = [];
       try {
-        // Attempt 1: Join with users table
+        // Attempt 1: Join with users table for approved investors only
         final data = await _client
             .from(_tableName)
             .select('''
@@ -184,6 +228,7 @@ class InvestorProfileRemoteDataSourceImpl
               approval_status,
               users(full_name, email, account_type)
             ''')
+            .eq('approval_status', 'approved')
             .order('created_at', ascending: false);
         rows = (data as List).cast<dynamic>();
       } catch (e) {
@@ -195,6 +240,7 @@ class InvestorProfileRemoteDataSourceImpl
           final data = await _client
               .from(_tableName)
               .select()
+              .eq('approval_status', 'approved')
               .order('created_at', ascending: false);
           rows = (data as List).cast<dynamic>();
         } catch (e2) {
@@ -207,15 +253,23 @@ class InvestorProfileRemoteDataSourceImpl
         }
       }
 
-      // If user info is missing in rows, attempt to fetch user names
+      // Filter strictly to ONLY approved profiles and collect user ids to fetch if needed
       final List<Map<String, dynamic>> processedRows = [];
       final List<String> userIdsToFetch = [];
 
       for (final r in rows) {
         final map = Map<String, dynamic>.from(r as Map);
-        // Only exclude explicitly rejected profiles if approval_status column exists
-        final status = map['approval_status']?.toString().toLowerCase();
-        if (status == 'rejected') continue;
+        // Only approved profiles are live and discoverable in the app
+        final rawStatus = map['approval_status'];
+        final status = rawStatus?.toString().toLowerCase().trim();
+        // Discard any profile that is not explicitly approved
+        if (status != 'approved') {
+          developer.log(
+            'Skipping non-approved investor profile: id=${map['id']}, status=$status',
+            name: 'InvestorProfileRemoteDataSource.getApprovedInvestors',
+          );
+          continue;
+        }
 
         if (map['users'] == null && map['user_id'] != null) {
           final uid = map['user_id'].toString();

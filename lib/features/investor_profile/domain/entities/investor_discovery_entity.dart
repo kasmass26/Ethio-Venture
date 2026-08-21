@@ -17,7 +17,7 @@ class InvestorDiscoveryEntity {
     this.ticketSizeMin,
     this.ticketSizeMax,
     this.geographicFocus = const [],
-    this.approvalStatus = 'approved',
+    this.approvalStatus = 'pending',
     required this.createdAt,
     this.matchScore = 50,
     this.matchReasons = const [],
@@ -41,6 +41,8 @@ class InvestorDiscoveryEntity {
   final int matchScore;
   final List<String> matchReasons;
   final bool isSaved;
+
+  bool get isApproved => approvalStatus.toLowerCase().trim() == 'approved';
 
   /// Primary display name
   String get displayName {

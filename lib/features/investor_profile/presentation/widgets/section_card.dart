@@ -37,7 +37,7 @@ class SectionCard extends StatelessWidget {
             : [
                 BoxShadow(
                   color: AppColors.secondary.withValues(alpha: 0.04),
-                  blurRadius: 12,
+                  blurRadius: 14,
                   offset: const Offset(0, 4),
                 ),
               ],
@@ -51,22 +51,18 @@ class SectionCard extends StatelessWidget {
             children: [
               if (sectionNumber != null) ...[
                 Container(
-                  width: 28,
-                  height: 28,
+                  width: 30,
+                  height: 30,
                   decoration: BoxDecoration(
-                    color: isDark
-                        ? AppColors.secondaryLight
-                        : AppColors.secondarySoft,
+                    color: AppColors.primarySoft,
                     borderRadius: BorderRadius.circular(AppSizes.radiusSm),
                   ),
                   alignment: Alignment.center,
                   child: Text(
                     '$sectionNumber',
                     style: theme.textTheme.labelMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: isDark
-                          ? AppColors.textPrimaryDark
-                          : AppColors.secondary,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.primaryDark,
                     ),
                   ),
                 ),
@@ -76,7 +72,7 @@ class SectionCard extends StatelessWidget {
                 child: Text(
                   title,
                   style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w800,
                     color: isDark
                         ? AppColors.textPrimaryDark
                         : AppColors.secondary,
@@ -94,6 +90,7 @@ class SectionCard extends StatelessWidget {
                 color: isDark
                     ? AppColors.textSecondaryDark
                     : AppColors.textSecondary,
+                fontSize: 12.5,
               ),
             ),
           ],

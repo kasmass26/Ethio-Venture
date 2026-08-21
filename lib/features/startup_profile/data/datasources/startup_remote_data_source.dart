@@ -71,9 +71,9 @@ class StartupRemoteDataSourceImpl implements StartupRemoteDataSource {
       for (final r in rows) {
         final map = Map<String, dynamic>.from(r as Map);
 
-        // Exclude explicitly rejected profiles if approval_status column exists
+        // Only approved profiles are live and discoverable in the app
         final status = map['approval_status']?.toString().toLowerCase();
-        if (status == 'rejected') continue;
+        if (status != 'approved') continue;
 
         final model = StartupProfileModel.fromJson(map);
 

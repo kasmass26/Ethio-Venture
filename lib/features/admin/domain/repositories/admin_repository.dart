@@ -11,8 +11,8 @@ abstract class AdminRepository {
   /// Approves a startup or investor profile.
   Future<void> approveProfile(String profileId, String role);
 
-  /// Rejects a startup or investor profile.
-  Future<void> rejectProfile(String profileId, String role);
+  /// Rejects a startup or investor profile with a reason.
+  Future<void> rejectProfile(String profileId, String role, String rejectionReason);
   
   /// Fetches all approved startups.
   Future<List<PendingApprovalEntity>> getApprovedStartups();

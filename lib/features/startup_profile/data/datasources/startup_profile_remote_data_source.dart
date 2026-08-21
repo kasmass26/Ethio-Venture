@@ -1,5 +1,4 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:ethioventure/core/config/app_config.dart';
 import 'package:ethioventure/core/error/exceptions.dart';
 import '../models/startup_profile_model.dart';
 
@@ -26,7 +25,6 @@ class StartupProfileRemoteDataSourceImpl
   final SupabaseClient _client;
 
   static const String _tableName = 'startup_profiles';
-  static const String _defaultSeedUserId = '71c17916-032d-47fb-b3f5-a9a097036716';
 
   @override
   Future<StartupProfileModel> createProfile(StartupProfileModel profile) async {
@@ -58,12 +56,16 @@ class StartupProfileRemoteDataSourceImpl
         try {
           final fallbackPayload = {
             'user_id': currentUserId,
+            'startup_name': profile.startupName,
             'business_name': profile.startupName,
             'description': profile.description,
             'industry': profile.industry,
             'funding_stage': profile.fundingStage,
             'location': profile.location,
+            'funding_amount_needed': profile.fundingAmountNeeded,
             'funding_amount_sought': profile.fundingAmountNeeded,
+            'team_information': profile.teamInformation,
+            'contact_information': profile.contactInformation,
             'updated_at': DateTime.now().toIso8601String(),
           };
           final response = await _client
@@ -122,6 +124,44 @@ class StartupProfileRemoteDataSourceImpl
   Future<StartupProfileModel> updateProfile(StartupProfileModel profile) async {
     final currentUserId = _client.auth.currentUser?.id ?? profile.userId;
 
+    // Fetch existing profile to check approval status and rejection count
+    Map<String, dynamic>? existingData;
+    try {
+      existingData = await _client
+          .from(_tableName)
+          .select('approval_status, rejection_count, rejection_reason')
+          .eq('user_id', currentUserId)
+          .maybeSingle();
+    } catch (_) {
+      // Ignore select error or let it fallback
+    }
+
+    String approvalStatus = 'pending';
+    String? rejectionReason;
+    int rejectionCount = 0;
+
+    if (existingData != null) {
+      final existingStatus = existingData['approval_status']?.toString();
+      final existingCount = (existingData['rejection_count'] as num?)?.toInt() ?? 0;
+
+      if (existingStatus == 'rejected') {
+        if (existingCount >= 3) {
+          throw ServerException(
+            message: 'Maximum review submissions reached (3/3 attempts used). Resubmissions are locked.',
+          );
+        }
+        // If rejected and count < 3, transition back to pending and clear rejection reason
+        approvalStatus = 'pending';
+        rejectionReason = null;
+        rejectionCount = existingCount;
+      } else {
+        // Keep the existing status and count if not rejected
+        approvalStatus = existingStatus ?? 'pending';
+        rejectionReason = existingData['rejection_reason']?.toString();
+        rejectionCount = existingCount;
+      }
+    }
+
     final primaryPayload = {
       'user_id': currentUserId,
       'startup_name': profile.startupName,
@@ -133,6 +173,9 @@ class StartupProfileRemoteDataSourceImpl
       'team_information': profile.teamInformation,
       'contact_information': profile.contactInformation,
       'updated_at': DateTime.now().toIso8601String(),
+      'approval_status': approvalStatus,
+      'rejection_reason': rejectionReason,
+      'rejection_count': rejectionCount,
     };
 
     try {
@@ -147,13 +190,20 @@ class StartupProfileRemoteDataSourceImpl
         try {
           final fallbackPayload = {
             'user_id': currentUserId,
+            'startup_name': profile.startupName,
             'business_name': profile.startupName,
             'description': profile.description,
             'industry': profile.industry,
             'funding_stage': profile.fundingStage,
             'location': profile.location,
+            'funding_amount_needed': profile.fundingAmountNeeded,
             'funding_amount_sought': profile.fundingAmountNeeded,
+            'team_information': profile.teamInformation,
+            'contact_information': profile.contactInformation,
             'updated_at': DateTime.now().toIso8601String(),
+            'approval_status': approvalStatus,
+            'rejection_reason': rejectionReason,
+            'rejection_count': rejectionCount,
           };
           final response = await _client
               .from(_tableName)

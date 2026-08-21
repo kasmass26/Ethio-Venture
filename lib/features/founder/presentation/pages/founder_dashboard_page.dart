@@ -6,6 +6,9 @@ import '../../../../core/constants/app_constants.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/services/user_service.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../pitch_deck/presentation/cubit/document_cubit.dart';
+import '../../../pitch_deck/presentation/cubit/document_state.dart';
+import '../../../startup_profile/domain/entities/startup_profile_entity.dart';
 import '../../../startup_profile/presentation/cubit/startup_profile_cubit.dart';
 import '../../../startup_profile/presentation/cubit/startup_profile_state.dart';
 import '../cubit/recommended_investors_cubit.dart';
@@ -53,19 +56,93 @@ class _FounderDashboardPageState extends State<FounderDashboardPage> {
     }
   }
 
-  // --- Mock data (for momentum metrics & profile strength) ---------------
+  static ProfileStrength _calculateProfileStrength(
+    StartupProfileEntity? profile,
+    bool isProfileEmpty, {
+    bool hasDocuments = false,
+  }) {
+    if (isProfileEmpty || profile == null) {
+      return const ProfileStrength(
+        percent: 0,
+        subtitle: 'Setup your startup profile & upload pitch deck to attract investors.',
+        checklist: [
+          ProfileChecklistItem(
+            label: 'Basic Startup Info & Vision',
+            isComplete: false,
+          ),
+          ProfileChecklistItem(
+            label: 'Industry Sector & Stage',
+            isComplete: false,
+          ),
+          ProfileChecklistItem(
+            label: 'Team & Founders Overview',
+            isComplete: false,
+          ),
+          ProfileChecklistItem(
+            label: 'Funding Target & Contact Info',
+            isComplete: false,
+          ),
+          ProfileChecklistItem(
+            label: 'Pitch Deck & Business Documents',
+            isComplete: false,
+          ),
+        ],
+      );
+    }
 
-  static const _profileStrength = ProfileStrength(
-    percent: 85,
-    checklist: [
-      ProfileChecklistItem(label: 'Basic Information', isComplete: true),
-      ProfileChecklistItem(label: 'Team Members Added', isComplete: true),
-      ProfileChecklistItem(
-        label: 'Upload Financial Projections',
-        isComplete: false,
-      ),
-    ],
-  );
+    final bool hasBasic =
+        profile.startupName.trim().isNotEmpty &&
+        profile.description.trim().isNotEmpty;
+
+    final bool hasIndustryStage =
+        profile.industry.trim().isNotEmpty &&
+        profile.fundingStage.trim().isNotEmpty;
+
+    final bool hasTeam = profile.teamInformation.trim().isNotEmpty;
+
+    final bool hasFundingContact =
+        profile.contactInformation.trim().isNotEmpty ||
+        profile.fundingAmountNeeded > 0;
+
+    int completedCount = 0;
+    if (hasBasic) completedCount++;
+    if (hasIndustryStage) completedCount++;
+    if (hasTeam) completedCount++;
+    if (hasFundingContact) completedCount++;
+    if (hasDocuments) completedCount++;
+
+    final int percent = (completedCount / 5 * 100).round();
+    final String subtitle = percent == 100
+        ? 'Your profile is 100% complete and visible to investors!'
+        : 'Your profile is $percent% complete — finish setting it up to boost visibility.';
+
+    return ProfileStrength(
+      percent: percent,
+      subtitle: subtitle,
+      checklist: [
+        ProfileChecklistItem(
+          label: 'Basic Startup Info & Vision',
+          isComplete: hasBasic,
+        ),
+        ProfileChecklistItem(
+          label: 'Industry Sector & Stage',
+          isComplete: hasIndustryStage,
+        ),
+        ProfileChecklistItem(
+          label: 'Team & Founders Overview',
+          isComplete: hasTeam,
+        ),
+        ProfileChecklistItem(
+          label: 'Funding Target & Contact Info',
+          isComplete: hasFundingContact,
+        ),
+        ProfileChecklistItem(
+          label: 'Pitch Deck & Business Documents',
+          isComplete: hasDocuments,
+        ),
+      ],
+    );
+  }
 
   static const _metrics = [
     DashboardMetric(
@@ -120,12 +197,18 @@ class _FounderDashboardPageState extends State<FounderDashboardPage> {
         BlocProvider<RecommendedInvestorsCubit>(
           create: (_) => sl<RecommendedInvestorsCubit>()..load(),
         ),
+        BlocProvider<DocumentCubit>(
+          create: (_) => sl<DocumentCubit>(),
+        ),
       ],
       child: BlocListener<StartupProfileCubit, StartupProfileState>(
         listener: (context, startupState) {
           if (startupState is StartupProfileLoaded) {
             context.read<RecommendedInvestorsCubit>().load(
               startupState.profile,
+            );
+            context.read<DocumentCubit>().loadDocuments(
+              startupId: startupState.profile.id,
             );
           } else if (startupState is StartupProfileEmpty ||
               startupState is StartupProfileError) {
@@ -161,9 +244,64 @@ class _FounderDashboardPageState extends State<FounderDashboardPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _HeroWelcomeCard(
-                          userName: _userName,
-                          strength: _profileStrength,
+                        BlocBuilder<StartupProfileCubit, StartupProfileState>(
+                          builder: (context, profileState) {
+                            final profile = profileState is StartupProfileLoaded
+                                ? profileState.profile
+                                : null;
+                            final isProfileEmpty =
+                                profileState is StartupProfileEmpty;
+                            final isProfileLoading =
+                                profileState is StartupProfileLoading;
+
+                            return BlocBuilder<DocumentCubit, DocumentState>(
+                              builder: (context, docState) {
+                                final hasDocuments = docState is DocumentsLoaded &&
+                                    docState.documents.isNotEmpty;
+                                final isDocLoading = docState is DocumentLoading;
+
+                                final strength = _calculateProfileStrength(
+                                  profile,
+                                  isProfileEmpty,
+                                  hasDocuments: hasDocuments,
+                                );
+
+                                return _HeroWelcomeCard(
+                                  userName: _userName,
+                                  strength: strength,
+                                  isLoading: isProfileLoading || isDocLoading,
+                                  onTap: () {
+                                    if (profile != null) {
+                                      Navigator.of(context).pushNamed(
+                                        AppConstants.routeStartupProfile,
+                                      ).then((_) {
+                                        if (context.mounted) {
+                                          context
+                                              .read<StartupProfileCubit>()
+                                              .loadProfile(currentUserId);
+                                          context
+                                              .read<DocumentCubit>()
+                                              .loadDocuments(
+                                                startupId: profile.id,
+                                              );
+                                        }
+                                      });
+                                    } else {
+                                      Navigator.of(context).pushNamed(
+                                        AppConstants.routeStartupProfileSetup,
+                                      ).then((_) {
+                                        if (context.mounted) {
+                                          context
+                                              .read<StartupProfileCubit>()
+                                              .loadProfile(currentUserId);
+                                        }
+                                      });
+                                    }
+                                  },
+                                );
+                              },
+                            );
+                          },
                         ),
                         const SizedBox(height: 24),
                         const _SectionHeading(title: 'Your Momentum'),
@@ -309,69 +447,81 @@ class _AvatarBubble extends StatelessWidget {
 class _HeroWelcomeCard extends StatelessWidget {
   final String userName;
   final ProfileStrength strength;
-  const _HeroWelcomeCard({required this.userName, required this.strength});
+  final VoidCallback onTap;
+  final bool isLoading;
+
+  const _HeroWelcomeCard({
+    required this.userName,
+    required this.strength,
+    required this.onTap,
+    this.isLoading = false,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        gradient: const LinearGradient(
-          colors: [AppColors.secondary, AppColors.secondaryLight],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          gradient: const LinearGradient(
+            colors: [AppColors.secondary, AppColors.secondaryLight],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Welcome back, $userName',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        height: 1.25,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Welcome back, $userName',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          height: 1.25,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Your profile is turning heads — keep it up.',
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.85),
-                        fontSize: 13,
-                        height: 1.4,
+                      const SizedBox(height: 6),
+                      Text(
+                        strength.subtitle,
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.85),
+                          fontSize: 13,
+                          height: 1.4,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
+                const SizedBox(width: 16),
+                _ProgressRing(percent: strength.percent, isLoading: isLoading),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(16),
               ),
-              const SizedBox(width: 16),
-              _ProgressRing(percent: strength.percent),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Container(
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(16),
+              child: Column(
+                children: strength.checklist
+                    .map((item) => _ChecklistRow(item: item, onTap: onTap))
+                    .toList(),
+              ),
             ),
-            child: Column(
-              children: strength.checklist
-                  .map((item) => _ChecklistRow(item: item))
-                  .toList(),
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -379,7 +529,9 @@ class _HeroWelcomeCard extends StatelessWidget {
 
 class _ProgressRing extends StatelessWidget {
   final int percent;
-  const _ProgressRing({required this.percent});
+  final bool isLoading;
+
+  const _ProgressRing({required this.percent, this.isLoading = false});
 
   @override
   Widget build(BuildContext context) {
@@ -393,21 +545,22 @@ class _ProgressRing extends StatelessWidget {
             width: 64,
             height: 64,
             child: CircularProgressIndicator(
-              value: percent / 100,
+              value: isLoading ? null : percent / 100,
               strokeWidth: 6,
               strokeCap: StrokeCap.round,
               backgroundColor: Colors.white.withOpacity(0.25),
               valueColor: const AlwaysStoppedAnimation(Colors.white),
             ),
           ),
-          Text(
-            '$percent%',
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w800,
-              fontSize: 14,
+          if (!isLoading)
+            Text(
+              '$percent%',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+                fontSize: 14,
+              ),
             ),
-          ),
         ],
       ),
     );
@@ -416,41 +569,47 @@ class _ProgressRing extends StatelessWidget {
 
 class _ChecklistRow extends StatelessWidget {
   final ProfileChecklistItem item;
-  const _ChecklistRow({required this.item});
+  final VoidCallback? onTap;
+
+  const _ChecklistRow({required this.item, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-      child: Row(
-        children: [
-          Icon(
-            item.isComplete
-                ? Icons.check_circle_rounded
-                : Icons.radio_button_unchecked_rounded,
-            color: item.isComplete ? AppColors.primary : Colors.white70,
-            size: 18,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              item.label,
-              style: TextStyle(
-                color: Colors.white.withOpacity(item.isComplete ? 0.7 : 1),
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                decoration: item.isComplete ? TextDecoration.lineThrough : null,
-                decorationColor: Colors.white54,
-              ),
-            ),
-          ),
-          if (!item.isComplete)
-            const Icon(
-              Icons.chevron_right_rounded,
-              color: Colors.white70,
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+        child: Row(
+          children: [
+            Icon(
+              item.isComplete
+                  ? Icons.check_circle_rounded
+                  : Icons.radio_button_unchecked_rounded,
+              color: item.isComplete ? AppColors.primary : Colors.white70,
               size: 18,
             ),
-        ],
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                item.label,
+                style: TextStyle(
+                  color: Colors.white.withOpacity(item.isComplete ? 0.7 : 1),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  decoration: item.isComplete ? TextDecoration.lineThrough : null,
+                  decorationColor: Colors.white54,
+                ),
+              ),
+            ),
+            if (!item.isComplete)
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: Colors.white70,
+                size: 18,
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -466,6 +625,7 @@ class _SectionHeading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final onSeeAllCallback = onSeeAll;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -477,9 +637,9 @@ class _SectionHeading extends StatelessWidget {
             fontWeight: FontWeight.w700,
           ),
         ),
-        if (onSeeAll != null)
+        if (onSeeAllCallback != null)
           TextButton(
-            onPressed: onSeeAll,
+            onPressed: onSeeAllCallback,
             style: TextButton.styleFrom(
               foregroundColor: AppColors.primaryDark,
               padding: EdgeInsets.zero,
@@ -656,9 +816,14 @@ class ProfileChecklistItem {
 /// Snapshot of profile-completeness data.
 class ProfileStrength {
   final int percent;
+  final String subtitle;
   final List<ProfileChecklistItem> checklist;
 
-  const ProfileStrength({required this.percent, required this.checklist});
+  const ProfileStrength({
+    required this.percent,
+    required this.subtitle,
+    required this.checklist,
+  });
 }
 
 /// One metric tile (Profile Views, Investor Interest, Active Conversations...).

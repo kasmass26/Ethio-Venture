@@ -11,8 +11,8 @@ abstract class AdminRemoteDataSource {
   /// Approves a profile in Supabase.
   Future<void> approveProfile(String profileId, String role);
 
-  /// Rejects a profile in Supabase.
-  Future<void> rejectProfile(String profileId, String role);
+  /// Rejects a profile in Supabase with a mandatory reason.
+  Future<void> rejectProfile(String profileId, String role, String rejectionReason);
   
   /// Fetches all approved startups.
   Future<List<PendingApprovalModel>> getApprovedStartups();

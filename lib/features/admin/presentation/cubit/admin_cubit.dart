@@ -102,15 +102,19 @@ class AdminCubit extends Cubit<AdminState> {
     }
   }
 
-  Future<void> reject(String profileId, String role) async {
+  Future<void> reject(String profileId, String role, String rejectionReason) async {
     final currentState = state;
     if (currentState is! AdminProfilesLoaded) return;
 
     try {
-      await rejectProfile(profileId: profileId, role: role);
+      await rejectProfile(
+        profileId: profileId,
+        role: role,
+        rejectionReason: rejectionReason,
+      );
       
       developer.log(
-        'Rejected profile: $profileId, role: $role',
+        'Rejected profile: $profileId, role: $role, reason: $rejectionReason',
         name: 'EthioVenture.Admin',
       );
 
@@ -118,7 +122,6 @@ class AdminCubit extends Cubit<AdminState> {
       await loadAllProfiles();
       
       emit(const AdminActionSuccess('Profile rejected successfully'));
-      emit(currentState);
     } catch (error, stackTrace) {
       developer.log(
         'Failed to reject profile: $profileId',

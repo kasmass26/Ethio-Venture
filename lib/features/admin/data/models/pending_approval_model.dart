@@ -17,17 +17,29 @@ class PendingApprovalModel extends PendingApprovalEntity {
     super.logoUrl,
     required super.createdAt,
     required super.approvalStatus,
+    super.rejectionReason,
+    super.approvalDate,
+    super.rejectionCount = 0,
   });
 
   /// Creates a model from Supabase JSON response.
   factory PendingApprovalModel.fromJson(Map<String, dynamic> json) {
+    DateTime? parsedApprovalDate;
+    if (json['approval_date'] != null) {
+      try {
+        parsedApprovalDate = DateTime.parse(json['approval_date'].toString());
+      } catch (_) {
+        parsedApprovalDate = null;
+      }
+    }
+
     return PendingApprovalModel(
       id: json['id'] as String,
       userId: json['user_id'] as String,
       name: json['name'] as String? ?? 'Unknown',
       email: json['email'] as String? ?? '',
       role: json['role'] as String? ?? 'founder',
-      businessName: json['business_name'] as String,
+      businessName: json['business_name'] as String? ?? 'N/A',
       description: json['description'] as String? ?? '',
       industry: json['industry'] as String? ?? '',
       fundingStage: json['funding_stage'] as String? ?? '',
@@ -38,6 +50,9 @@ class PendingApprovalModel extends PendingApprovalEntity {
           ? DateTime.parse(json['created_at'] as String)
           : DateTime.now(),
       approvalStatus: json['approval_status'] as String? ?? 'pending',
+      rejectionReason: json['rejection_reason'] as String?,
+      approvalDate: parsedApprovalDate,
+      rejectionCount: (json['rejection_count'] as num?)?.toInt() ?? 0,
     );
   }
 
@@ -58,6 +73,9 @@ class PendingApprovalModel extends PendingApprovalEntity {
       'logo_url': logoUrl,
       'created_at': createdAt.toIso8601String(),
       'approval_status': approvalStatus,
+      'rejection_reason': rejectionReason,
+      'approval_date': approvalDate?.toIso8601String(),
+      'rejection_count': rejectionCount,
     };
   }
 }

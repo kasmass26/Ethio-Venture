@@ -87,6 +87,7 @@ class _ChatViewState extends State<_ChatView> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
+      resizeToAvoidBottomInset: true,
 
       // ── App bar ──────────────────────────────────────────────────────────
       appBar: AppBar(
@@ -143,132 +144,139 @@ class _ChatViewState extends State<_ChatView> {
       ),
 
       // ── Body ─────────────────────────────────────────────────────────────
-      body: BlocConsumer<ChatCubit, ChatState>(
-        listener: (context, state) {
-          if (state is ChatLoaded) {
-            _scrollToBottom();
-          }
-          if (state is ChatError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: AppColors.error,
-              ),
-            );
-          }
-        },
-        builder: (context, state) {
-          if (state is ChatLoading || state is ChatInitial) {
-            return const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
-            );
-          }
-
-          if (state is ChatUnauthenticated) {
-            return const Center(
-              child: Padding(
-                padding: EdgeInsets.all(AppSizes.xl),
-                child: Text(
-                  'You must be signed in to view this conversation.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: AppColors.textSecondary),
-                ),
-              ),
-            );
-          }
-
-          if (state is ChatError) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(AppSizes.xl),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.error_outline,
-                        size: 48, color: AppColors.textSecondary),
-                    const SizedBox(height: AppSizes.md),
-                    Text(
-                      state.message,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: AppColors.textSecondary),
+      body: Column(
+        children: [
+          Expanded(
+            child: BlocConsumer<ChatCubit, ChatState>(
+              listener: (context, state) {
+                if (state is ChatLoaded) {
+                  _scrollToBottom();
+                }
+                if (state is ChatError) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(state.message),
+                      backgroundColor: AppColors.error,
                     ),
-                    const SizedBox(height: AppSizes.lg),
-                    ElevatedButton(
-                      onPressed: () => context
-                          .read<ChatCubit>()
-                          .loadMessages(widget.conversationId),
-                      child: const Text('Retry'),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }
-
-          if (state is ChatLoaded) {
-            if (state.messages.isEmpty) {
-              return const Center(
-                child: Text(
-                  'No messages yet.\nBe the first to say hello!',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: AppColors.textSecondary),
-                ),
-              );
-            }
-
-            // Group messages by date to display date separators.
-            final grouped = _groupByDate(state.messages);
-            final myProfileId = state.myProfileId;
-
-            return ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSizes.md,
-                vertical: AppSizes.md,
-              ),
-              itemCount: grouped.length,
-              itemBuilder: (context, index) {
-                final item = grouped[index];
-
-                if (item is _DateLabel) {
-                  return _DateSeparator(label: item.label);
+                  );
+                }
+              },
+              builder: (context, state) {
+                if (state is ChatLoading || state is ChatInitial) {
+                  return const Center(
+                    child: CircularProgressIndicator(color: AppColors.primary),
+                  );
                 }
 
-                if (item is _MessageItem) {
-                  final msg = item.entity;
-                  final currentUid =
-                      Supabase.instance.client.auth.currentUser?.id;
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: AppSizes.xs + 2),
-                    child: MessageBubble(
-                      content: msg.content,
-                      sentAt: msg.sentAt,
-                      isOutgoing: msg.senderId == myProfileId ||
-                          (currentUid != null && msg.senderId == currentUid),
+                if (state is ChatUnauthenticated) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(AppSizes.xl),
+                      child: Text(
+                        'You must be signed in to view this conversation.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: AppColors.textSecondary),
+                      ),
                     ),
+                  );
+                }
+
+                if (state is ChatError) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppSizes.xl),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.error_outline,
+                              size: 48, color: AppColors.textSecondary),
+                          const SizedBox(height: AppSizes.md),
+                          Text(
+                            state.message,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(color: AppColors.textSecondary),
+                          ),
+                          const SizedBox(height: AppSizes.lg),
+                          ElevatedButton(
+                            onPressed: () => context
+                                .read<ChatCubit>()
+                                .loadMessages(widget.conversationId),
+                            child: const Text('Retry'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+
+                if (state is ChatLoaded) {
+                  if (state.messages.isEmpty) {
+                    return const Center(
+                      child: Text(
+                        'No messages yet.\nBe the first to say hello!',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: AppColors.textSecondary),
+                      ),
+                    );
+                  }
+
+                  // Group messages by date to display date separators.
+                  final grouped = _groupByDate(state.messages);
+                  final myProfileId = state.myProfileId;
+
+                  return ListView.builder(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSizes.md,
+                      vertical: AppSizes.md,
+                    ),
+                    itemCount: grouped.length,
+                    itemBuilder: (context, index) {
+                      final item = grouped[index];
+
+                      if (item is _DateLabel) {
+                        return _DateSeparator(label: item.label);
+                      }
+
+                      if (item is _MessageItem) {
+                        final msg = item.entity;
+                        final currentUid =
+                            Supabase.instance.client.auth.currentUser?.id;
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: AppSizes.xs + 2),
+                          child: MessageBubble(
+                            content: msg.content,
+                            sentAt: msg.sentAt,
+                            isOutgoing: msg.senderId == myProfileId ||
+                                (currentUid != null && msg.senderId == currentUid),
+                          ),
+                        );
+                      }
+
+                      return const SizedBox.shrink();
+                    },
                   );
                 }
 
                 return const SizedBox.shrink();
               },
-            );
-          }
+            ),
+          ),
 
-          return const SizedBox.shrink();
-        },
-      ),
-
-      // ── Input bar ─────────────────────────────────────────────────────────
-      bottomNavigationBar: BlocBuilder<ChatCubit, ChatState>(
-        builder: (context, state) {
-          final isSending =
-              state is ChatLoaded && state.isSending;
-          return MessageInputBar(
-            isSending: isSending,
-            onSend: (text) =>
-                context.read<ChatCubit>().sendMessage(text),
-          );
-        },
+          // ── Input bar ─────────────────────────────────────────────────────────
+          BlocBuilder<ChatCubit, ChatState>(
+            builder: (context, state) {
+              final isSending =
+                  state is ChatLoaded && state.isSending;
+              return MessageInputBar(
+                isSending: isSending,
+                onTap: () => _scrollToBottom(),
+                onSend: (text) =>
+                    context.read<ChatCubit>().sendMessage(text),
+              );
+            },
+          ),
+        ],
       ),
     );
   }

@@ -32,16 +32,45 @@ class StartupProfileModel extends StartupProfileEntity {
     required super.contactInformation,
     required super.createdAt,
     required super.updatedAt,
+    super.approvalStatus = 'pending',
+    super.rejectionReason,
+    super.approvalDate,
+    super.rejectionCount = 0,
   });
 
   factory StartupProfileModel.fromJson(Map<String, dynamic> json) {
-    final name = json['startup_name']?.toString().isNotEmpty == true
-        ? json['startup_name'].toString()
-        : (json['business_name']?.toString() ?? '');
+    String cleanString(dynamic val) {
+      if (val == null) return '';
+      final str = val.toString().trim();
+      if (str.isEmpty || str.toLowerCase() == 'null' || str.toLowerCase() == 'undefined') return '';
+      return str;
+    }
+
+    final name = cleanString(json['startup_name']).isNotEmpty
+        ? cleanString(json['startup_name'])
+        : cleanString(json['business_name']);
 
     final amount = _parseDouble(json['funding_amount_needed']) ??
         _parseDouble(json['funding_amount_sought']) ??
         0.0;
+
+    final teamInfo = cleanString(json['team_information']).isNotEmpty
+        ? cleanString(json['team_information'])
+        : cleanString(json['team_overview']).isNotEmpty
+            ? cleanString(json['team_overview'])
+            : cleanString(json['team_details']).isNotEmpty
+                ? cleanString(json['team_details'])
+                : cleanString(json['team']);
+
+    final contactInfo = cleanString(json['contact_information']).isNotEmpty
+        ? cleanString(json['contact_information'])
+        : cleanString(json['contact_info']).isNotEmpty
+            ? cleanString(json['contact_info'])
+            : cleanString(json['contact_email']).isNotEmpty
+                ? cleanString(json['contact_email'])
+                : cleanString(json['contact_details']).isNotEmpty
+                    ? cleanString(json['contact_details'])
+                    : cleanString(json['contact']);
 
     DateTime parsedCreated;
     try {
@@ -61,6 +90,15 @@ class StartupProfileModel extends StartupProfileEntity {
       parsedUpdated = DateTime.now();
     }
 
+    DateTime? parsedApprovalDate;
+    if (json['approval_date'] != null) {
+      try {
+        parsedApprovalDate = DateTime.parse(json['approval_date'].toString());
+      } catch (_) {
+        parsedApprovalDate = null;
+      }
+    }
+
     return StartupProfileModel(
       id: json['id']?.toString() ?? '',
       userId: json['user_id']?.toString() ?? '',
@@ -70,10 +108,14 @@ class StartupProfileModel extends StartupProfileEntity {
       fundingStage: json['funding_stage']?.toString() ?? '',
       location: json['location']?.toString() ?? '',
       fundingAmountNeeded: amount,
-      teamInformation: json['team_information']?.toString() ?? '',
-      contactInformation: json['contact_information']?.toString() ?? '',
+      teamInformation: teamInfo,
+      contactInformation: contactInfo,
       createdAt: parsedCreated,
       updatedAt: parsedUpdated,
+      approvalStatus: json['approval_status']?.toString() ?? 'pending',
+      rejectionReason: json['rejection_reason']?.toString(),
+      approvalDate: parsedApprovalDate,
+      rejectionCount: (json['rejection_count'] as num?)?.toInt() ?? 0,
     );
   }
 
@@ -91,6 +133,10 @@ class StartupProfileModel extends StartupProfileEntity {
       contactInformation: entity.contactInformation,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
+      approvalStatus: entity.approvalStatus,
+      rejectionReason: entity.rejectionReason,
+      approvalDate: entity.approvalDate,
+      rejectionCount: entity.rejectionCount,
     );
   }
 
@@ -108,6 +154,10 @@ class StartupProfileModel extends StartupProfileEntity {
       'contact_information': contactInformation,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
+      'approval_status': approvalStatus,
+      'rejection_reason': rejectionReason,
+      'approval_date': approvalDate?.toIso8601String(),
+      'rejection_count': rejectionCount,
     };
   }
 
@@ -124,6 +174,10 @@ class StartupProfileModel extends StartupProfileEntity {
       'contact_information': contactInformation,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
+      'approval_status': approvalStatus,
+      'rejection_reason': rejectionReason,
+      'approval_date': approvalDate?.toIso8601String(),
+      'rejection_count': rejectionCount,
     };
   }
 
@@ -138,6 +192,10 @@ class StartupProfileModel extends StartupProfileEntity {
       'team_information': teamInformation,
       'contact_information': contactInformation,
       'updated_at': updatedAt.toIso8601String(),
+      'approval_status': approvalStatus,
+      'rejection_reason': rejectionReason,
+      'approval_date': approvalDate?.toIso8601String(),
+      'rejection_count': rejectionCount,
     };
   }
 

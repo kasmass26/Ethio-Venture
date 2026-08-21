@@ -17,6 +17,10 @@ class InvestorProfileEntity {
     this.ticketSizeMax,
     this.geographicFocus = const [],
     required this.createdAt,
+    this.approvalStatus = 'pending',
+    this.rejectionReason,
+    this.approvalDate,
+    this.rejectionCount = 0,
   }) : assert(
          ticketSizeMin == null ||
              ticketSizeMax == null ||
@@ -35,6 +39,59 @@ class InvestorProfileEntity {
   final double? ticketSizeMax;
   final List<String> geographicFocus;
   final DateTime createdAt;
+  final String approvalStatus;
+  final String? rejectionReason;
+  final DateTime? approvalDate;
+  final int rejectionCount;
+
+  bool get isApproved => approvalStatus == 'approved';
+  bool get isPending => approvalStatus == 'pending';
+  bool get isRejected => approvalStatus == 'rejected';
+
+  /// Whether the investor can edit & resubmit (up to 3 chances)
+  bool get canResubmit => isRejected && rejectionCount < 3;
+
+  /// Whether the investor has exhausted all 3 review attempts
+  bool get hasExhaustedChances => isRejected && rejectionCount >= 3;
+
+  /// Number of remaining review chances
+  int get remainingChances => (3 - rejectionCount).clamp(0, 3);
+
+  InvestorProfileEntity copyWith({
+    String? id,
+    String? userId,
+    String? investorType,
+    String? organizationName,
+    String? bio,
+    List<String>? preferredIndustries,
+    List<String>? preferredStages,
+    double? ticketSizeMin,
+    double? ticketSizeMax,
+    List<String>? geographicFocus,
+    DateTime? createdAt,
+    String? approvalStatus,
+    String? rejectionReason,
+    DateTime? approvalDate,
+    int? rejectionCount,
+  }) {
+    return InvestorProfileEntity(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      investorType: investorType ?? this.investorType,
+      organizationName: organizationName ?? this.organizationName,
+      bio: bio ?? this.bio,
+      preferredIndustries: preferredIndustries ?? this.preferredIndustries,
+      preferredStages: preferredStages ?? this.preferredStages,
+      ticketSizeMin: ticketSizeMin ?? this.ticketSizeMin,
+      ticketSizeMax: ticketSizeMax ?? this.ticketSizeMax,
+      geographicFocus: geographicFocus ?? this.geographicFocus,
+      createdAt: createdAt ?? this.createdAt,
+      approvalStatus: approvalStatus ?? this.approvalStatus,
+      rejectionReason: rejectionReason ?? this.rejectionReason,
+      approvalDate: approvalDate ?? this.approvalDate,
+      rejectionCount: rejectionCount ?? this.rejectionCount,
+    );
+  }
 
   @override
   bool operator ==(Object other) {
@@ -50,7 +107,10 @@ class InvestorProfileEntity {
             ticketSizeMin == other.ticketSizeMin &&
             ticketSizeMax == other.ticketSizeMax &&
             listEquals(geographicFocus, other.geographicFocus) &&
-            createdAt == other.createdAt;
+            createdAt == other.createdAt &&
+            approvalStatus == other.approvalStatus &&
+            rejectionReason == other.rejectionReason &&
+            approvalDate == other.approvalDate;
   }
 
   @override
@@ -67,6 +127,9 @@ class InvestorProfileEntity {
       ticketSizeMax,
       Object.hashAll(geographicFocus),
       createdAt,
+      approvalStatus,
+      rejectionReason,
+      approvalDate,
     );
   }
 }

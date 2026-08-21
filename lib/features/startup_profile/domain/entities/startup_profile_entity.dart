@@ -1,11 +1,6 @@
 import 'package:flutter/foundation.dart';
 
 /// Domain representation of a row in [public.startup_profiles].
-///
-/// Fields map directly to the schema defined in migrations:
-///   id, user_id, startup_name, description, industry, funding_stage,
-///   location, funding_amount_needed, team_information, contact_information,
-///   created_at, updated_at.
 @immutable
 class StartupProfileEntity {
   const StartupProfileEntity({
@@ -21,6 +16,10 @@ class StartupProfileEntity {
     required this.contactInformation,
     required this.createdAt,
     required this.updatedAt,
+    this.approvalStatus = 'pending',
+    this.rejectionReason,
+    this.approvalDate,
+    this.rejectionCount = 0,
   });
 
   /// Primary key of the startup_profiles row.
@@ -63,6 +62,69 @@ class StartupProfileEntity {
   String get stage => fundingStage;
   double? get fundingTarget => fundingAmountNeeded;
 
+  /// Approval status ('pending', 'approved', 'rejected')
+  final String approvalStatus;
+
+  /// Admin provided rejection reason if status is 'rejected'
+  final String? rejectionReason;
+
+  /// Date of latest approval or rejection
+  final DateTime? approvalDate;
+
+  /// How many times this startup application has been rejected (max 3 allowed)
+  final int rejectionCount;
+
+  bool get isApproved => approvalStatus == 'approved';
+  bool get isPending => approvalStatus == 'pending';
+  bool get isRejected => approvalStatus == 'rejected';
+
+  /// Whether the user can edit & resubmit (up to 3 chances)
+  bool get canResubmit => isRejected && rejectionCount < 3;
+
+  /// Whether the user has exhausted all 3 review attempts
+  bool get hasExhaustedChances => isRejected && rejectionCount >= 3;
+
+  /// Number of remaining review chances
+  int get remainingChances => (3 - rejectionCount).clamp(0, 3);
+
+  StartupProfileEntity copyWith({
+    String? id,
+    String? userId,
+    String? startupName,
+    String? description,
+    String? industry,
+    String? fundingStage,
+    double? fundingAmountNeeded,
+    String? location,
+    String? teamInformation,
+    String? contactInformation,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    String? approvalStatus,
+    String? rejectionReason,
+    DateTime? approvalDate,
+    int? rejectionCount,
+  }) {
+    return StartupProfileEntity(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      startupName: startupName ?? this.startupName,
+      description: description ?? this.description,
+      industry: industry ?? this.industry,
+      fundingStage: fundingStage ?? this.fundingStage,
+      fundingAmountNeeded: fundingAmountNeeded ?? this.fundingAmountNeeded,
+      location: location ?? this.location,
+      teamInformation: teamInformation ?? this.teamInformation,
+      contactInformation: contactInformation ?? this.contactInformation,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      approvalStatus: approvalStatus ?? this.approvalStatus,
+      rejectionReason: rejectionReason ?? this.rejectionReason,
+      approvalDate: approvalDate ?? this.approvalDate,
+      rejectionCount: rejectionCount ?? this.rejectionCount,
+    );
+  }
+
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
@@ -78,7 +140,10 @@ class StartupProfileEntity {
             teamInformation == other.teamInformation &&
             contactInformation == other.contactInformation &&
             createdAt == other.createdAt &&
-            updatedAt == other.updatedAt;
+            updatedAt == other.updatedAt &&
+            approvalStatus == other.approvalStatus &&
+            rejectionReason == other.rejectionReason &&
+            approvalDate == other.approvalDate;
   }
 
   @override
@@ -95,5 +160,8 @@ class StartupProfileEntity {
         contactInformation,
         createdAt,
         updatedAt,
+        approvalStatus,
+        rejectionReason,
+        approvalDate,
       );
 }

@@ -11,6 +11,9 @@ import 'package:ethioventure/features/investor_profile/presentation/cubit/invest
 import 'package:ethioventure/features/matching/domain/entities/match_result_entity.dart';
 import 'package:ethioventure/features/matching/presentation/cubit/recommendations_cubit.dart';
 import 'package:ethioventure/features/matching/presentation/cubit/recommendations_state.dart';
+import 'package:ethioventure/features/connection_requests/presentation/cubit/connection_request_cubit.dart';
+import 'package:ethioventure/features/connection_requests/presentation/cubit/connection_request_state.dart';
+import 'package:ethioventure/features/connection_requests/domain/entities/connection_request_entity.dart';
 
 /// ============================================================================
 /// INVESTOR DASHBOARD — REDESIGN
@@ -177,6 +180,9 @@ class _InvestorDashboardPageState extends State<InvestorDashboardPage> {
         BlocProvider<RecommendationsCubit>(
           create: (_) => sl<RecommendationsCubit>()..loadRecommendations(),
         ),
+        BlocProvider<ConnectionRequestCubit>(
+          create: (_) => sl<ConnectionRequestCubit>()..loadInvestorRequests(),
+        ),
       ],
       child: BlocListener<InvestorProfileCubit, InvestorProfileState>(
         listener: (context, profileState) {
@@ -276,6 +282,121 @@ class _DashboardScaffold extends StatelessWidget {
                   const SizedBox(height: 12),
                   _MetricsGrid(metrics: metrics),
                 ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            // ── Connection Requests Card ────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: BlocBuilder<ConnectionRequestCubit, ConnectionRequestState>(
+                builder: (context, state) {
+                  final requests = state is ConnectionRequestLoaded
+                      ? state.requests
+                      : <ConnectionRequestEntity>[];
+                  final pendingCount =
+                      requests.where((r) => r.isPending).length;
+                  final acceptedCount =
+                      requests.where((r) => r.isAccepted).length;
+
+                  return GestureDetector(
+                    onTap: () => Navigator.of(context)
+                        .pushNamed(AppConstants.routeInvestorRequests),
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF0A2540), Color(0xFF21496E)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(18),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.secondary.withOpacity(0.18),
+                            blurRadius: 14,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                const Icon(
+                                  Icons.connect_without_contact_rounded,
+                                  color: Colors.white,
+                                  size: 22,
+                                ),
+                                if (pendingCount > 0)
+                                  Positioned(
+                                    top: -6,
+                                    right: -6,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(3),
+                                      decoration: const BoxDecoration(
+                                        color: Color(0xFFFF5252),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Text(
+                                        '$pendingCount',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Connection Requests',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    _RequestStatChip(
+                                      label: '$pendingCount Pending',
+                                      color: const Color(0xFFFFD54F),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    _RequestStatChip(
+                                      label: '$acceptedCount Accepted',
+                                      color: const Color(0xFF69F0AE),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Icon(
+                            Icons.arrow_forward_ios_rounded,
+                            color: Colors.white54,
+                            size: 16,
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
             const SizedBox(height: 24),
@@ -1312,5 +1433,35 @@ class TrackedStartup {
     required this.progressPercent,
   });
 }
+
+// ── Helper: small colored chip for request stats ──────────────────────────────
+
+class _RequestStatChip extends StatelessWidget {
+  const _RequestStatChip({required this.label, required this.color});
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.18),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withOpacity(0.4)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
 
 
