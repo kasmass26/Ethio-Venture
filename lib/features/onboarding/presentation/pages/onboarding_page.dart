@@ -256,6 +256,7 @@ class _TopBar extends StatelessWidget {
               backgroundColor: AppColors.primary,
               foregroundColor: AppColors.secondary,
               elevation: 0,
+              minimumSize: const Size(0, 36),
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(AppSizes.radiusMd),

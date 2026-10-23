@@ -4,14 +4,17 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:ethioventure/core/widgets/app_logo.dart';
 import 'package:ethioventure/features/onboarding/presentation/pages/onboarding_page.dart';
 
+import 'package:ethioventure/core/theme/app_theme.dart';
+
 void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues({});
   });
 
   Widget buildTestWidget() {
-    return const MaterialApp(
-      home: OnboardingPage(),
+    return MaterialApp(
+      theme: AppTheme.lightTheme,
+      home: const OnboardingPage(),
     );
   }
 
@@ -64,5 +67,18 @@ void main() {
     // Verify Role selection is immediately displayed
     expect(find.text('Join as Founder'), findsOneWidget);
     expect(find.text('Join as Investor'), findsOneWidget);
+  });
+
+  testWidgets('OnboardingPage renders properly with dark theme', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.darkTheme,
+        home: const OnboardingPage(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Sign in'), findsOneWidget);
+    expect(find.text('Ethio Venture'), findsOneWidget);
   });
 }

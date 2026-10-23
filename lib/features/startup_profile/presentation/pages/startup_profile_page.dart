@@ -959,6 +959,8 @@ class StartupProfilePage extends StatelessWidget {
                         PitchDeckSectionWidget(
                           startupId: profile.id,
                           isFounder: true,
+                          startupSector: profile.industry,
+                          startupStage: profile.fundingStage,
                         ),
                         const SizedBox(height: 16),
 

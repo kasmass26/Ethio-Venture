@@ -514,6 +514,8 @@ class _StartupDetailPageState extends State<StartupDetailPage> {
                 child: PitchDeckSectionWidget(
                   startupId: startup.id,
                   isFounder: false,
+                  startupSector: startup.industry,
+                  startupStage: startup.fundingStage,
                 ),
               ),
               const SizedBox(height: 16),

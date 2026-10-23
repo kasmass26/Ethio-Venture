@@ -34,6 +34,12 @@ import 'package:ethioventure/features/pitch_deck/domain/usecases/get_startup_doc
 import 'package:ethioventure/features/pitch_deck/domain/usecases/toggle_document_visibility_use_case.dart';
 import 'package:ethioventure/features/pitch_deck/domain/usecases/upload_document_use_case.dart';
 import 'package:ethioventure/features/pitch_deck/presentation/cubit/document_cubit.dart';
+import 'package:ethioventure/features/pitch_deck/data/datasources/pitch_analysis_remote_data_source.dart';
+import 'package:ethioventure/features/pitch_deck/data/repositories/pitch_analysis_repository_impl.dart';
+import 'package:ethioventure/features/pitch_deck/domain/repositories/pitch_analysis_repository.dart';
+import 'package:ethioventure/features/pitch_deck/domain/usecases/analyze_pitch_deck_use_case.dart';
+import 'package:ethioventure/features/pitch_deck/domain/usecases/get_pitch_analysis_use_case.dart';
+import 'package:ethioventure/features/pitch_deck/presentation/cubit/pitch_analysis_cubit.dart';
 
 import 'package:ethioventure/features/startup_profile/data/datasources/startup_profile_remote_data_source.dart';
 import 'package:ethioventure/features/startup_profile/data/repositories/startup_profile_repository_impl.dart';
@@ -338,6 +344,40 @@ Future<void> configureDependencies({SupabaseClient? supabaseClient}) async {
         getStartupDocumentsUseCase: sl<GetStartupDocumentsUseCase>(),
         deleteDocumentUseCase: sl<DeleteDocumentUseCase>(),
         toggleDocumentVisibilityUseCase: sl<ToggleDocumentVisibilityUseCase>(),
+      ),
+    );
+  }
+
+  // ── AI Pitch Deck Analysis ────────────────────────────────────────────────
+  if (!sl.isRegistered<PitchAnalysisRemoteDataSource>()) {
+    sl.registerLazySingleton<PitchAnalysisRemoteDataSource>(
+      () => PitchAnalysisRemoteDataSourceImpl(sl<SupabaseClient>()),
+    );
+  }
+
+  if (!sl.isRegistered<PitchAnalysisRepository>()) {
+    sl.registerLazySingleton<PitchAnalysisRepository>(
+      () => PitchAnalysisRepositoryImpl(sl<PitchAnalysisRemoteDataSource>()),
+    );
+  }
+
+  if (!sl.isRegistered<AnalyzePitchDeckUseCase>()) {
+    sl.registerLazySingleton<AnalyzePitchDeckUseCase>(
+      () => AnalyzePitchDeckUseCase(sl<PitchAnalysisRepository>()),
+    );
+  }
+
+  if (!sl.isRegistered<GetPitchAnalysisUseCase>()) {
+    sl.registerLazySingleton<GetPitchAnalysisUseCase>(
+      () => GetPitchAnalysisUseCase(sl<PitchAnalysisRepository>()),
+    );
+  }
+
+  if (!sl.isRegistered<PitchAnalysisCubit>()) {
+    sl.registerFactory<PitchAnalysisCubit>(
+      () => PitchAnalysisCubit(
+        analyzePitchDeckUseCase: sl<AnalyzePitchDeckUseCase>(),
+        getPitchAnalysisUseCase: sl<GetPitchAnalysisUseCase>(),
       ),
     );
   }

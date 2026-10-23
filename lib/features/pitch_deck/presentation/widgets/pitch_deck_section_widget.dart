@@ -4,19 +4,42 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:ethioventure/core/theme/app_colors.dart';
 import 'package:ethioventure/core/theme/app_sizes.dart';
+import 'package:ethioventure/core/di/injection_container.dart';
 import '../cubit/document_cubit.dart';
 import '../cubit/document_state.dart';
+import '../cubit/pitch_analysis_cubit.dart';
 import '../../domain/entities/document_entity.dart';
+import 'pitch_analysis_dialog.dart';
 
 class PitchDeckSectionWidget extends StatelessWidget {
   const PitchDeckSectionWidget({
     super.key,
     required this.startupId,
     this.isFounder = true,
+    this.startupSector,
+    this.startupStage,
   });
 
   final String startupId;
   final bool isFounder;
+  final String? startupSector;
+  final String? startupStage;
+
+  void _openAiAnalysis(BuildContext context, DocumentEntity doc) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (bottomSheetContext) => BlocProvider<PitchAnalysisCubit>(
+        create: (_) => sl<PitchAnalysisCubit>(),
+        child: PitchAnalysisDialog(
+          document: doc,
+          startupSector: startupSector,
+          startupStage: startupStage,
+        ),
+      ),
+    );
+  }
 
   Future<void> _openOrDownloadDocument(
       BuildContext context, DocumentEntity doc) async {
@@ -531,6 +554,48 @@ class PitchDeckSectionWidget extends StatelessWidget {
                             visualDensity: VisualDensity.compact,
                             side: BorderSide.none,
                           ),
+                          const SizedBox(width: AppSizes.xs),
+                          InkWell(
+                            onTap: () => _openAiAnalysis(context, doc),
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [
+                                    AppColors.primarySoft,
+                                    AppColors.violetTint,
+                                  ],
+                                ),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: AppColors.primary.withValues(alpha: 0.4),
+                                ),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.auto_awesome,
+                                    size: 12,
+                                    color: AppColors.secondary,
+                                  ),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    'AI Review',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.secondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ],
@@ -540,7 +605,9 @@ class PitchDeckSectionWidget extends StatelessWidget {
                   PopupMenuButton<String>(
                     icon: const Icon(Icons.more_vert, color: AppColors.slate),
                     onSelected: (action) {
-                      if (action == 'view') {
+                      if (action == 'ai_analysis') {
+                        _openAiAnalysis(context, doc);
+                      } else if (action == 'view') {
                         _openOrDownloadDocument(context, doc);
                       } else if (action == 'toggle') {
                         context.read<DocumentCubit>().toggleVisibility(
@@ -556,6 +623,22 @@ class PitchDeckSectionWidget extends StatelessWidget {
                       }
                     },
                     itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: 'ai_analysis',
+                        child: Row(
+                          children: [
+                            Icon(Icons.auto_awesome, size: 18, color: AppColors.primaryDark),
+                            SizedBox(width: 8),
+                            Text(
+                              'AI Pitch Analysis',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.secondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                       const PopupMenuItem(
                         value: 'view',
                         child: Row(
@@ -599,25 +682,39 @@ class PitchDeckSectionWidget extends StatelessWidget {
                     ],
                   )
                 else
-                  ElevatedButton.icon(
-                    onPressed: () => _openOrDownloadDocument(context, doc),
-                    icon: const Icon(Icons.file_download_outlined, size: 16, color: Colors.white),
-                    label: const Text(
-                      'Download',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(
+                          Icons.auto_awesome,
+                          color: AppColors.primaryDark,
+                          size: 20,
+                        ),
+                        tooltip: 'AI Pitch Analysis',
+                        onPressed: () => _openAiAnalysis(context, doc),
                       ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                      ElevatedButton.icon(
+                        onPressed: () => _openOrDownloadDocument(context, doc),
+                        icon: const Icon(Icons.file_download_outlined, size: 16, color: Colors.white),
+                        label: const Text(
+                          'Download',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          elevation: 0,
+                        ),
                       ),
-                      elevation: 0,
-                    ),
+                    ],
                   ),
               ],
             ),
