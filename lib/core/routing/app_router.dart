@@ -22,6 +22,7 @@ import '../../features/startup_profile/presentation/pages/startup_detail_page.da
 import '../../features/startup_profile/presentation/pages/startup_list_page.dart';
 import '../../features/startup_profile/presentation/pages/startup_profile_page.dart';
 import '../../features/startup_profile/presentation/pages/startup_profile_setup_page.dart';
+import '../../features/verification/presentation/pages/verification_overview_page.dart';
 
 /// Central navigation configuration. Page widgets belong to their features.
 class AppRouter {
@@ -69,6 +70,7 @@ class AppRouter {
       AppConstants.routeMessages => const ConversationsPage(),
       AppConstants.routeInvestorRequests => const InvestorRequestsPage(),
       AppConstants.routeFounderRequests => const MyRequestsPage(),
+      AppConstants.routeVerificationOverview => const VerificationOverviewPage(),
       AppConstants.routeChat => settings.arguments is Map<String, dynamic> || settings.arguments is Map
           ? ChatPage(
               conversationId: (settings.arguments
