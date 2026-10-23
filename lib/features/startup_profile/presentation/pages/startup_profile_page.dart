@@ -11,6 +11,7 @@ import 'package:ethioventure/core/theme/app_sizes.dart';
 import '../../../founder/presentation/widgets/dashboard_bottom_nav.dart';
 import '../../../pitch_deck/presentation/cubit/document_cubit.dart';
 import '../../../pitch_deck/presentation/widgets/pitch_deck_section_widget.dart';
+import '../../../verification/presentation/widgets/verification_entry_card.dart';
 import '../cubit/startup_profile_cubit.dart';
 import '../cubit/startup_profile_state.dart';
 
@@ -661,40 +662,13 @@ class StartupProfilePage extends StatelessWidget {
                                       ],
                                     ),
                                   ),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 5,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.primarySoft,
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: const Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          Icons.verified_rounded,
-                                          size: 14,
-                                          color: AppColors.primaryDark,
-                                        ),
-                                        SizedBox(width: 6),
-                                        Text(
-                                          'Verified Venture',
-                                          style: TextStyle(
-                                            color: AppColors.primaryDark,
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w800,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
                                 ],
                               ),
                             ],
                           ),
                         ),
+                        const SizedBox(height: AppSizes.md),
+                        const VerificationEntryCard(),
                         const SizedBox(height: 18),
 
                         // Key Metrics Row Card
