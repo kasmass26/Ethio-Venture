@@ -730,12 +730,6 @@ class _HeroCard extends StatelessWidget {
                 bgColor: AppColors.primarySoft,
                 textColor: AppColors.primaryDark,
               ),
-              const _TagChip(
-                label: 'Verified Profile',
-                icon: Icons.verified_rounded,
-                bgColor: AppColors.successSoft,
-                textColor: AppColors.success,
-              ),
             ],
           ),
         ],
