@@ -8,6 +8,12 @@ class MatchResultEntity {
   /// Overall compatibility score 0–100.
   final int overallScore;
 
+  /// Whether each criterion has an investor preference to compare against.
+  final bool industryPreferenceSet;
+  final bool stagePreferenceSet;
+  final bool amountPreferenceSet;
+  final bool locationPreferenceSet;
+
   /// Whether industry preference matched.
   final bool industryMatch;
 
@@ -24,6 +30,10 @@ class MatchResultEntity {
   const MatchResultEntity({
     required this.startup,
     required this.overallScore,
+    required this.industryPreferenceSet,
+    required this.stagePreferenceSet,
+    required this.amountPreferenceSet,
+    required this.locationPreferenceSet,
     required this.industryMatch,
     required this.stageMatch,
     required this.amountCompatible,
@@ -33,10 +43,18 @@ class MatchResultEntity {
   /// Human-readable summary of why this startup was recommended.
   List<String> get matchReasons {
     final reasons = <String>[];
-    if (industryMatch) reasons.add('Industry match');
-    if (stageMatch) reasons.add('Funding stage match');
-    if (amountCompatible) reasons.add('Investment amount compatible');
-    if (locationMatch) reasons.add('Location match');
+    if (industryPreferenceSet && industryMatch) {
+      reasons.add('Industry match');
+    }
+    if (stagePreferenceSet && stageMatch) {
+      reasons.add('Funding stage match');
+    }
+    if (amountPreferenceSet && amountCompatible) {
+      reasons.add('Investment amount compatible');
+    }
+    if (locationPreferenceSet && locationMatch) {
+      reasons.add('Location match');
+    }
     return reasons;
   }
 }

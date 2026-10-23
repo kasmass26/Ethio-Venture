@@ -20,13 +20,21 @@ class MatchCriteriaRow extends StatelessWidget {
   });
 
   final String label;
-  final bool matched;
+  final bool? matched;
   final String matchText;
 
   @override
   Widget build(BuildContext context) {
-    final color = matched ? AppColors.success : AppColors.textSecondary;
-    final icon = matched ? Icons.check_circle_rounded : Icons.cancel_rounded;
+    final color = switch (matched) {
+      true => AppColors.success,
+      false => AppColors.error,
+      null => AppColors.textSecondary,
+    };
+    final icon = switch (matched) {
+      true => Icons.check_circle_rounded,
+      false => Icons.cancel_rounded,
+      null => Icons.remove_circle_outline_rounded,
+    };
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),

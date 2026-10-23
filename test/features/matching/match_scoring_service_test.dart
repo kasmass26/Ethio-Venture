@@ -14,32 +14,30 @@ void main() {
     List<String> locations = const [],
     double? min,
     double? max,
-  }) =>
-      InvestorPreferencesEntity(
-        id: 'inv-1',
-        userId: 'user-1',
-        preferredIndustries: industries,
-        preferredStages: stages,
-        geographicFocus: locations,
-        ticketSizeMin: min,
-        ticketSizeMax: max,
-      );
+  }) => InvestorPreferencesEntity(
+    id: 'inv-1',
+    userId: 'user-1',
+    preferredIndustries: industries,
+    preferredStages: stages,
+    geographicFocus: locations,
+    ticketSizeMin: min,
+    ticketSizeMax: max,
+  );
 
   StartupProfileEntity startup({
     String? industry,
     String? fundingStage,
     String? location,
     double? fundingAmountSought,
-  }) =>
-      StartupProfileEntity(
-        id: 'sp-1',
-        userId: 'user-2',
-        businessName: 'Test Startup',
-        industry: industry,
-        fundingStage: fundingStage,
-        location: location,
-        fundingAmountSought: fundingAmountSought,
-      );
+  }) => StartupProfileEntity(
+    id: 'sp-1',
+    userId: 'user-2',
+    businessName: 'Test Startup',
+    industry: industry,
+    fundingStage: fundingStage,
+    location: location,
+    fundingAmountSought: fundingAmountSought,
+  );
 
   // ── tests ─────────────────────────────────────────────────────────────────
 
@@ -166,7 +164,7 @@ void main() {
       expect(result.locationMatch, isTrue);
     });
 
-    test('empty preferences match all criteria (no restriction)', () {
+    test('empty preferences do not claim any compatibility', () {
       final result = scorer.score(
         startup: startup(
           industry: 'healthtech',
@@ -176,7 +174,10 @@ void main() {
         ),
         prefs: prefs(),
       );
-      expect(result.overallScore, 100);
+      expect(result.overallScore, 0);
+      expect(result.industryMatch, isFalse);
+      expect(result.industryPreferenceSet, isFalse);
+      expect(result.matchReasons, isEmpty);
     });
 
     test('case-insensitive industry comparison', () {
@@ -219,11 +220,142 @@ void main() {
           max: 2000000,
         ),
       );
-      expect(result.matchReasons,
-          containsAll(['Industry match', 'Funding stage match']));
-      expect(result.matchReasons,
-          isNot(contains('Investment amount compatible')));
+      expect(
+        result.matchReasons,
+        containsAll(['Industry match', 'Funding stage match']),
+      );
+      expect(
+        result.matchReasons,
+        isNot(contains('Investment amount compatible')),
+      );
       expect(result.matchReasons, isNot(contains('Location match')));
     });
+
+    test(
+      'founder and investor recommendations use the same criteria weights',
+      () {
+        final (score, reasons) = scorer.scoreInvestorForStartup(
+          preferredIndustries: ['fintech'],
+          preferredStages: ['seed'],
+          ticketSizeMin: 100000,
+          ticketSizeMax: 1000000,
+          startupIndustry: 'FinTech',
+          startupStage: 'seed',
+          startupFundingNeeded: 500000,
+          startupLocation: 'Addis Ababa',
+          geographicFocus: ['Addis Ababa'],
+        );
+
+        expect(score, 100);
+        expect(
+          reasons,
+          containsAll([
+            'Industry match',
+            'Funding stage match',
+            'Investment amount compatible',
+            'Location match',
+          ]),
+        );
+      },
+    );
+
+    test(
+      'founder recommendation does not invent a score without startup data',
+      () {
+        final (score, reasons) = scorer.scoreInvestorForStartup(
+          preferredIndustries: ['fintech'],
+          preferredStages: ['seed'],
+          ticketSizeMin: 100000,
+          ticketSizeMax: 1000000,
+          startupIndustry: null,
+          startupStage: null,
+          startupFundingNeeded: null,
+        );
+
+        expect(score, 0);
+        expect(reasons, [
+          'Complete your startup profile to calculate compatibility',
+        ]);
+      },
+    );
+
+    test('industry matching requires a normalized exact match', () {
+      final (score, reasons) = scorer.scoreInvestorForStartup(
+        preferredIndustries: ['fintech'],
+        preferredStages: [],
+        ticketSizeMin: null,
+        ticketSizeMax: null,
+        startupIndustry: 'tech',
+        startupStage: null,
+        startupFundingNeeded: null,
+      );
+
+      expect(score, 0);
+      expect(reasons, isNot(contains('Industry match')));
+    });
+
+    test('blank preference values are treated as unset', () {
+      final result = scorer.score(
+        startup: startup(industry: 'fintech'),
+        prefs: prefs(industries: ['  ']),
+      );
+
+      expect(result.industryPreferenceSet, isFalse);
+      expect(result.overallScore, 0);
+      expect(result.matchReasons, isEmpty);
+    });
+
+    test('only configured preferences contribute compatibility points', () {
+      final result = scorer.score(
+        startup: startup(
+          industry: 'fintech',
+          fundingStage: 'seed',
+          location: 'Addis Ababa',
+          fundingAmountSought: 500000,
+        ),
+        prefs: prefs(industries: ['fintech']),
+      );
+
+      expect(result.overallScore, 35);
+      expect(result.industryPreferenceSet, isTrue);
+      expect(result.stagePreferenceSet, isFalse);
+      expect(result.stageMatch, isFalse);
+      expect(result.matchReasons, ['Industry match']);
+    });
+
+    test('invalid amount values and reversed USD ranges never match', () {
+      final invalidStartupAmount = scorer.score(
+        startup: startup(fundingAmountSought: double.nan),
+        prefs: prefs(min: 0, max: 100000),
+      );
+      final reversedRange = scorer.score(
+        startup: startup(fundingAmountSought: 50000),
+        prefs: prefs(min: 100000, max: 50000),
+      );
+
+      expect(invalidStartupAmount.amountCompatible, isFalse);
+      expect(invalidStartupAmount.overallScore, 0);
+      expect(reversedRange.amountPreferenceSet, isFalse);
+      expect(reversedRange.amountCompatible, isFalse);
+      expect(reversedRange.overallScore, 0);
+    });
+
+    test(
+      'founder recommendation explains when investor has no preferences',
+      () {
+        final (score, reasons) = scorer.scoreInvestorForStartup(
+          preferredIndustries: [],
+          preferredStages: [],
+          ticketSizeMin: null,
+          ticketSizeMax: null,
+          startupIndustry: 'fintech',
+          startupStage: 'seed',
+          startupFundingNeeded: 500000,
+        );
+
+        expect(score, 0);
+        expect(reasons, ['Investor has not provided investment preferences']);
+      },
+    );
   });
 }

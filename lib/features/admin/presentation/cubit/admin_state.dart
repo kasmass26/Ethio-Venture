@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import '../../domain/entities/admin_analytics_summary.dart';
 import '../../domain/entities/pending_approval_entity.dart';
 
 abstract class AdminState extends Equatable {
@@ -22,6 +23,7 @@ class AdminProfilesLoaded extends AdminState {
   final List<PendingApprovalEntity> approvedStartups;
   final List<PendingApprovalEntity> approvedInvestors;
   final List<PendingApprovalEntity> rejectedProfiles;
+  final AdminAnalyticsSummary analytics;
 
   const AdminProfilesLoaded({
     required this.pendingStartups,
@@ -29,16 +31,18 @@ class AdminProfilesLoaded extends AdminState {
     required this.approvedStartups,
     required this.approvedInvestors,
     required this.rejectedProfiles,
+    required this.analytics,
   });
 
   @override
   List<Object?> get props => [
-        pendingStartups,
-        pendingInvestors,
-        approvedStartups,
-        approvedInvestors,
-        rejectedProfiles,
-      ];
+    pendingStartups,
+    pendingInvestors,
+    approvedStartups,
+    approvedInvestors,
+    rejectedProfiles,
+    analytics,
+  ];
 
   AdminProfilesLoaded copyWith({
     List<PendingApprovalEntity>? pendingStartups,
@@ -46,6 +50,7 @@ class AdminProfilesLoaded extends AdminState {
     List<PendingApprovalEntity>? approvedStartups,
     List<PendingApprovalEntity>? approvedInvestors,
     List<PendingApprovalEntity>? rejectedProfiles,
+    AdminAnalyticsSummary? analytics,
   }) {
     return AdminProfilesLoaded(
       pendingStartups: pendingStartups ?? this.pendingStartups,
@@ -53,6 +58,7 @@ class AdminProfilesLoaded extends AdminState {
       approvedStartups: approvedStartups ?? this.approvedStartups,
       approvedInvestors: approvedInvestors ?? this.approvedInvestors,
       rejectedProfiles: rejectedProfiles ?? this.rejectedProfiles,
+      analytics: analytics ?? this.analytics,
     );
   }
 }
