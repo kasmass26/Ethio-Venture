@@ -17,8 +17,7 @@ class RecommendationsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider<RecommendationsCubit>(
-      create: (_) =>
-          sl<RecommendationsCubit>()..loadRecommendations(),
+      create: (_) => sl<RecommendationsCubit>()..loadRecommendations(),
       child: const _RecommendationsView(),
     );
   }
@@ -109,7 +108,8 @@ class _RecommendationsView extends StatelessWidget {
                   ),
                   const SizedBox(height: AppSizes.xs),
                   Text(
-                    'Startups matched to your investment preferences',
+                    'Rule-based matches by industry, stage, investment range, and location. '
+                    'This is not machine learning.',
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: AppColors.textSecondary,
                     ),
@@ -119,9 +119,10 @@ class _RecommendationsView extends StatelessWidget {
             ),
 
             const Divider(
-                color: AppColors.divider,
-                height: AppSizes.md,
-                thickness: 1),
+              color: AppColors.divider,
+              height: AppSizes.md,
+              thickness: 1,
+            ),
 
             // ── Content ───────────────────────────────────────────────
             Expanded(child: _buildBody(context)),
@@ -133,21 +134,19 @@ class _RecommendationsView extends StatelessWidget {
           currentIndex: 1,
           onTap: (index) {
             if (index == 0) {
-              Navigator.of(context).pushReplacementNamed(
-                AppConstants.routeInvestorDashboard,
-              );
+              Navigator.of(
+                context,
+              ).pushReplacementNamed(AppConstants.routeInvestorDashboard);
             } else if (index == 1) {
-              Navigator.of(context).pushReplacementNamed(
-                AppConstants.routeStartupSearch,
-              );
+              Navigator.of(
+                context,
+              ).pushReplacementNamed(AppConstants.routeStartupSearch);
             } else if (index == 2) {
-              Navigator.of(context).pushNamed(
-                AppConstants.routeMessages,
-              );
+              Navigator.of(context).pushNamed(AppConstants.routeMessages);
             } else if (index == 3) {
-              Navigator.of(context).pushReplacementNamed(
-                AppConstants.routeInvestorProfile,
-              );
+              Navigator.of(
+                context,
+              ).pushReplacementNamed(AppConstants.routeInvestorProfile);
             }
           },
         ),
@@ -169,11 +168,11 @@ class _RecommendationsView extends StatelessWidget {
           return _FullScreenMessage(
             icon: Icons.lock_outline,
             title: 'Sign in required',
-            subtitle:
-                'You must be signed in to view recommendations.',
+            subtitle: 'You must be signed in to view recommendations.',
             actionLabel: 'Sign In',
-            onAction: () => Navigator.of(context)
-                .pushReplacementNamed(AppConstants.routeLogin),
+            onAction: () => Navigator.of(
+              context,
+            ).pushReplacementNamed(AppConstants.routeLogin),
           );
         }
 
@@ -205,16 +204,15 @@ class _RecommendationsView extends StatelessWidget {
               title: 'No matches found',
               subtitle:
                   'There are no published startups matching your '
-                  'current preferences. Try broadening your '
-                  'investment criteria.',
+                  'current preferences. Check that you have set '
+                  'investment preferences in your profile.',
             );
           }
 
           return RefreshIndicator(
             color: AppColors.primary,
-            onRefresh: () => context
-                .read<RecommendationsCubit>()
-                .loadRecommendations(),
+            onRefresh: () =>
+                context.read<RecommendationsCubit>().loadRecommendations(),
             child: ListView.builder(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.only(
@@ -226,8 +224,7 @@ class _RecommendationsView extends StatelessWidget {
                 final r = results[index];
                 return RecommendationCard(
                   result: r,
-                  isOpeningConversation:
-                      openingForId == r.startup.id,
+                  isOpeningConversation: openingForId == r.startup.id,
                   onViewDetails: () {
                     Navigator.of(context).pushNamed(
                       AppConstants.routeStartupDetail,
@@ -235,12 +232,10 @@ class _RecommendationsView extends StatelessWidget {
                     );
                   },
                   onMessageTap: () =>
-                      context
-                          .read<RecommendationsCubit>()
-                          .openConversationWith(
-                            startupProfileId: r.startup.id,
-                            startupName: r.startup.businessName,
-                          ),
+                      context.read<RecommendationsCubit>().openConversationWith(
+                        startupProfileId: r.startup.id,
+                        startupName: r.startup.businessName,
+                      ),
                 );
               },
             ),
@@ -300,10 +295,7 @@ class _FullScreenMessage extends StatelessWidget {
             ],
             if (actionLabel != null && onAction != null) ...[
               const SizedBox(height: AppSizes.lg),
-              ElevatedButton(
-                onPressed: onAction,
-                child: Text(actionLabel!),
-              ),
+              ElevatedButton(onPressed: onAction, child: Text(actionLabel!)),
             ],
           ],
         ),

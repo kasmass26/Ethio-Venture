@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_sizes.dart';
 import '../../domain/entities/match_result_entity.dart';
+import '../../domain/services/match_scoring_service.dart';
 import 'match_criteria_row.dart';
 import 'match_score_badge.dart';
 
@@ -149,25 +150,58 @@ class _RecommendationCardState extends State<RecommendationCard> {
 
             // ── Match criteria breakdown ────────────────────────────────────
             MatchCriteriaRow(
-              label: 'Industry',
-              matched: result.industryMatch,
-              matchText: result.industryMatch ? 'Match' : 'No match',
+              label: 'Industry (${MatchScoringService.industryWeight}%)',
+              matched: _criterionStatus(
+                result.industryPreferenceSet,
+                result.startup.industry,
+                result.industryMatch,
+              ),
+              matchText: _criterionText(
+                result.industryPreferenceSet,
+                result.startup.industry,
+                result.industryMatch,
+              ),
             ),
             MatchCriteriaRow(
-              label: 'Funding Stage',
-              matched: result.stageMatch,
-              matchText: result.stageMatch ? 'Match' : 'No match',
+              label: 'Funding Stage (${MatchScoringService.stageWeight}%)',
+              matched: _criterionStatus(
+                result.stagePreferenceSet,
+                result.startup.fundingStage,
+                result.stageMatch,
+              ),
+              matchText: _criterionText(
+                result.stagePreferenceSet,
+                result.startup.fundingStage,
+                result.stageMatch,
+              ),
             ),
             MatchCriteriaRow(
-              label: 'Investment Amount',
-              matched: result.amountCompatible,
-              matchText:
-                  result.amountCompatible ? 'Compatible' : 'Out of range',
+              label: 'Investment Amount (${MatchScoringService.amountWeight}%)',
+              matched: _criterionStatus(
+                result.amountPreferenceSet,
+                result.startup.fundingAmountSought,
+                result.amountCompatible,
+              ),
+              matchText: _criterionText(
+                result.amountPreferenceSet,
+                result.startup.fundingAmountSought,
+                result.amountCompatible,
+                matchedText: 'Compatible',
+                unmatchedText: 'Out of range',
+              ),
             ),
             MatchCriteriaRow(
-              label: 'Location',
-              matched: result.locationMatch,
-              matchText: result.locationMatch ? 'Match' : 'No match',
+              label: 'Location (${MatchScoringService.locationWeight}%)',
+              matched: _criterionStatus(
+                result.locationPreferenceSet,
+                result.startup.location,
+                result.locationMatch,
+              ),
+              matchText: _criterionText(
+                result.locationPreferenceSet,
+                result.startup.location,
+                result.locationMatch,
+              ),
             ),
 
             // ── Actions ────────────────────────────────────────────────────
@@ -181,8 +215,9 @@ class _RecommendationCardState extends State<RecommendationCard> {
                         padding: const EdgeInsets.symmetric(vertical: 8),
                         side: const BorderSide(color: AppColors.border),
                         shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(AppSizes.radiusMd),
+                          borderRadius: BorderRadius.circular(
+                            AppSizes.radiusMd,
+                          ),
                         ),
                       ),
                       icon: const Icon(Icons.open_in_new_rounded, size: 15),
@@ -201,8 +236,7 @@ class _RecommendationCardState extends State<RecommendationCard> {
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       side: const BorderSide(color: AppColors.border),
                       shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(AppSizes.radiusMd),
+                        borderRadius: BorderRadius.circular(AppSizes.radiusMd),
                       ),
                     ),
                     icon: Icon(
@@ -215,8 +249,7 @@ class _RecommendationCardState extends State<RecommendationCard> {
                       _expanded ? 'Less' : 'Breakdown',
                       style: const TextStyle(fontSize: 13),
                     ),
-                    onPressed: () =>
-                        setState(() => _expanded = !_expanded),
+                    onPressed: () => setState(() => _expanded = !_expanded),
                   ),
                 ),
                 const SizedBox(width: AppSizes.xs),
@@ -227,8 +260,7 @@ class _RecommendationCardState extends State<RecommendationCard> {
                       backgroundColor: AppColors.secondary,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(AppSizes.radiusMd),
+                        borderRadius: BorderRadius.circular(AppSizes.radiusMd),
                       ),
                     ),
                     icon: widget.isOpeningConversation
@@ -238,7 +270,8 @@ class _RecommendationCardState extends State<RecommendationCard> {
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
                               valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.white),
+                                Colors.white,
+                              ),
                             ),
                           )
                         : const Icon(Icons.chat_bubble_outline, size: 16),
@@ -257,6 +290,30 @@ class _RecommendationCardState extends State<RecommendationCard> {
         ),
       ),
     );
+  }
+
+  bool? _criterionStatus(bool preferenceSet, Object? profileValue, bool match) {
+    if (!preferenceSet || !_hasValue(profileValue)) return null;
+    return match;
+  }
+
+  String _criterionText(
+    bool preferenceSet,
+    Object? profileValue,
+    bool match, {
+    String matchedText = 'Match',
+    String unmatchedText = 'No match',
+  }) {
+    if (!preferenceSet) return 'Not set';
+    if (!_hasValue(profileValue)) return 'Profile data missing';
+    return match ? matchedText : unmatchedText;
+  }
+
+  bool _hasValue(Object? value) {
+    if (value == null) return false;
+    if (value is String) return value.trim().isNotEmpty;
+    if (value is double) return value.isFinite;
+    return true;
   }
 
   static String _formatStage(String stage) {

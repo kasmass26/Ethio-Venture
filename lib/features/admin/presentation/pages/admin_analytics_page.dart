@@ -40,15 +40,12 @@ class AdminAnalyticsPage extends StatelessWidget {
           ],
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(1),
-            child: Container(
-              height: 1,
-              color: AppColors.hairline,
-            ),
+            child: Container(height: 1, color: AppColors.hairline),
           ),
         ),
         body: BlocBuilder<AdminCubit, AdminState>(
           builder: (context, state) {
-            if (state is AdminLoading) {
+            if (state is AdminInitial || state is AdminLoading) {
               return const Center(
                 child: CircularProgressIndicator(color: AppColors.primary),
               );
@@ -59,8 +56,11 @@ class AdminAnalyticsPage extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.error_outline,
-                        size: 64, color: AppColors.error),
+                    const Icon(
+                      Icons.error_outline,
+                      size: 64,
+                      color: AppColors.error,
+                    ),
                     const SizedBox(height: AppSizes.md),
                     Text(
                       state.message,
@@ -80,6 +80,39 @@ class AdminAnalyticsPage extends StatelessWidget {
             }
 
             if (state is AdminProfilesLoaded) {
+              if (state.analytics.totalStartups == 0 &&
+                  state.analytics.totalInvestors == 0) {
+                return RefreshIndicator(
+                  onRefresh: () async {
+                    await context.read<AdminCubit>().loadAllProfiles();
+                  },
+                  color: AppColors.primary,
+                  child: ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    children: const [
+                      SizedBox(height: 140),
+                      Center(
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.analytics_outlined,
+                              size: 56,
+                              color: AppColors.slate,
+                            ),
+                            SizedBox(height: AppSizes.md),
+                            Text(
+                              'No profile analytics available yet.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: AppColors.slate),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
               return RefreshIndicator(
                 onRefresh: () async {
                   await context.read<AdminCubit>().loadAllProfiles();
@@ -142,48 +175,62 @@ class AdminAnalyticsPage extends StatelessWidget {
   }
 
   Widget _buildMetricsGrid(AdminProfilesLoaded state) {
-    final totalStartups = state.pendingStartups.length +
-        state.approvedStartups.length +
-        state.rejectedProfiles.where((p) => p.role == 'startup').length;
-    final totalInvestors = state.pendingInvestors.length +
-        state.approvedInvestors.length +
-        state.rejectedProfiles.where((p) => p.role == 'investor').length;
-    final totalUsers = totalStartups + totalInvestors;
+    final analytics = state.analytics;
+    final totalUsers = analytics.totalStartups + analytics.totalInvestors;
     final pendingReview =
         state.pendingStartups.length + state.pendingInvestors.length;
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final crossAxisCount = constraints.maxWidth > 600 ? 4 : 2;
+        final crossAxisCount = constraints.maxWidth > 1000
+            ? 4
+            : constraints.maxWidth > 600
+            ? 3
+            : 2;
         return GridView.count(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           crossAxisCount: crossAxisCount,
           mainAxisSpacing: AppSizes.md,
           crossAxisSpacing: AppSizes.md,
-          childAspectRatio: 1.5,
+          childAspectRatio: 1.4,
           children: [
             MetricCard(
-              title: 'Total Users',
+              title: 'Total Profiles',
               value: totalUsers.toString(),
               icon: Icons.people_rounded,
               color: AppColors.primary,
-              trend: '+12%',
-              isPositive: true,
+              subtitle: 'All profile statuses',
             ),
             MetricCard(
               title: 'Startups',
-              value: totalStartups.toString(),
+              value: analytics.totalStartups.toString(),
               icon: Icons.business_rounded,
               color: const Color(0xFF00D1FF),
               subtitle: '${state.approvedStartups.length} active',
             ),
             MetricCard(
               title: 'Investors',
-              value: totalInvestors.toString(),
+              value: analytics.totalInvestors.toString(),
               icon: Icons.account_balance_rounded,
               color: const Color(0xFF7F77DD),
               subtitle: '${state.approvedInvestors.length} active',
+            ),
+            MetricCard(
+              title: 'Compatible Matches',
+              value: analytics.compatibleMatches.toString(),
+              icon: Icons.handshake_outlined,
+              color: AppColors.success,
+              subtitle: '${analytics.possibleMatches} approved pairs evaluated',
+            ),
+            MetricCard(
+              title: 'Match Rate',
+              value: analytics.matchRate == null
+                  ? '—'
+                  : '${analytics.matchRate!.toStringAsFixed(1)}%',
+              icon: Icons.percent_rounded,
+              color: const Color(0xFF7F77DD),
+              subtitle: 'Approved pairs scoring above 0',
             ),
             MetricCard(
               title: 'Pending Review',
@@ -199,20 +246,13 @@ class AdminAnalyticsPage extends StatelessWidget {
   }
 
   Widget _buildChartsSection(AdminProfilesLoaded state) {
-    final totalStartups = state.pendingStartups.length +
-        state.approvedStartups.length +
-        state.rejectedProfiles.where((p) => p.role == 'startup').length;
-    final totalInvestors = state.pendingInvestors.length +
-        state.approvedInvestors.length +
-        state.rejectedProfiles.where((p) => p.role == 'investor').length;
-
     return Column(
       children: [
         ChartCard(
           title: 'User Distribution',
           data: {
-            'Startups': totalStartups.toDouble(),
-            'Investors': totalInvestors.toDouble(),
+            'Startups': state.analytics.totalStartups.toDouble(),
+            'Investors': state.analytics.totalInvestors.toDouble(),
           },
           colors: const {
             'Startups': Color(0xFF00D1FF),
@@ -226,9 +266,9 @@ class AdminAnalyticsPage extends StatelessWidget {
             'Pending':
                 (state.pendingStartups.length + state.pendingInvestors.length)
                     .toDouble(),
-            'Approved': (state.approvedStartups.length +
-                    state.approvedInvestors.length)
-                .toDouble(),
+            'Approved':
+                (state.approvedStartups.length + state.approvedInvestors.length)
+                    .toDouble(),
             'Rejected': state.rejectedProfiles.length.toDouble(),
           },
           colors: const {
@@ -237,7 +277,37 @@ class AdminAnalyticsPage extends StatelessWidget {
             'Rejected': AppColors.error,
           },
         ),
+        const SizedBox(height: AppSizes.md),
+        ChartCard(
+          title: 'Approved Startup Industries',
+          data: _toChartData(state.analytics.industryCounts),
+          colors: _chartColors(state.analytics.industryCounts.keys),
+        ),
+        const SizedBox(height: AppSizes.md),
+        ChartCard(
+          title: 'Approved Startup Funding Stages',
+          data: _toChartData(state.analytics.fundingStageCounts),
+          colors: _chartColors(state.analytics.fundingStageCounts.keys),
+        ),
       ],
+    );
+  }
+
+  Map<String, double> _toChartData(Map<String, int> counts) =>
+      counts.map((label, count) => MapEntry(label, count.toDouble()));
+
+  Map<String, Color> _chartColors(Iterable<String> labels) {
+    const palette = [
+      AppColors.primary,
+      Color(0xFF00D1FF),
+      Color(0xFF7F77DD),
+      AppColors.success,
+      AppColors.warning,
+    ];
+    return Map.fromEntries(
+      labels.indexed.map(
+        (entry) => MapEntry(entry.$2, palette[entry.$1 % palette.length]),
+      ),
     );
   }
 
@@ -282,8 +352,7 @@ class AdminAnalyticsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusRow(
-      String label, int count, IconData icon, Color color) {
+  Widget _buildStatusRow(String label, int count, IconData icon, Color color) {
     return Container(
       padding: const EdgeInsets.all(AppSizes.md),
       decoration: BoxDecoration(
