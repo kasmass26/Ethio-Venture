@@ -11,15 +11,14 @@ import '../../../messaging/domain/repositories/messaging_repository.dart';
 /// Rich, interactive bottom sheet modal displaying an investor's full thesis and criteria.
 /// The CTA button is gated by connection request status.
 class InvestorDetailSheet extends StatefulWidget {
-  const InvestorDetailSheet({
-    super.key,
-    required this.investor,
-  });
+  const InvestorDetailSheet({super.key, required this.investor});
 
   final InvestorDiscoveryEntity investor;
 
   static Future<void> show(
-      BuildContext context, InvestorDiscoveryEntity investor) {
+    BuildContext context,
+    InvestorDiscoveryEntity investor,
+  ) {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -48,8 +47,7 @@ class _InvestorDetailSheetState extends State<InvestorDetailSheet> {
   Future<void> _loadRequestStatus() async {
     try {
       final repo = sl<ConnectionRequestRepository>();
-      final req =
-          await repo.getRequestBetween(otherUserId: investor.userId);
+      final req = await repo.getRequestBetween(otherUserId: investor.userId);
       if (mounted) setState(() => _request = req);
     } catch (_) {
       // Silently fallback — treat as no request yet
@@ -76,12 +74,12 @@ class _InvestorDetailSheetState extends State<InvestorDetailSheet> {
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content:
-                Text('✅ Request sent to ${investor.displayName}!'),
+            content: Text('✅ Request sent to ${investor.displayName}!'),
             backgroundColor: AppColors.success,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12)),
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
         );
       }
@@ -91,11 +89,13 @@ class _InvestorDetailSheetState extends State<InvestorDetailSheet> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-                'Failed to send request: ${e.toString().replaceAll('Exception: ', '')}'),
+              'Failed to send request: ${e.toString().replaceAll('Exception: ', '')}',
+            ),
             backgroundColor: AppColors.error,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12)),
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
         );
       }
@@ -110,8 +110,7 @@ class _InvestorDetailSheetState extends State<InvestorDetailSheet> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surface,
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
             Container(
@@ -120,8 +119,11 @@ class _InvestorDetailSheetState extends State<InvestorDetailSheet> {
                 color: AppColors.primarySoft,
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(Icons.connect_without_contact_rounded,
-                  color: AppColors.primaryDark, size: 20),
+              child: const Icon(
+                Icons.connect_without_contact_rounded,
+                color: AppColors.primaryDark,
+                size: 20,
+              ),
             ),
             const SizedBox(width: 10),
             const Expanded(
@@ -143,7 +145,9 @@ class _InvestorDetailSheetState extends State<InvestorDetailSheet> {
             Text(
               'Request to connect with ${investor.displayName}. They will be notified and can accept or decline.',
               style: const TextStyle(
-                  color: AppColors.textSecondary, fontSize: 13.5),
+                color: AppColors.textSecondary,
+                fontSize: 13.5,
+              ),
             ),
             const SizedBox(height: 14),
             const Text(
@@ -163,7 +167,9 @@ class _InvestorDetailSheetState extends State<InvestorDetailSheet> {
                 hintText:
                     'Briefly introduce your startup and why you want to connect…',
                 hintStyle: const TextStyle(
-                    color: AppColors.textSecondary, fontSize: 13),
+                  color: AppColors.textSecondary,
+                  fontSize: 13,
+                ),
                 filled: true,
                 fillColor: AppColors.surfaceVariant,
                 border: OutlineInputBorder(
@@ -178,8 +184,10 @@ class _InvestorDetailSheetState extends State<InvestorDetailSheet> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel',
-                style: TextStyle(color: AppColors.textSecondary)),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
           ),
           ElevatedButton.icon(
             onPressed: () => Navigator.of(ctx).pop(true),
@@ -189,7 +197,8 @@ class _InvestorDetailSheetState extends State<InvestorDetailSheet> {
               backgroundColor: AppColors.secondary,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
           ),
         ],
@@ -211,11 +220,11 @@ class _InvestorDetailSheetState extends State<InvestorDetailSheet> {
     Navigator.of(context).pop();
     try {
       final messagingRepo = sl<MessagingRepository>();
-      final startupProfileId =
-          await messagingRepo.resolveStartupProfileId();
+      final startupProfileId = await messagingRepo.resolveStartupProfileId();
       if (startupProfileId == null) {
         throw Exception(
-            'Could not find your startup profile. Please complete setup first.');
+          'Could not find your startup profile. Please complete setup first.',
+        );
       }
       final conv = await messagingRepo.getOrCreateConversation(
         startupProfileId: startupProfileId,
@@ -231,17 +240,23 @@ class _InvestorDetailSheetState extends State<InvestorDetailSheet> {
         );
       }
     } catch (e, st) {
-      developer.log('ERROR opening chat: $e',
-          name: 'InvestorDetailSheet.openChat', error: e, stackTrace: st);
+      developer.log(
+        'ERROR opening chat: $e',
+        name: 'InvestorDetailSheet.openChat',
+        error: e,
+        stackTrace: st,
+      );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             backgroundColor: AppColors.error,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12)),
+              borderRadius: BorderRadius.circular(12),
+            ),
             content: Text(
-                'Could not open chat: ${e.toString().replaceAll('Exception: ', '')}'),
+              'Could not open chat: ${e.toString().replaceAll('Exception: ', '')}',
+            ),
           ),
         );
       }
@@ -261,8 +276,7 @@ class _InvestorDetailSheetState extends State<InvestorDetailSheet> {
       constraints: BoxConstraints(maxHeight: maxHeight),
       decoration: BoxDecoration(
         color: isDark ? AppColors.surfaceDark : AppColors.surface,
-        borderRadius:
-            const BorderRadius.vertical(top: Radius.circular(32)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.25),
@@ -302,22 +316,21 @@ class _InvestorDetailSheetState extends State<InvestorDetailSheet> {
                   if (investor.bio != null &&
                       investor.bio!.trim().isNotEmpty) ...[
                     _buildSectionTitle(
-                        'Investment Thesis & Bio',
-                        Icons.article_outlined,
-                        isDark),
+                      'Investment Thesis & Bio',
+                      Icons.article_outlined,
+                      isDark,
+                    ),
                     const SizedBox(height: 10),
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(18),
                       decoration: BoxDecoration(
                         color: isDark
-                            ? AppColors.backgroundDark
-                                .withValues(alpha: 0.5)
+                            ? AppColors.backgroundDark.withValues(alpha: 0.5)
                             : AppColors.background,
                         borderRadius: BorderRadius.circular(18),
                         border: const Border(
-                          left: BorderSide(
-                              color: AppColors.primary, width: 4),
+                          left: BorderSide(color: AppColors.primary, width: 4),
                         ),
                       ),
                       child: Text(
@@ -334,8 +347,11 @@ class _InvestorDetailSheetState extends State<InvestorDetailSheet> {
                     const SizedBox(height: 22),
                   ],
 
-                  _buildSectionTitle('Investment Preferences',
-                      Icons.tune_rounded, isDark),
+                  _buildSectionTitle(
+                    'Investment Preferences',
+                    Icons.tune_rounded,
+                    isDark,
+                  ),
                   const SizedBox(height: 14),
                   _buildTicketSizeCard(isDark),
                   const SizedBox(height: 16),
@@ -403,7 +419,9 @@ class _InvestorDetailSheetState extends State<InvestorDetailSheet> {
             width: 22,
             height: 22,
             child: CircularProgressIndicator(
-                strokeWidth: 2.5, color: AppColors.primary),
+              strokeWidth: 2.5,
+              color: AppColors.primary,
+            ),
           ),
         ),
       );
@@ -433,8 +451,11 @@ class _InvestorDetailSheetState extends State<InvestorDetailSheet> {
         ),
         child: const Row(
           children: [
-            Icon(Icons.hourglass_top_rounded,
-                color: AppColors.warning, size: 22),
+            Icon(
+              Icons.hourglass_top_rounded,
+              color: AppColors.warning,
+              size: 22,
+            ),
             SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -510,7 +531,9 @@ class _InvestorDetailSheetState extends State<InvestorDetailSheet> {
             width: 22,
             height: 22,
             child: CircularProgressIndicator(
-                strokeWidth: 2.5, color: Colors.white),
+              strokeWidth: 2.5,
+              color: Colors.white,
+            ),
           ),
         ),
       );
@@ -584,8 +607,11 @@ class _InvestorDetailSheetState extends State<InvestorDetailSheet> {
                     ),
                   ),
                   const SizedBox(width: 5),
-                  const Icon(Icons.verified_rounded,
-                      size: 18, color: Color(0xFFF59E0B)),
+                  const Icon(
+                    Icons.verified_rounded,
+                    size: 18,
+                    color: Color(0xFFF59E0B),
+                  ),
                 ],
               ),
               if (investor.subtitle != null) ...[
@@ -606,7 +632,9 @@ class _InvestorDetailSheetState extends State<InvestorDetailSheet> {
                 children: [
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 9, vertical: 3.5),
+                      horizontal: 9,
+                      vertical: 3.5,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.primarySoft,
                       borderRadius: BorderRadius.circular(7),
@@ -621,11 +649,13 @@ class _InvestorDetailSheetState extends State<InvestorDetailSheet> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Icon(Icons.location_on_outlined,
-                      size: 14,
-                      color: isDark
-                          ? AppColors.textSecondaryDark
-                          : AppColors.textSecondary),
+                  Icon(
+                    Icons.location_on_outlined,
+                    size: 14,
+                    color: isDark
+                        ? AppColors.textSecondaryDark
+                        : AppColors.textSecondary,
+                  ),
                   const SizedBox(width: 3),
                   Expanded(
                     child: Text(
@@ -655,11 +685,13 @@ class _InvestorDetailSheetState extends State<InvestorDetailSheet> {
                   : Colors.black.withValues(alpha: 0.05),
               shape: BoxShape.circle,
             ),
-            child: Icon(Icons.close_rounded,
-                color: isDark
-                    ? AppColors.textSecondaryDark
-                    : AppColors.textSecondary,
-                size: 20),
+            child: Icon(
+              Icons.close_rounded,
+              color: isDark
+                  ? AppColors.textSecondaryDark
+                  : AppColors.textSecondary,
+              size: 20,
+            ),
           ),
           visualDensity: VisualDensity.compact,
         ),
@@ -700,8 +732,11 @@ class _InvestorDetailSheetState extends State<InvestorDetailSheet> {
               color: isHighMatch ? AppColors.success : AppColors.primaryDark,
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.auto_awesome_rounded,
-                color: Colors.white, size: 20),
+            child: const Icon(
+              Icons.auto_awesome_rounded,
+              color: Colors.white,
+              size: 20,
+            ),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -721,7 +756,9 @@ class _InvestorDetailSheetState extends State<InvestorDetailSheet> {
                     const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 7, vertical: 2.5),
+                        horizontal: 7,
+                        vertical: 2.5,
+                      ),
                       decoration: BoxDecoration(
                         color: isHighMatch
                             ? AppColors.successSoft
@@ -745,7 +782,13 @@ class _InvestorDetailSheetState extends State<InvestorDetailSheet> {
                 Text(
                   investor.matchReasons.isNotEmpty
                       ? investor.matchReasons.join(' • ')
-                      : 'Aligned with your investment requirements & sector criteria',
+                      : investor.preferredIndustries.isEmpty &&
+                            investor.preferredStages.isEmpty &&
+                            investor.ticketSizeMin == null &&
+                            investor.ticketSizeMax == null &&
+                            investor.geographicFocus.isEmpty
+                      ? 'This investor has not provided investment preferences.'
+                      : 'No listed investment preferences match your startup profile.',
                   style: TextStyle(
                     color: isDark
                         ? AppColors.textSecondaryDark
@@ -788,8 +831,9 @@ class _InvestorDetailSheetState extends State<InvestorDetailSheet> {
             : AppColors.surfaceVariant.withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color:
-              isDark ? AppColors.borderDark : AppColors.border.withValues(alpha: 0.6),
+          color: isDark
+              ? AppColors.borderDark
+              : AppColors.border.withValues(alpha: 0.6),
         ),
       ),
       child: Row(
@@ -800,8 +844,11 @@ class _InvestorDetailSheetState extends State<InvestorDetailSheet> {
               color: AppColors.secondary,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(Icons.payments_outlined,
-                color: Colors.white, size: 22),
+            child: const Icon(
+              Icons.payments_outlined,
+              color: Colors.white,
+              size: 22,
+            ),
           ),
           const SizedBox(width: 14),
           Column(
@@ -848,11 +895,13 @@ class _InvestorDetailSheetState extends State<InvestorDetailSheet> {
       children: [
         Row(
           children: [
-            Icon(icon,
-                size: 15,
-                color: isDark
-                    ? AppColors.textSecondaryDark
-                    : AppColors.textSecondary),
+            Icon(
+              icon,
+              size: 15,
+              color: isDark
+                  ? AppColors.textSecondaryDark
+                  : AppColors.textSecondary,
+            ),
             const SizedBox(width: 6),
             Text(
               title,
@@ -872,8 +921,7 @@ class _InvestorDetailSheetState extends State<InvestorDetailSheet> {
           runSpacing: 8,
           children: tags.map((t) {
             return Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
               decoration: BoxDecoration(
                 color: chipBg,
                 borderRadius: BorderRadius.circular(10),

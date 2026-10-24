@@ -94,10 +94,10 @@ void main() {
 
     expect(find.text('Investment Thesis Setup'), findsWidgets);
     expect(find.text('Investor Portal'), findsOneWidget);
-    expect(find.text('Organization Details'), findsOneWidget);
-    expect(find.text('Preferred Industries'), findsOneWidget);
+    expect(find.text('Organization Identity & Bio'), findsOneWidget);
+    expect(find.text('Preferred Investment Sectors'), findsOneWidget);
     expect(find.text('Target Funding Stages'), findsOneWidget);
-    expect(find.text('Typical Ticket Size'), findsOneWidget);
+    expect(find.text('Typical Check / Ticket Size Range'), findsOneWidget);
   });
 
   testWidgets('InvestorProfilePage creates profile when Complete Profile is pressed', (
@@ -119,7 +119,7 @@ void main() {
 
     // Fill form
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'Organization Name'),
+      find.widgetWithText(TextFormField, 'Organization / Firm Name'),
       'Sheba Angels',
     );
     await tester.tap(find.text('Fintech'));

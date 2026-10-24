@@ -20,6 +20,11 @@ class PendingApprovalModel extends PendingApprovalEntity {
     super.rejectionReason,
     super.approvalDate,
     super.rejectionCount = 0,
+    super.preferredIndustries = const [],
+    super.preferredStages = const [],
+    super.geographicFocus = const [],
+    super.ticketSizeMin,
+    super.ticketSizeMax,
   });
 
   /// Creates a model from Supabase JSON response.
@@ -43,17 +48,45 @@ class PendingApprovalModel extends PendingApprovalEntity {
       description: json['description'] as String? ?? '',
       industry: json['industry'] as String? ?? '',
       fundingStage: json['funding_stage'] as String? ?? '',
-      fundingAmountSought: (json['funding_amount_sought'] as num?)?.toDouble() ?? 0.0,
+      fundingAmountSought:
+          (json['funding_amount_sought'] as num?)?.toDouble() ?? 0.0,
       location: json['location'] as String? ?? '',
       logoUrl: json['logo_url'] as String?,
-      createdAt: json['created_at'] != null 
+      createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'] as String)
           : DateTime.now(),
       approvalStatus: json['approval_status'] as String? ?? 'pending',
       rejectionReason: json['rejection_reason'] as String?,
       approvalDate: parsedApprovalDate,
       rejectionCount: (json['rejection_count'] as num?)?.toInt() ?? 0,
+      preferredIndustries: _toStringList(json['preferred_industries']),
+      preferredStages: _toStringList(json['preferred_stages']),
+      geographicFocus: _toStringList(json['geographic_focus']),
+      ticketSizeMin: _toDouble(json['ticket_size_min']),
+      ticketSizeMax: _toDouble(json['ticket_size_max']),
     );
+  }
+
+  static List<String> _toStringList(dynamic value) {
+    if (value is List) {
+      return value.map((item) => item.toString()).toList();
+    }
+    if (value is String && value.trim().isNotEmpty) {
+      return value
+          .replaceAll('{', '')
+          .replaceAll('}', '')
+          .split(',')
+          .map((item) => item.trim())
+          .where((item) => item.isNotEmpty)
+          .toList();
+    }
+    return [];
+  }
+
+  static double? _toDouble(dynamic value) {
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
   }
 
   /// Converts model to JSON for Supabase requests.
@@ -76,6 +109,11 @@ class PendingApprovalModel extends PendingApprovalEntity {
       'rejection_reason': rejectionReason,
       'approval_date': approvalDate?.toIso8601String(),
       'rejection_count': rejectionCount,
+      'preferred_industries': preferredIndustries,
+      'preferred_stages': preferredStages,
+      'geographic_focus': geographicFocus,
+      'ticket_size_min': ticketSizeMin,
+      'ticket_size_max': ticketSizeMax,
     };
   }
 }

@@ -1,5 +1,6 @@
 import 'dart:developer' as developer;
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../domain/entities/admin_analytics_summary.dart';
 import '../../domain/usecases/approve_profile.dart';
 import '../../domain/usecases/get_approved_investors.dart';
 import '../../domain/usecases/get_approved_startups.dart';
@@ -17,6 +18,8 @@ class AdminCubit extends Cubit<AdminState> {
   final GetRejectedProfiles getRejectedProfiles;
   final ApproveProfile approveProfile;
   final RejectProfile rejectProfile;
+  final AdminAnalyticsCalculator _analyticsCalculator;
+  bool _isLoadingProfiles = false;
 
   AdminCubit({
     required this.getPendingStartups,
@@ -26,9 +29,14 @@ class AdminCubit extends Cubit<AdminState> {
     required this.getRejectedProfiles,
     required this.approveProfile,
     required this.rejectProfile,
-  }) : super(const AdminInitial());
+    AdminAnalyticsCalculator analyticsCalculator =
+        const AdminAnalyticsCalculator(),
+  }) : _analyticsCalculator = analyticsCalculator,
+       super(const AdminInitial());
 
   Future<void> loadAllProfiles() async {
+    if (_isLoadingProfiles) return;
+    _isLoadingProfiles = true;
     emit(const AdminLoading());
     try {
       // Load all profile types in parallel for better performance
@@ -45,6 +53,13 @@ class AdminCubit extends Cubit<AdminState> {
       final approvedStartups = results[2];
       final approvedInvestors = results[3];
       final rejectedProfiles = results[4];
+      final analytics = _analyticsCalculator.calculate(
+        pendingStartups: pendingStartups,
+        pendingInvestors: pendingInvestors,
+        approvedStartups: approvedStartups,
+        approvedInvestors: approvedInvestors,
+        rejectedProfiles: rejectedProfiles,
+      );
 
       developer.log(
         'Loaded profiles - Pending: ${pendingStartups.length} startups, ${pendingInvestors.length} investors | '
@@ -53,13 +68,16 @@ class AdminCubit extends Cubit<AdminState> {
         name: 'EthioVenture.Admin',
       );
 
-      emit(AdminProfilesLoaded(
-        pendingStartups: pendingStartups,
-        pendingInvestors: pendingInvestors,
-        approvedStartups: approvedStartups,
-        approvedInvestors: approvedInvestors,
-        rejectedProfiles: rejectedProfiles,
-      ));
+      emit(
+        AdminProfilesLoaded(
+          pendingStartups: pendingStartups,
+          pendingInvestors: pendingInvestors,
+          approvedStartups: approvedStartups,
+          approvedInvestors: approvedInvestors,
+          rejectedProfiles: rejectedProfiles,
+          analytics: analytics,
+        ),
+      );
     } catch (error, stackTrace) {
       developer.log(
         'Failed to load profiles',
@@ -69,6 +87,8 @@ class AdminCubit extends Cubit<AdminState> {
         level: 1000,
       );
       emit(AdminError('Failed to load profiles: ${error.toString()}'));
+    } finally {
+      _isLoadingProfiles = false;
     }
   }
 
@@ -104,7 +124,10 @@ class AdminCubit extends Cubit<AdminState> {
   }
 
   Future<void> reject(
-      String profileId, String role, String rejectionReason) async {
+    String profileId,
+    String role,
+    String rejectionReason,
+  ) async {
     final currentState = state;
     if (currentState is! AdminProfilesLoaded) return;
 
@@ -151,13 +174,27 @@ class AdminCubit extends Cubit<AdminState> {
         getRejectedProfiles(),
       ]);
 
-      emit(AdminProfilesLoaded(
-        pendingStartups: results[0],
-        pendingInvestors: results[1],
-        approvedStartups: results[2],
-        approvedInvestors: results[3],
-        rejectedProfiles: results[4],
-      ));
+      final pendingStartups = results[0];
+      final pendingInvestors = results[1];
+      final approvedStartups = results[2];
+      final approvedInvestors = results[3];
+      final rejectedProfiles = results[4];
+      emit(
+        AdminProfilesLoaded(
+          pendingStartups: pendingStartups,
+          pendingInvestors: pendingInvestors,
+          approvedStartups: approvedStartups,
+          approvedInvestors: approvedInvestors,
+          rejectedProfiles: rejectedProfiles,
+          analytics: _analyticsCalculator.calculate(
+            pendingStartups: pendingStartups,
+            pendingInvestors: pendingInvestors,
+            approvedStartups: approvedStartups,
+            approvedInvestors: approvedInvestors,
+            rejectedProfiles: rejectedProfiles,
+          ),
+        ),
+      );
     } catch (error) {
       // If reload fails, restore the previous state so the UI is still functional
       developer.log(

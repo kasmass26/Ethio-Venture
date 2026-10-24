@@ -16,6 +16,19 @@ class MatchScoringService {
     required StartupProfileEntity startup,
     required InvestorPreferencesEntity prefs,
   }) {
+    final industryPreferenceSet = prefs.preferredIndustries.any(
+      (value) => value.trim().isNotEmpty,
+    );
+    final stagePreferenceSet = prefs.preferredStages.any(
+      (value) => value.trim().isNotEmpty,
+    );
+    final amountPreferenceSet = _hasValidTicketRange(
+      prefs.ticketSizeMin,
+      prefs.ticketSizeMax,
+    );
+    final locationPreferenceSet = prefs.geographicFocus.any(
+      (value) => value.trim().isNotEmpty,
+    );
     final industryMatch = _checkIndustryMatch(
       startup.industry,
       prefs.preferredIndustries,
@@ -35,14 +48,18 @@ class MatchScoringService {
     );
 
     int totalScore = 0;
-    if (industryMatch) totalScore += industryWeight;
-    if (stageMatch) totalScore += stageWeight;
-    if (amountCompatible) totalScore += amountWeight;
-    if (locationMatch) totalScore += locationWeight;
+    if (industryPreferenceSet && industryMatch) totalScore += industryWeight;
+    if (stagePreferenceSet && stageMatch) totalScore += stageWeight;
+    if (amountPreferenceSet && amountCompatible) totalScore += amountWeight;
+    if (locationPreferenceSet && locationMatch) totalScore += locationWeight;
 
     return MatchResultEntity(
       startup: startup,
       overallScore: totalScore,
+      industryPreferenceSet: industryPreferenceSet,
+      stagePreferenceSet: stagePreferenceSet,
+      amountPreferenceSet: amountPreferenceSet,
+      locationPreferenceSet: locationPreferenceSet,
       industryMatch: industryMatch,
       stageMatch: stageMatch,
       amountCompatible: amountCompatible,
@@ -51,33 +68,41 @@ class MatchScoringService {
   }
 
   bool _checkIndustryMatch(String? industry, List<String> preferredIndustries) {
-    if (preferredIndustries.isEmpty) return true;
+    if (preferredIndustries.isEmpty) return false;
     if (industry == null || industry.trim().isEmpty) return false;
     final normalized = industry.trim().toLowerCase();
     return preferredIndustries.any((p) => p.trim().toLowerCase() == normalized);
   }
 
   bool _checkStageMatch(String? stage, List<String> preferredStages) {
-    if (preferredStages.isEmpty) return true;
+    if (preferredStages.isEmpty) return false;
     if (stage == null || stage.trim().isEmpty) return false;
     final normalized = stage.trim().toLowerCase();
     return preferredStages.any((s) => s.trim().toLowerCase() == normalized);
   }
 
-  bool _checkAmountCompatible(
-    double? sought,
-    double? min,
-    double? max,
-  ) {
-    if (min == null && max == null) return true;
-    if (sought == null) return false;
+  bool _checkAmountCompatible(double? sought, double? min, double? max) {
+    if (!_hasValidTicketRange(min, max) ||
+        sought == null ||
+        !sought.isFinite ||
+        sought < 0) {
+      return false;
+    }
     if (min != null && sought < min) return false;
     if (max != null && sought > max) return false;
     return true;
   }
 
+  // Both amount fields are entered in USD by the startup and investor forms.
+  bool _hasValidTicketRange(double? min, double? max) {
+    if (min == null && max == null) return false;
+    if (min != null && (!min.isFinite || min < 0)) return false;
+    if (max != null && (!max.isFinite || max < 0)) return false;
+    return min == null || max == null || max >= min;
+  }
+
   bool _checkLocationMatch(String? location, List<String> geographicFocus) {
-    if (geographicFocus.isEmpty) return true;
+    if (geographicFocus.isEmpty) return false;
     if (location == null || location.trim().isEmpty) return false;
     final normalized = location.trim().toLowerCase();
     return geographicFocus.any((g) => g.trim().toLowerCase() == normalized);
@@ -93,85 +118,47 @@ class MatchScoringService {
     required String? startupIndustry,
     required String? startupStage,
     required double? startupFundingNeeded,
+    String? startupLocation,
+    List<String> geographicFocus = const [],
   }) {
-    if (startupIndustry == null &&
-        startupStage == null &&
-        startupFundingNeeded == null) {
-      final reasons = <String>[];
-      if (preferredIndustries.isNotEmpty) {
-        reasons.add(preferredIndustries.first);
-      }
-      if (preferredStages.isNotEmpty) {
-        reasons.add(preferredStages.first);
-      }
-      if (reasons.isEmpty) {
-        reasons.add('Verified Investor');
-      }
-      return (75, reasons);
+    final hasStartupDetails =
+        (startupIndustry?.trim().isNotEmpty ?? false) ||
+        (startupStage?.trim().isNotEmpty ?? false) ||
+        startupFundingNeeded != null ||
+        (startupLocation?.trim().isNotEmpty ?? false);
+    if (!hasStartupDetails) {
+      return (0, ['Complete your startup profile to calculate compatibility']);
     }
 
-    int score = 0;
-    final List<String> reasons = [];
+    final result = score(
+      startup: StartupProfileEntity(
+        id: '',
+        userId: '',
+        businessName: '',
+        industry: startupIndustry,
+        fundingStage: startupStage,
+        fundingAmountSought: startupFundingNeeded,
+        location: startupLocation,
+      ),
+      prefs: InvestorPreferencesEntity(
+        id: '',
+        userId: '',
+        preferredIndustries: preferredIndustries,
+        preferredStages: preferredStages,
+        geographicFocus: geographicFocus,
+        ticketSizeMin: ticketSizeMin,
+        ticketSizeMax: ticketSizeMax,
+      ),
+    );
 
-    // 1. Industry match (+40)
-    if (startupIndustry != null && startupIndustry.trim().isNotEmpty) {
-      final normInd = startupIndustry.trim().toLowerCase();
-      final hasMatch = preferredIndustries.any((ind) {
-        final i = ind.trim().toLowerCase();
-        return i == normInd || i.contains(normInd) || normInd.contains(i);
-      });
-      if (hasMatch) {
-        score += 40;
-        reasons.add('$startupIndustry fit');
-      }
+    if (result.matchReasons.isEmpty &&
+        !result.industryPreferenceSet &&
+        !result.stagePreferenceSet &&
+        !result.amountPreferenceSet &&
+        !result.locationPreferenceSet) {
+      return (0, ['Investor has not provided investment preferences']);
     }
 
-    // 2. Stage match (+35)
-    if (startupStage != null && startupStage.trim().isNotEmpty) {
-      final normStg = startupStage.trim().toLowerCase();
-      final hasMatch = preferredStages.any((stg) {
-        final s = stg.trim().toLowerCase();
-        return s == normStg || s.contains(normStg) || normStg.contains(s);
-      });
-      if (hasMatch) {
-        score += 35;
-        reasons.add('$startupStage stage');
-      }
-    }
-
-    // 3. Ticket size match (+25)
-    if (ticketSizeMin == null && ticketSizeMax == null) {
-      score += 15;
-    } else if (startupFundingNeeded != null) {
-      final min = ticketSizeMin;
-      final max = ticketSizeMax;
-      final needed = startupFundingNeeded;
-      if (min != null && max != null) {
-        if (needed >= min && needed <= max) {
-          score += 25;
-          reasons.add('Ticket size match');
-        } else if (needed >= min * 0.7 && needed <= max * 1.3) {
-          score += 15;
-          reasons.add('Flexible ticket');
-        }
-      } else if (min != null && needed >= min) {
-        score += 20;
-        reasons.add('Ticket size match');
-      } else if (max != null && needed <= max) {
-        score += 20;
-        reasons.add('Ticket size match');
-      }
-    }
-
-    if (reasons.isEmpty) {
-      if (preferredIndustries.isNotEmpty) {
-        reasons.add(preferredIndustries.first);
-      } else {
-        reasons.add('Active Investor');
-      }
-    }
-
-    final finalScore = (score == 0 ? 55 : score).clamp(20, 99);
-    return (finalScore, reasons);
+    return (result.overallScore, result.matchReasons);
   }
 }

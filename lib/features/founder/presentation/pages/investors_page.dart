@@ -53,9 +53,9 @@ class _InvestorsPageState extends State<InvestorsPage> {
       child: BlocListener<StartupProfileCubit, StartupProfileState>(
         listener: (context, startupState) {
           if (startupState is StartupProfileLoaded) {
-            context
-                .read<RecommendedInvestorsCubit>()
-                .load(startupState.profile);
+            context.read<RecommendedInvestorsCubit>().load(
+              startupState.profile,
+            );
           }
         },
         child: Scaffold(
@@ -64,17 +64,15 @@ class _InvestorsPageState extends State<InvestorsPage> {
             currentIndex: 1,
             onTap: (index) {
               if (index == 0) {
-                Navigator.of(context).pushReplacementNamed(
-                  AppConstants.routeFounderDashboard,
-                );
+                Navigator.of(
+                  context,
+                ).pushReplacementNamed(AppConstants.routeFounderDashboard);
               } else if (index == 2) {
-                Navigator.of(context).pushNamed(
-                  AppConstants.routeMessages,
-                );
+                Navigator.of(context).pushNamed(AppConstants.routeMessages);
               } else if (index == 3) {
-                Navigator.of(context).pushReplacementNamed(
-                  AppConstants.routeStartupProfile,
-                );
+                Navigator.of(
+                  context,
+                ).pushReplacementNamed(AppConstants.routeStartupProfile);
               }
             },
           ),
@@ -115,10 +113,14 @@ class _InvestorsPageState extends State<InvestorsPage> {
       actions: [
         Builder(
           builder: (context) => TextButton.icon(
-            onPressed: () => Navigator.of(context)
-                .pushNamed(AppConstants.routeFounderRequests),
-            icon: const Icon(Icons.swap_horiz_rounded,
-                size: 16, color: AppColors.primaryDark),
+            onPressed: () => Navigator.of(
+              context,
+            ).pushNamed(AppConstants.routeFounderRequests),
+            icon: const Icon(
+              Icons.swap_horiz_rounded,
+              size: 16,
+              color: AppColors.primaryDark,
+            ),
             label: const Text(
               'My Requests',
               style: TextStyle(
@@ -131,10 +133,11 @@ class _InvestorsPageState extends State<InvestorsPage> {
         ),
         Builder(
           builder: (context) => IconButton(
-            icon: const Icon(Icons.refresh_rounded,
-                color: AppColors.textPrimary),
-            onPressed: () =>
-                context.read<RecommendedInvestorsCubit>().load(),
+            icon: const Icon(
+              Icons.refresh_rounded,
+              color: AppColors.textPrimary,
+            ),
+            onPressed: () => context.read<RecommendedInvestorsCubit>().load(),
           ),
         ),
         const SizedBox(width: 6),
@@ -190,7 +193,7 @@ class _InvestorsPageState extends State<InvestorsPage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'AI Investor Recommendation Engine',
+                                'Investor Compatibility',
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 15,
@@ -198,7 +201,7 @@ class _InvestorsPageState extends State<InvestorsPage> {
                                 ),
                               ),
                               Text(
-                                'Matched & ranked based on your startup profile',
+                                'Rule-based matching, not machine learning: industry, stage, funding, and location',
                                 style: TextStyle(
                                   color: Colors.white70,
                                   fontSize: 11.5,
@@ -209,19 +212,28 @@ class _InvestorsPageState extends State<InvestorsPage> {
                         ),
                         TextButton(
                           onPressed: () {
-                            Navigator.of(context)
-                                .pushNamed(AppConstants.routeStartupProfile)
-                                .then((_) {
-                              final uid = sl<SupabaseClient>().auth.currentUser?.id ?? '';
+                            Navigator.of(
+                              context,
+                            ).pushNamed(AppConstants.routeStartupProfile).then((
+                              _,
+                            ) {
+                              final uid =
+                                  sl<SupabaseClient>().auth.currentUser?.id ??
+                                  '';
                               if (context.mounted && uid.isNotEmpty) {
-                                context.read<StartupProfileCubit>().loadProfile(uid);
+                                context.read<StartupProfileCubit>().loadProfile(
+                                  uid,
+                                );
                               }
                             });
                           },
                           style: TextButton.styleFrom(
                             foregroundColor: Colors.white,
                             backgroundColor: Colors.white.withOpacity(0.18),
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
                             minimumSize: const Size(0, 0),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10),
@@ -231,7 +243,10 @@ class _InvestorsPageState extends State<InvestorsPage> {
                             children: [
                               Text(
                                 'Edit Profile',
-                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                ),
                               ),
                               SizedBox(width: 3),
                               Icon(Icons.edit_outlined, size: 12),
@@ -263,7 +278,8 @@ class _InvestorsPageState extends State<InvestorsPage> {
                         if (profile.fundingAmountNeeded > 0)
                           _ProfileChip(
                             icon: Icons.payments_rounded,
-                            label: '\$${profile.fundingAmountNeeded.toStringAsFixed(0)} Needed',
+                            label:
+                                '\$${profile.fundingAmountNeeded.toStringAsFixed(0)} Needed',
                           ),
                       ],
                     ),
@@ -321,20 +337,27 @@ class _InvestorsPageState extends State<InvestorsPage> {
                     const SizedBox(width: 8),
                     ElevatedButton(
                       onPressed: () {
-                        Navigator.of(context)
-                            .pushNamed(AppConstants.routeStartupProfileSetup);
+                        Navigator.of(
+                          context,
+                        ).pushNamed(AppConstants.routeStartupProfileSetup);
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primaryDark,
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 8,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
                       child: const Text(
                         'Setup',
-                        style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700),
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
                   ],
@@ -382,7 +405,10 @@ class _InvestorsPageState extends State<InvestorsPage> {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: AppColors.primaryDark, width: 1.5),
+              borderSide: const BorderSide(
+                color: AppColors.primaryDark,
+                width: 1.5,
+              ),
             ),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 16,
@@ -426,7 +452,9 @@ class _InvestorsPageState extends State<InvestorsPage> {
                 fontWeight: FontWeight.w700,
               ),
               side: BorderSide(
-                color: isSelected ? AppColors.primaryDark : AppColors.border.withOpacity(0.7),
+                color: isSelected
+                    ? AppColors.primaryDark
+                    : AppColors.border.withOpacity(0.7),
               ),
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               shape: RoundedRectangleBorder(
@@ -461,7 +489,11 @@ class _InvestorsPageState extends State<InvestorsPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.cloud_off_rounded, size: 48, color: AppColors.warning),
+                  const Icon(
+                    Icons.cloud_off_rounded,
+                    size: 48,
+                    color: AppColors.warning,
+                  ),
                   const SizedBox(height: 12),
                   Text(
                     state.message,
@@ -470,7 +502,8 @@ class _InvestorsPageState extends State<InvestorsPage> {
                   ),
                   const SizedBox(height: 12),
                   ElevatedButton(
-                    onPressed: () => context.read<RecommendedInvestorsCubit>().load(),
+                    onPressed: () =>
+                        context.read<RecommendedInvestorsCubit>().load(),
                     child: const Text('Retry'),
                   ),
                 ],
@@ -520,7 +553,8 @@ class _InvestorsPageState extends State<InvestorsPage> {
                     ),
                     const SizedBox(height: 16),
                     ElevatedButton.icon(
-                      onPressed: () => context.read<RecommendedInvestorsCubit>().load(),
+                      onPressed: () =>
+                          context.read<RecommendedInvestorsCubit>().load(),
                       icon: const Icon(Icons.refresh_rounded, size: 18),
                       label: const Text('Refresh'),
                     ),
@@ -587,9 +621,10 @@ class _InvestorsPageState extends State<InvestorsPage> {
               .toList();
 
           final bool showSpotlight =
-              (_selectedFilter == 'Recommended ⭐' || _selectedFilter == 'All') &&
-                  topRecommended.isNotEmpty &&
-                  _searchQuery.isEmpty;
+              (_selectedFilter == 'Recommended ⭐' ||
+                  _selectedFilter == 'All') &&
+              topRecommended.isNotEmpty &&
+              _searchQuery.isEmpty;
 
           return SliverMainAxisGroup(
             slivers: [
@@ -605,8 +640,11 @@ class _InvestorsPageState extends State<InvestorsPage> {
                           padding: EdgeInsets.symmetric(horizontal: 20),
                           child: Row(
                             children: [
-                              Icon(Icons.star_rounded,
-                                  color: AppColors.warning, size: 18),
+                              Icon(
+                                Icons.star_rounded,
+                                color: AppColors.warning,
+                                size: 18,
+                              ),
                               SizedBox(width: 6),
                               Text(
                                 'Top Matches For You',
@@ -669,20 +707,18 @@ class _InvestorsPageState extends State<InvestorsPage> {
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
                 sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      final investor = filtered[index];
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 14),
-                        child: _InvestorCatalogCard(
-                          investor: investor,
-                          onTap: () => InvestorDetailSheet.show(context, investor),
-                          onConnectTap: () => _connectAndPitch(context, investor),
-                        ),
-                      );
-                    },
-                    childCount: filtered.length,
-                  ),
+                  delegate: SliverChildBuilderDelegate((context, index) {
+                    final investor = filtered[index];
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 14),
+                      child: _InvestorCatalogCard(
+                        investor: investor,
+                        onTap: () =>
+                            InvestorDetailSheet.show(context, investor),
+                        onConnectTap: () => _connectAndPitch(context, investor),
+                      ),
+                    );
+                  }, childCount: filtered.length),
                 ),
               ),
             ],
@@ -695,7 +731,8 @@ class _InvestorsPageState extends State<InvestorsPage> {
   }
 
   List<InvestorDiscoveryEntity> _filterInvestors(
-      List<InvestorDiscoveryEntity> list) {
+    List<InvestorDiscoveryEntity> list,
+  ) {
     return list.where((inv) {
       // 0. Ensure strictly approved profiles only
       if (!inv.isApproved) return false;
@@ -704,10 +741,12 @@ class _InvestorsPageState extends State<InvestorsPage> {
       if (_searchQuery.isNotEmpty) {
         final nameMatch = inv.displayName.toLowerCase().contains(_searchQuery);
         final bioMatch = inv.bio?.toLowerCase().contains(_searchQuery) ?? false;
-        final industryMatch = inv.preferredIndustries
-            .any((i) => i.toLowerCase().contains(_searchQuery));
-        final locMatch = inv.geographicFocus
-            .any((g) => g.toLowerCase().contains(_searchQuery));
+        final industryMatch = inv.preferredIndustries.any(
+          (i) => i.toLowerCase().contains(_searchQuery),
+        );
+        final locMatch = inv.geographicFocus.any(
+          (g) => g.toLowerCase().contains(_searchQuery),
+        );
 
         if (!nameMatch && !bioMatch && !industryMatch && !locMatch) {
           return false;
@@ -740,7 +779,9 @@ class _InvestorsPageState extends State<InvestorsPage> {
   /// Handles the Connect button tap — sends a connection request (or opens
   /// chat if already accepted).
   Future<void> _connectAndPitch(
-      BuildContext context, InvestorDiscoveryEntity investor) async {
+    BuildContext context,
+    InvestorDiscoveryEntity investor,
+  ) async {
     try {
       developer.log(
         'Connect tapped for investor ${investor.displayName}',
@@ -757,8 +798,7 @@ class _InvestorsPageState extends State<InvestorsPage> {
       // Already accepted → go directly to chat
       if (existing != null && existing.isAccepted) {
         final messagingRepo = sl<MessagingRepository>();
-        final startupProfileId =
-            await messagingRepo.resolveStartupProfileId();
+        final startupProfileId = await messagingRepo.resolveStartupProfileId();
         if (startupProfileId == null) return;
         final conv = await messagingRepo.getOrCreateConversation(
           startupProfileId: startupProfileId,
@@ -825,15 +865,15 @@ class _InvestorsPageState extends State<InvestorsPage> {
   }
 
   Future<void> _showSendRequestDialog(
-      BuildContext context, InvestorDiscoveryEntity investor) async {
+    BuildContext context,
+    InvestorDiscoveryEntity investor,
+  ) async {
     final messageController = TextEditingController();
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
             Container(
@@ -907,8 +947,10 @@ class _InvestorsPageState extends State<InvestorsPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel',
-                style: TextStyle(color: AppColors.textSecondary)),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
           ),
           ElevatedButton.icon(
             onPressed: () => Navigator.of(ctx).pop(true),
@@ -1023,8 +1065,7 @@ class _InvestorCatalogCardState extends State<_InvestorCatalogCard> {
 
   void _loadStatus() {
     final repo = sl<ConnectionRequestRepository>();
-    _statusFuture =
-        repo.getRequestBetween(otherUserId: widget.investor.userId);
+    _statusFuture = repo.getRequestBetween(otherUserId: widget.investor.userId);
   }
 
   @override
@@ -1101,7 +1142,9 @@ class _InvestorCatalogCardState extends State<_InvestorCatalogCard> {
                           children: [
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 2),
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
                                 color: AppColors.primarySoft,
                                 borderRadius: BorderRadius.circular(5),
@@ -1116,8 +1159,11 @@ class _InvestorCatalogCardState extends State<_InvestorCatalogCard> {
                               ),
                             ),
                             const SizedBox(width: 6),
-                            const Icon(Icons.place_outlined,
-                                size: 12, color: AppColors.textSecondary),
+                            const Icon(
+                              Icons.place_outlined,
+                              size: 12,
+                              color: AppColors.textSecondary,
+                            ),
                             const SizedBox(width: 2),
                             Expanded(
                               child: Text(
@@ -1148,7 +1194,9 @@ class _InvestorCatalogCardState extends State<_InvestorCatalogCard> {
                   children: investor.matchReasons.map((reason) {
                     return Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 3),
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.successSoft,
                         borderRadius: BorderRadius.circular(6),
@@ -1202,26 +1250,34 @@ class _InvestorCatalogCardState extends State<_InvestorCatalogCard> {
                 spacing: 6,
                 runSpacing: 6,
                 children: [
-                  ...investor.preferredIndustries.take(3).map((tag) => Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: AppColors.secondarySoft,
-                          borderRadius: BorderRadius.circular(7),
-                        ),
-                        child: Text(
-                          tag,
-                          style: const TextStyle(
-                            color: AppColors.secondary,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
+                  ...investor.preferredIndustries
+                      .take(3)
+                      .map(
+                        (tag) => Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.secondarySoft,
+                            borderRadius: BorderRadius.circular(7),
+                          ),
+                          child: Text(
+                            tag,
+                            style: const TextStyle(
+                              color: AppColors.secondary,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ),
-                      )),
+                      ),
                   if (investor.preferredStages.isNotEmpty)
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.primarySoft,
                         borderRadius: BorderRadius.circular(7),
@@ -1247,7 +1303,9 @@ class _InvestorCatalogCardState extends State<_InvestorCatalogCard> {
                   Flexible(
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 5),
+                        horizontal: 8,
+                        vertical: 5,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.background,
                         borderRadius: BorderRadius.circular(8),
@@ -1255,8 +1313,11 @@ class _InvestorCatalogCardState extends State<_InvestorCatalogCard> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.payments_outlined,
-                              size: 13, color: AppColors.secondary),
+                          const Icon(
+                            Icons.payments_outlined,
+                            size: 13,
+                            color: AppColors.secondary,
+                          ),
                           const SizedBox(width: 5),
                           Flexible(
                             child: Text(
@@ -1284,7 +1345,9 @@ class _InvestorCatalogCardState extends State<_InvestorCatalogCard> {
                         style: TextButton.styleFrom(
                           foregroundColor: AppColors.textSecondary,
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 6),
+                            horizontal: 8,
+                            vertical: 6,
+                          ),
                           minimumSize: const Size(0, 0),
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
@@ -1327,8 +1390,11 @@ class _InvestorCatalogCardState extends State<_InvestorCatalogCard> {
                                 onConnectTap();
                                 setState(_loadStatus);
                               },
-                              icon: const Icon(Icons.chat_bubble_outline_rounded,
-                                  size: 13, color: Colors.white),
+                              icon: const Icon(
+                                Icons.chat_bubble_outline_rounded,
+                                size: 13,
+                                color: Colors.white,
+                              ),
                               label: const Text(
                                 'Message',
                                 style: TextStyle(
@@ -1340,7 +1406,9 @@ class _InvestorCatalogCardState extends State<_InvestorCatalogCard> {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.success,
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 12, vertical: 8),
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
                                 minimumSize: const Size(0, 34),
                                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                 shape: RoundedRectangleBorder(
@@ -1359,19 +1427,24 @@ class _InvestorCatalogCardState extends State<_InvestorCatalogCard> {
                               },
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 12, vertical: 8),
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
                                 decoration: BoxDecoration(
                                   color: AppColors.warningSoft,
                                   borderRadius: BorderRadius.circular(10),
                                   border: Border.all(
-                                      color: AppColors.warning
-                                          .withOpacity(0.4)),
+                                    color: AppColors.warning.withOpacity(0.4),
+                                  ),
                                 ),
                                 child: const Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Icon(Icons.hourglass_top_rounded,
-                                        size: 12, color: AppColors.warning),
+                                    Icon(
+                                      Icons.hourglass_top_rounded,
+                                      size: 12,
+                                      color: AppColors.warning,
+                                    ),
                                     SizedBox(width: 4),
                                     Text(
                                       'Pending',
@@ -1393,19 +1466,24 @@ class _InvestorCatalogCardState extends State<_InvestorCatalogCard> {
                               onTap: () => onConnectTap(),
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 12, vertical: 8),
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
                                 decoration: BoxDecoration(
                                   color: const Color(0xFFFFEEEE),
                                   borderRadius: BorderRadius.circular(10),
                                   border: Border.all(
-                                      color: AppColors.error
-                                          .withOpacity(0.3)),
+                                    color: AppColors.error.withOpacity(0.3),
+                                  ),
                                 ),
                                 child: const Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Icon(Icons.cancel_outlined,
-                                        size: 12, color: AppColors.error),
+                                    Icon(
+                                      Icons.cancel_outlined,
+                                      size: 12,
+                                      color: AppColors.error,
+                                    ),
                                     SizedBox(width: 4),
                                     Text(
                                       'Declined',
@@ -1433,8 +1511,11 @@ class _InvestorCatalogCardState extends State<_InvestorCatalogCard> {
                                 },
                               );
                             },
-                            icon: const Icon(Icons.send_rounded,
-                                size: 13, color: Colors.white),
+                            icon: const Icon(
+                              Icons.send_rounded,
+                              size: 13,
+                              color: Colors.white,
+                            ),
                             label: const Text(
                               'Connect',
                               style: TextStyle(
@@ -1446,7 +1527,9 @@ class _InvestorCatalogCardState extends State<_InvestorCatalogCard> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.secondary,
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 8),
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
                               minimumSize: const Size(0, 34),
                               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                               shape: RoundedRectangleBorder(

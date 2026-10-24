@@ -12,9 +12,10 @@ class RecommendedInvestorsCubit extends Cubit<RecommendedInvestorsState> {
   RecommendedInvestorsCubit({
     required GetApprovedInvestorsUseCase getApprovedInvestorsUseCase,
     MatchScoringService? matchScoringService,
-  })  : _getApprovedInvestorsUseCase = getApprovedInvestorsUseCase,
-        _matchScoringService = matchScoringService ?? const MatchScoringService(),
-        super(const RecommendedInvestorsInitial());
+  }) : _getApprovedInvestorsUseCase = getApprovedInvestorsUseCase,
+       _matchScoringService =
+           matchScoringService ?? const MatchScoringService(),
+       super(const RecommendedInvestorsInitial());
 
   final GetApprovedInvestorsUseCase _getApprovedInvestorsUseCase;
   final MatchScoringService _matchScoringService;
@@ -63,6 +64,8 @@ class RecommendedInvestorsCubit extends Cubit<RecommendedInvestorsState> {
         startupIndustry: startupProfile?.industry,
         startupStage: startupProfile?.fundingStage,
         startupFundingNeeded: startupProfile?.fundingAmountNeeded,
+        startupLocation: startupProfile?.location,
+        geographicFocus: inv.geographicFocus,
       );
       return inv.copyWith(matchScore: score, matchReasons: reasons);
     }).toList();
