@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_sizes.dart';
 import '../../domain/entities/verification_type.dart';
@@ -170,35 +171,62 @@ class _VerificationOverviewPageState extends State<VerificationOverviewPage> {
                       if (_selectedType != null)
                         Semantics(
                           liveRegion: true,
-                          child: Container(
-                            key: const ValueKey('selected-verification-type'),
-                            padding: const EdgeInsets.all(AppSizes.md),
-                            decoration: BoxDecoration(
-                              color: AppColors.primarySoft,
-                              borderRadius:
-                                  BorderRadius.circular(AppSizes.radiusMd),
-                              border: Border.all(
-                                color: AppColors.primary.withValues(alpha: 0.5),
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(
-                                  Icons.check_circle_outline_rounded,
-                                  color: AppColors.primaryDark,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Container(
+                                key: const ValueKey('selected-verification-type'),
+                                padding: const EdgeInsets.all(AppSizes.md),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primarySoft,
+                                  borderRadius:
+                                      BorderRadius.circular(AppSizes.radiusMd),
+                                  border: Border.all(
+                                    color: AppColors.primary.withValues(alpha: 0.5),
+                                  ),
                                 ),
-                                const SizedBox(width: AppSizes.sm),
-                                Expanded(
-                                  child: Text(
-                                    '${_selectedType!.displayLabel} selected. This does not submit or verify anything.',
-                                    style: textTheme.bodyMedium?.copyWith(
-                                      fontWeight: FontWeight.w700,
-                                      color: AppColors.secondary,
+                                child: Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.check_circle_outline_rounded,
+                                      color: AppColors.primaryDark,
+                                    ),
+                                    const SizedBox(width: AppSizes.sm),
+                                    Expanded(
+                                      child: Text(
+                                        '${_selectedType!.displayLabel} selected. This does not submit or verify anything.',
+                                        style: textTheme.bodyMedium?.copyWith(
+                                          fontWeight: FontWeight.w700,
+                                          color: AppColors.secondary,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: AppSizes.md),
+                              FilledButton.icon(
+                                key: const ValueKey('verification-continue'),
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: AppColors.primary,
+                                  foregroundColor: AppColors.secondary,
+                                  minimumSize: const Size.fromHeight(48),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(
+                                      AppSizes.radiusMd,
                                     ),
                                   ),
                                 ),
-                              ],
-                            ),
+                                onPressed: () {
+                                  Navigator.of(context).pushNamed(
+                                    AppConstants.routeVerificationSubmission,
+                                    arguments: _selectedType,
+                                  );
+                                },
+                                icon: const Icon(Icons.arrow_forward_rounded),
+                                label: const Text('Continue'),
+                              ),
+                            ],
                           ),
                         ),
                     ],

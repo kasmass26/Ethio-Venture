@@ -39,6 +39,7 @@ class AppConstants {
   static const String routeInvestorRequests = '/investor-requests';
   static const String routeFounderRequests = '/my-requests';
   static const String routeVerificationOverview = '/verification-overview';
+  static const String routeVerificationSubmission = '/verification-submission';
 
   // Admin email for special access
   static const String adminEmail = 'admin@gmail.com';
