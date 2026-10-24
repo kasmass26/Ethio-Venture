@@ -91,6 +91,15 @@ import 'package:ethioventure/features/tracked_startups/domain/usecases/untrack_s
 import 'package:ethioventure/features/tracked_startups/domain/usecases/is_startup_tracked.dart';
 import 'package:ethioventure/features/tracked_startups/presentation/cubit/tracked_startups_cubit.dart';
 
+import 'package:ethioventure/features/verification/data/datasources/verification_remote_data_source.dart';
+import 'package:ethioventure/features/verification/data/repositories/verification_repository_impl.dart';
+import 'package:ethioventure/features/verification/domain/repositories/verification_repository.dart';
+import 'package:ethioventure/features/verification/domain/usecases/get_current_user_verification_requests.dart';
+import 'package:ethioventure/features/verification/domain/usecases/get_public_approved_badges.dart';
+import 'package:ethioventure/features/verification/domain/usecases/start_verification_request.dart';
+import 'package:ethioventure/features/verification/domain/usecases/submit_verification_with_document.dart';
+import 'package:ethioventure/features/verification/presentation/cubit/verification_cubit.dart';
+
 import 'package:ethioventure/core/services/user_service.dart';
 import 'package:ethioventure/features/startup_ai_advisor/data/datasources/startup_ai_advisor_remote_data_source.dart';
 import 'package:ethioventure/features/startup_ai_advisor/data/repositories/startup_ai_advisor_repository_impl.dart';
@@ -626,6 +635,57 @@ Future<void> configureDependencies({SupabaseClient? supabaseClient}) async {
   }
 
   // ---------------------------------------------------------------------------
+  // Verification Feature
+  // ---------------------------------------------------------------------------
+  if (!sl.isRegistered<VerificationRemoteDataSource>()) {
+    sl.registerLazySingleton<VerificationRemoteDataSource>(
+      () => VerificationRemoteDataSourceImpl(sl<SupabaseClient>()),
+    );
+  }
+
+  if (!sl.isRegistered<VerificationRepository>()) {
+    sl.registerLazySingleton<VerificationRepository>(
+      () => VerificationRepositoryImpl(
+        remoteDataSource: sl<VerificationRemoteDataSource>(),
+      ),
+    );
+  }
+
+  if (!sl.isRegistered<GetCurrentUserVerificationRequests>()) {
+    sl.registerLazySingleton<GetCurrentUserVerificationRequests>(
+      () => GetCurrentUserVerificationRequests(sl<VerificationRepository>()),
+    );
+  }
+
+  if (!sl.isRegistered<StartVerificationRequest>()) {
+    sl.registerLazySingleton<StartVerificationRequest>(
+      () => StartVerificationRequest(sl<VerificationRepository>()),
+    );
+  }
+
+  if (!sl.isRegistered<GetPublicApprovedBadges>()) {
+    sl.registerLazySingleton<GetPublicApprovedBadges>(
+      () => GetPublicApprovedBadges(sl<VerificationRepository>()),
+    );
+  }
+
+  if (!sl.isRegistered<SubmitVerificationWithDocument>()) {
+    sl.registerLazySingleton<SubmitVerificationWithDocument>(
+      () => SubmitVerificationWithDocument(sl<VerificationRepository>()),
+    );
+  }
+
+  if (!sl.isRegistered<VerificationCubit>()) {
+    sl.registerFactory<VerificationCubit>(
+      () => VerificationCubit(
+        getCurrentUserRequests: sl<GetCurrentUserVerificationRequests>(),
+        startVerificationRequest: sl<StartVerificationRequest>(),
+        submitVerificationWithDocument: sl<SubmitVerificationWithDocument>(),
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
   // Tracked Startups Feature
   // ---------------------------------------------------------------------------
   if (!sl.isRegistered<TrackedStartupsRemoteDataSource>()) {
@@ -710,4 +770,3 @@ Future<void> configureDependencies({SupabaseClient? supabaseClient}) async {
     );
   }
 }
-

@@ -23,6 +23,9 @@ import '../../features/startup_profile/presentation/pages/startup_list_page.dart
 import '../../features/startup_profile/presentation/pages/startup_profile_page.dart';
 import '../../features/startup_profile/presentation/pages/startup_profile_setup_page.dart';
 import '../../features/startup_ai_advisor/presentation/pages/startup_ai_advisor_page.dart';
+import '../../features/verification/domain/entities/verification_type.dart';
+import '../../features/verification/presentation/pages/verification_overview_page.dart';
+import '../../features/verification/presentation/pages/verification_submission_page.dart';
 
 /// Central navigation configuration. Page widgets belong to their features.
 class AppRouter {
@@ -81,6 +84,12 @@ class AppRouter {
               ? (settings.arguments as Map)['initialPrompt'] as String?
               : null,
         ),
+      AppConstants.routeVerificationOverview => const VerificationOverviewPage(),
+      AppConstants.routeVerificationSubmission => settings.arguments is VerificationType
+          ? VerificationSubmissionPage(
+              type: settings.arguments as VerificationType,
+            )
+          : _UnknownRoutePage(routeName: settings.name),
       AppConstants.routeChat => settings.arguments is Map<String, dynamic> || settings.arguments is Map
           ? ChatPage(
               conversationId: (settings.arguments
