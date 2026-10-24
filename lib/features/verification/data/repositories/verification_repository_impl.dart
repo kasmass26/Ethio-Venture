@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import '../../domain/entities/public_verification_badge_entity.dart';
 import '../../domain/entities/verification_request_entity.dart';
 import '../../domain/entities/verification_type.dart';
@@ -16,10 +18,18 @@ class VerificationRepositoryImpl implements VerificationRepository {
   }
 
   @override
-  Future<List<PublicVerificationBadgeEntity>> getPublicApprovedBadges(
-    String profileId,
-  ) {
-    return remoteDataSource.getPublicApprovedBadges(profileId);
+  Future<VerificationRequestEntity> submitWithDocument({
+    required VerificationType type,
+    required Uint8List fileBytes,
+    required String filename,
+    required int fileSizeBytes,
+  }) {
+    return remoteDataSource.submitWithDocument(
+      type: type,
+      fileBytes: fileBytes,
+      filename: filename,
+      fileSizeBytes: fileSizeBytes,
+    );
   }
 
   @override
@@ -28,5 +38,12 @@ class VerificationRepositoryImpl implements VerificationRepository {
   ) async {
     final model = await remoteDataSource.startVerificationRequest(type);
     return model;
+  }
+
+  @override
+  Future<List<PublicVerificationBadgeEntity>> getPublicApprovedBadges(
+    String profileId,
+  ) {
+    return remoteDataSource.getPublicApprovedBadges(profileId);
   }
 }

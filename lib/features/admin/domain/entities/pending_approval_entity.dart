@@ -18,6 +18,11 @@ class PendingApprovalEntity {
     this.rejectionReason,
     this.approvalDate,
     this.rejectionCount = 0,
+    this.preferredIndustries = const [],
+    this.preferredStages = const [],
+    this.geographicFocus = const [],
+    this.ticketSizeMin,
+    this.ticketSizeMax,
   });
 
   final String id;
@@ -37,6 +42,11 @@ class PendingApprovalEntity {
   final String? rejectionReason;
   final DateTime? approvalDate;
   final int rejectionCount;
+  final List<String> preferredIndustries;
+  final List<String> preferredStages;
+  final List<String> geographicFocus;
+  final double? ticketSizeMin;
+  final double? ticketSizeMax;
 
   PendingApprovalEntity copyWith({
     String? id,
@@ -56,6 +66,11 @@ class PendingApprovalEntity {
     String? rejectionReason,
     DateTime? approvalDate,
     int? rejectionCount,
+    List<String>? preferredIndustries,
+    List<String>? preferredStages,
+    List<String>? geographicFocus,
+    double? ticketSizeMin,
+    double? ticketSizeMax,
   }) {
     return PendingApprovalEntity(
       id: id ?? this.id,
@@ -75,6 +90,11 @@ class PendingApprovalEntity {
       rejectionReason: rejectionReason ?? this.rejectionReason,
       approvalDate: approvalDate ?? this.approvalDate,
       rejectionCount: rejectionCount ?? this.rejectionCount,
+      preferredIndustries: preferredIndustries ?? this.preferredIndustries,
+      preferredStages: preferredStages ?? this.preferredStages,
+      geographicFocus: geographicFocus ?? this.geographicFocus,
+      ticketSizeMin: ticketSizeMin ?? this.ticketSizeMin,
+      ticketSizeMax: ticketSizeMax ?? this.ticketSizeMax,
     );
   }
 }

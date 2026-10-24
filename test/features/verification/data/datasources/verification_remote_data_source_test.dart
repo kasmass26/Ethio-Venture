@@ -43,10 +43,13 @@ void main() {
     );
   });
 
-  test('public badge lookup reports the unsupported backend gap', () async {
+  test('public badge lookup attempts a real query (network error on test client)', () async {
+    // getPublicApprovedBadges does not require the caller to be authenticated —
+    // it queries by profileId. On a test client pointing at localhost the
+    // Supabase call will fail with a ServerException (network/PostgREST error).
     await expectLater(
       dataSource.getPublicApprovedBadges('profile-1'),
-      throwsA(isA<UnsupportedError>()),
+      throwsA(isA<ServerException>()),
     );
   });
 }

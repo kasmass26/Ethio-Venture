@@ -29,6 +29,13 @@ final class VerificationSubmitting extends VerificationState {
   const VerificationSubmitting();
 }
 
+/// Emitted while the document is being uploaded to Supabase Storage and the
+/// metadata row is being written.  The UI should show an indeterminate
+/// progress indicator and keep the submit button disabled.
+final class VerificationUploading extends VerificationState {
+  const VerificationUploading();
+}
+
 final class VerificationSuccess extends VerificationState {
   const VerificationSuccess(this.request);
 

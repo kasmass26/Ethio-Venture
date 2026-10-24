@@ -37,10 +37,10 @@ void main() {
 
       await tester.pumpWidget(buildTestWidget());
 
-      expect(find.text('Organization Details'), findsOneWidget);
-      expect(find.text('Preferred Industries'), findsOneWidget);
+      expect(find.text('Organization Identity & Bio'), findsOneWidget);
+      expect(find.text('Preferred Investment Sectors'), findsOneWidget);
       expect(find.text('Target Funding Stages'), findsOneWidget);
-      expect(find.text('Typical Ticket Size'), findsOneWidget);
+      expect(find.text('Typical Check / Ticket Size Range'), findsOneWidget);
 
       expect(find.text('Save as Draft'), findsOneWidget);
       expect(find.text('Complete Profile'), findsOneWidget);
@@ -123,7 +123,7 @@ void main() {
 
       // Enter org name
       await tester.enterText(
-        find.widgetWithText(TextFormField, 'Organization Name'),
+        find.widgetWithText(TextFormField, 'Organization / Firm Name'),
         'Test Syndicate',
       );
 
@@ -171,7 +171,7 @@ void main() {
       );
 
       await tester.enterText(
-        find.widgetWithText(TextFormField, 'Organization Name'),
+        find.widgetWithText(TextFormField, 'Organization / Firm Name'),
         'Addis Ventures',
       );
       await tester.tap(find.text('Fintech'));

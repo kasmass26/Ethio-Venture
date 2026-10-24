@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:ethioventure/core/error/exceptions.dart';
 import 'package:ethioventure/features/verification/data/datasources/verification_remote_data_source.dart';
 import 'package:ethioventure/features/verification/data/models/verification_request_model.dart';
@@ -31,6 +33,17 @@ class FakeVerificationRemoteDataSource implements VerificationRemoteDataSource {
   Future<VerificationRequestModel> startVerificationRequest(
     VerificationType type,
   ) async {
+    requestedType = type;
+    return startedRequest!;
+  }
+
+  @override
+  Future<VerificationRequestModel> submitWithDocument({
+    required VerificationType type,
+    required Uint8List fileBytes,
+    required String filename,
+    required int fileSizeBytes,
+  }) async {
     requestedType = type;
     return startedRequest!;
   }
@@ -121,6 +134,16 @@ class _ThrowingVerificationRemoteDataSource
   Future<VerificationRequestModel> startVerificationRequest(
     VerificationType type,
   ) async {
+    throw const AuthException(message: 'User not authenticated');
+  }
+
+  @override
+  Future<VerificationRequestModel> submitWithDocument({
+    required VerificationType type,
+    required Uint8List fileBytes,
+    required String filename,
+    required int fileSizeBytes,
+  }) async {
     throw const AuthException(message: 'User not authenticated');
   }
 }

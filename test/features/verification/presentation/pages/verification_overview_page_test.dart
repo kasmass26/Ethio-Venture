@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:ethioventure/core/constants/app_constants.dart';
 import 'package:ethioventure/core/di/injection_container.dart';
 import 'package:ethioventure/core/routing/app_router.dart';
@@ -27,6 +29,18 @@ class _FakeVerificationRepository implements VerificationRepository {
   Future<VerificationRequestEntity> startVerificationRequest(
     VerificationType type,
   ) async => VerificationRequestEntity(
+    id: 'request-test',
+    type: type,
+    status: VerificationStatus.pending,
+  );
+
+  @override
+  Future<VerificationRequestEntity> submitWithDocument({
+    required VerificationType type,
+    required Uint8List fileBytes,
+    required String filename,
+    required int fileSizeBytes,
+  }) async => VerificationRequestEntity(
     id: 'request-test',
     type: type,
     status: VerificationStatus.pending,
@@ -134,6 +148,11 @@ void main() {
   testWidgets(
     'continue opens the selected type submission page and back returns',
     (tester) async {
+      tester.view.physicalSize = const Size(1200, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
       await tester.pumpWidget(buildSubject());
 
       await tester.ensureVisible(find.text('Student Verification'));
@@ -165,6 +184,7 @@ void main() {
         find.byKey(const ValueKey('verification-submission-back-button')),
       );
       await tester.pumpAndSettle();
+      await tester.pump(const Duration(milliseconds: 100));
 
       expect(find.text('Choose a verification type'), findsOneWidget);
     },

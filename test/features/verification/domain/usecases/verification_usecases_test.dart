@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:ethioventure/core/error/exceptions.dart';
 import 'package:ethioventure/features/verification/domain/entities/public_verification_badge_entity.dart';
 import 'package:ethioventure/features/verification/domain/entities/verification_request_entity.dart';
@@ -36,6 +38,18 @@ class FakeVerificationRepository implements VerificationRepository {
   Future<VerificationRequestEntity> startVerificationRequest(
     VerificationType type,
   ) async {
+    requestedType = type;
+    if (error != null) throw error!;
+    return startedRequest!;
+  }
+
+  @override
+  Future<VerificationRequestEntity> submitWithDocument({
+    required VerificationType type,
+    required Uint8List fileBytes,
+    required String filename,
+    required int fileSizeBytes,
+  }) async {
     requestedType = type;
     if (error != null) throw error!;
     return startedRequest!;

@@ -135,12 +135,14 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
       );
 
       return response
-          .map((json) => PendingApprovalModel.fromJson({
-                ...json,
-                'name': json['users']['full_name'],
-                'email': json['users']['email'],
-                'role': 'founder', // Startups are always founders
-              }))
+          .map(
+            (json) => PendingApprovalModel.fromJson({
+              ...json,
+              'name': json['users']['full_name'],
+              'email': json['users']['email'],
+              'role': 'founder', // Startups are always founders
+            }),
+          )
           .toList();
     } catch (error, stackTrace) {
       developer.log(
@@ -164,29 +166,33 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
         name: 'EthioVenture.Admin',
       );
 
-      return response
-          .map((json) {
-            return PendingApprovalModel.fromJson({
-              'id': json['id'],
-              'user_id': json['user_id'],
-              'name': json['users']['full_name'],
-              'email': json['users']['email'],
-              'role': 'investor',
-              'business_name': json['organization_name'] ?? 'N/A',
-              'description': json['bio'] ?? '',
-              'industry': (json['preferred_industries'] as List?)?.join(', ') ?? '',
-              'funding_stage': (json['preferred_stages'] as List?)?.join(', ') ?? '',
-              'funding_amount_sought': json['ticket_size_max'] ?? 0.0,
-              'location': (json['geographic_focus'] as List?)?.join(', ') ?? '',
-              'logo_url': null,
-              'created_at': json['created_at'],
-              'approval_status': json['approval_status'],
-              'rejection_reason': json['rejection_reason'],
-              'approval_date': json['approval_date'],
-              'rejection_count': json['rejection_count'],
-            });
-          })
-          .toList();
+      return response.map((json) {
+        return PendingApprovalModel.fromJson({
+          'id': json['id'],
+          'user_id': json['user_id'],
+          'name': json['users']['full_name'],
+          'email': json['users']['email'],
+          'role': 'investor',
+          'business_name': json['organization_name'] ?? 'N/A',
+          'description': json['bio'] ?? '',
+          'industry': (json['preferred_industries'] as List?)?.join(', ') ?? '',
+          'funding_stage':
+              (json['preferred_stages'] as List?)?.join(', ') ?? '',
+          'funding_amount_sought': json['ticket_size_max'] ?? 0.0,
+          'location': (json['geographic_focus'] as List?)?.join(', ') ?? '',
+          'logo_url': null,
+          'created_at': json['created_at'],
+          'approval_status': json['approval_status'],
+          'rejection_reason': json['rejection_reason'],
+          'approval_date': json['approval_date'],
+          'rejection_count': json['rejection_count'],
+          'preferred_industries': json['preferred_industries'],
+          'preferred_stages': json['preferred_stages'],
+          'geographic_focus': json['geographic_focus'],
+          'ticket_size_min': json['ticket_size_min'],
+          'ticket_size_max': json['ticket_size_max'],
+        });
+      }).toList();
     } catch (error, stackTrace) {
       developer.log(
         'Failed to fetch pending investors',
@@ -234,7 +240,10 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
 
   @override
   Future<void> rejectProfile(
-      String profileId, String role, String rejectionReason) async {
+    String profileId,
+    String role,
+    String rejectionReason,
+  ) async {
     try {
       final roleLower = role.toLowerCase();
       final table = (roleLower == 'founder' || roleLower == 'startup')
@@ -312,12 +321,14 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
       final response = await _fetchStartupRaw('approved');
 
       return response
-          .map((json) => PendingApprovalModel.fromJson({
-                ...json,
-                'name': json['users']['full_name'],
-                'email': json['users']['email'],
-                'role': 'founder',
-              }))
+          .map(
+            (json) => PendingApprovalModel.fromJson({
+              ...json,
+              'name': json['users']['full_name'],
+              'email': json['users']['email'],
+              'role': 'founder',
+            }),
+          )
           .toList();
     } catch (error, stackTrace) {
       developer.log(
@@ -336,29 +347,33 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
     try {
       final response = await _fetchInvestorRaw('approved');
 
-      return response
-          .map((json) {
-            return PendingApprovalModel.fromJson({
-              'id': json['id'],
-              'user_id': json['user_id'],
-              'name': json['users']['full_name'],
-              'email': json['users']['email'],
-              'role': 'investor',
-              'business_name': json['organization_name'] ?? 'N/A',
-              'description': json['bio'] ?? '',
-              'industry': (json['preferred_industries'] as List?)?.join(', ') ?? '',
-              'funding_stage': (json['preferred_stages'] as List?)?.join(', ') ?? '',
-              'funding_amount_sought': json['ticket_size_max'] ?? 0.0,
-              'location': (json['geographic_focus'] as List?)?.join(', ') ?? '',
-              'logo_url': null,
-              'created_at': json['created_at'],
-              'approval_status': json['approval_status'],
-              'rejection_reason': json['rejection_reason'],
-              'approval_date': json['approval_date'],
-              'rejection_count': json['rejection_count'],
-            });
-          })
-          .toList();
+      return response.map((json) {
+        return PendingApprovalModel.fromJson({
+          'id': json['id'],
+          'user_id': json['user_id'],
+          'name': json['users']['full_name'],
+          'email': json['users']['email'],
+          'role': 'investor',
+          'business_name': json['organization_name'] ?? 'N/A',
+          'description': json['bio'] ?? '',
+          'industry': (json['preferred_industries'] as List?)?.join(', ') ?? '',
+          'funding_stage':
+              (json['preferred_stages'] as List?)?.join(', ') ?? '',
+          'funding_amount_sought': json['ticket_size_max'] ?? 0.0,
+          'location': (json['geographic_focus'] as List?)?.join(', ') ?? '',
+          'logo_url': null,
+          'created_at': json['created_at'],
+          'approval_status': json['approval_status'],
+          'rejection_reason': json['rejection_reason'],
+          'approval_date': json['approval_date'],
+          'rejection_count': json['rejection_count'],
+          'preferred_industries': json['preferred_industries'],
+          'preferred_stages': json['preferred_stages'],
+          'geographic_focus': json['geographic_focus'],
+          'ticket_size_min': json['ticket_size_min'],
+          'ticket_size_max': json['ticket_size_max'],
+        });
+      }).toList();
     } catch (error, stackTrace) {
       developer.log(
         'Failed to fetch approved investors',
@@ -378,33 +393,42 @@ class AdminRemoteDataSourceImpl implements AdminRemoteDataSource {
       final investors = await _fetchInvestorRaw('rejected');
 
       final allRejected = [
-        ...startups.map((json) => PendingApprovalModel.fromJson({
-              ...json,
-              'name': json['users']['full_name'],
-              'email': json['users']['email'],
-              'role': 'founder',
-            })),
-        ...investors.map((json) {
-            return PendingApprovalModel.fromJson({
-              'id': json['id'],
-              'user_id': json['user_id'],
-              'name': json['users']['full_name'],
-              'email': json['users']['email'],
-              'role': 'investor',
-              'business_name': json['organization_name'] ?? 'N/A',
-              'description': json['bio'] ?? '',
-              'industry': (json['preferred_industries'] as List?)?.join(', ') ?? '',
-              'funding_stage': (json['preferred_stages'] as List?)?.join(', ') ?? '',
-              'funding_amount_sought': json['ticket_size_max'] ?? 0.0,
-              'location': (json['geographic_focus'] as List?)?.join(', ') ?? '',
-              'logo_url': null,
-              'created_at': json['created_at'],
-              'approval_status': json['approval_status'],
-              'rejection_reason': json['rejection_reason'],
-              'approval_date': json['approval_date'],
-              'rejection_count': json['rejection_count'],
-            });
+        ...startups.map(
+          (json) => PendingApprovalModel.fromJson({
+            ...json,
+            'name': json['users']['full_name'],
+            'email': json['users']['email'],
+            'role': 'founder',
           }),
+        ),
+        ...investors.map((json) {
+          return PendingApprovalModel.fromJson({
+            'id': json['id'],
+            'user_id': json['user_id'],
+            'name': json['users']['full_name'],
+            'email': json['users']['email'],
+            'role': 'investor',
+            'business_name': json['organization_name'] ?? 'N/A',
+            'description': json['bio'] ?? '',
+            'industry':
+                (json['preferred_industries'] as List?)?.join(', ') ?? '',
+            'funding_stage':
+                (json['preferred_stages'] as List?)?.join(', ') ?? '',
+            'funding_amount_sought': json['ticket_size_max'] ?? 0.0,
+            'location': (json['geographic_focus'] as List?)?.join(', ') ?? '',
+            'logo_url': null,
+            'created_at': json['created_at'],
+            'approval_status': json['approval_status'],
+            'rejection_reason': json['rejection_reason'],
+            'approval_date': json['approval_date'],
+            'rejection_count': json['rejection_count'],
+            'preferred_industries': json['preferred_industries'],
+            'preferred_stages': json['preferred_stages'],
+            'geographic_focus': json['geographic_focus'],
+            'ticket_size_min': json['ticket_size_min'],
+            'ticket_size_max': json['ticket_size_max'],
+          });
+        }),
       ];
 
       allRejected.sort((a, b) => b.createdAt.compareTo(a.createdAt));
