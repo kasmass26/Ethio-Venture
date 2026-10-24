@@ -91,6 +91,7 @@ import 'package:ethioventure/features/verification/domain/repositories/verificat
 import 'package:ethioventure/features/verification/domain/usecases/get_current_user_verification_requests.dart';
 import 'package:ethioventure/features/verification/domain/usecases/get_public_approved_badges.dart';
 import 'package:ethioventure/features/verification/domain/usecases/start_verification_request.dart';
+import 'package:ethioventure/features/verification/presentation/cubit/verification_cubit.dart';
 
 import 'package:ethioventure/core/services/user_service.dart';
 
@@ -619,6 +620,15 @@ Future<void> configureDependencies({SupabaseClient? supabaseClient}) async {
   if (!sl.isRegistered<GetPublicApprovedBadges>()) {
     sl.registerLazySingleton<GetPublicApprovedBadges>(
       () => GetPublicApprovedBadges(sl<VerificationRepository>()),
+    );
+  }
+
+  if (!sl.isRegistered<VerificationCubit>()) {
+    sl.registerFactory<VerificationCubit>(
+      () => VerificationCubit(
+        getCurrentUserRequests: sl<GetCurrentUserVerificationRequests>(),
+        startVerificationRequest: sl<StartVerificationRequest>(),
+      ),
     );
   }
 
