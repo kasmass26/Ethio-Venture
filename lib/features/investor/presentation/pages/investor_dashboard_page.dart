@@ -153,6 +153,19 @@ class _DashboardScaffold extends StatelessWidget {
           ),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(
+              Icons.auto_awesome_rounded,
+              color: AppColors.violet,
+            ),
+            tooltip: 'AI Deal & Due Diligence Analyst',
+            onPressed: () {
+              Navigator.of(context).pushNamed(
+                AppConstants.routeStartupAiAdvisor,
+                arguments: {'role': AppConstants.roleInvestor},
+              );
+            },
+          ),
           _IconBadgeButton(
             icon: Icons.notifications_none_rounded,
             showDot: true,
@@ -160,7 +173,7 @@ class _DashboardScaffold extends StatelessWidget {
               // TODO: navigate to notifications.
             },
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 8),
         ],
       ),
       bottomNavigationBar: AppBottomNav(
@@ -199,11 +212,22 @@ class _DashboardScaffold extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: StaggeredFadeSlide(
                   index: 0,
-                  totalItems: 7,
+                  totalItems: 8,
                   child: _PortfolioPulseStrip(
                     activeDeals: '12',
                     userName: userName,
                   ),
+                ),
+              ),
+              const SizedBox(height: 14),
+
+              // ── AI Deal & Due Diligence Analyst Banner ──
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20),
+                child: StaggeredFadeSlide(
+                  index: 1,
+                  totalItems: 8,
+                  child: _InvestorAiDealAnalystBanner(),
                 ),
               ),
               const SizedBox(height: 20),
@@ -1765,3 +1789,189 @@ class _RequestStatChip extends StatelessWidget {
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// Investor AI Deal & Due Diligence Analyst Banner
+// ---------------------------------------------------------------------------
+class _InvestorAiDealAnalystBanner extends StatelessWidget {
+  const _InvestorAiDealAnalystBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [
+            Color(0xFF2C2250),
+            Color(0xFF4C3E9E),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF2C2250).withValues(alpha: 0.25),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.auto_awesome_rounded,
+                  color: Colors.white,
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const [
+                    Text(
+                      'AI Due Diligence & Deal Analyst',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      'Screen startups, red flags & investment memos',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        color: AppColors.violetTint,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              InkWell(
+                onTap: () {
+                  Navigator.of(context).pushNamed(
+                    AppConstants.routeStartupAiAdvisor,
+                    arguments: {'role': AppConstants.roleInvestor},
+                  );
+                },
+                borderRadius: BorderRadius.circular(10),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Launch',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF2C2250),
+                        ),
+                      ),
+                      SizedBox(width: 4),
+                      Icon(
+                        Icons.arrow_forward_rounded,
+                        size: 13,
+                        color: Color(0xFF2C2250),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'Conduct objective 12-point due diligence, assess regional valuation benchmarks, or prepare probing questions for founders.',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.white70,
+              height: 1.35,
+            ),
+          ),
+          const SizedBox(height: 12),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildChip(
+                  context,
+                  label: '🔍 Due Diligence Checklist',
+                  prompt:
+                      'Generate a thorough 12-point due diligence checklist tailored to tech startups in East Africa.',
+                ),
+                const SizedBox(width: 6),
+                _buildChip(
+                  context,
+                  label: '🚩 Red Flag Screen',
+                  prompt:
+                      'What are the critical red flags to look for when evaluating an early-stage startup?',
+                ),
+                const SizedBox(width: 6),
+                _buildChip(
+                  context,
+                  label: '📝 Investment Memo',
+                  prompt:
+                      'Draft a comprehensive venture capital investment memo structure.',
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChip(
+    BuildContext context, {
+    required String label,
+    required String prompt,
+  }) {
+    return InkWell(
+      onTap: () {
+        Navigator.of(context).pushNamed(
+          AppConstants.routeStartupAiAdvisor,
+          arguments: {
+            'role': AppConstants.roleInvestor,
+            'initialPrompt': prompt,
+          },
+        );
+      },
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
+      ),
+    );
+  }
+}
+

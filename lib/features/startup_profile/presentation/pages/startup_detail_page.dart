@@ -443,6 +443,22 @@ class _StartupDetailPageState extends State<StartupDetailPage> {
         ),
         actions: [
           IconButton(
+            icon: const Icon(
+              Icons.auto_awesome_rounded,
+              color: AppColors.violet,
+            ),
+            tooltip: 'Ask AI About This Startup',
+            onPressed: () {
+              Navigator.of(context).pushNamed(
+                AppConstants.routeStartupAiAdvisor,
+                arguments: {
+                  'role': AppConstants.roleInvestor,
+                  'startup': startup,
+                },
+              );
+            },
+          ),
+          IconButton(
             icon: Icon(
               _isTracked ? Icons.bookmark_rounded : Icons.bookmark_outline_rounded,
               color: _isTracked ? AppColors.primary : AppColors.textPrimary,
@@ -463,6 +479,13 @@ class _StartupDetailPageState extends State<StartupDetailPage> {
               _HeroCard(
                 startup: startup,
                 matchScore: widget.matchScore,
+                isDark: isDark,
+              ),
+              const SizedBox(height: 14),
+
+              // ── AI Due Diligence & Analysis Banner ────────────────────────
+              _AiDueDiligenceBanner(
+                startup: startup,
                 isDark: isDark,
               ),
               const SizedBox(height: 16),
@@ -1134,3 +1157,178 @@ class _ContactSectionCard extends StatelessWidget {
     );
   }
 }
+
+class _AiDueDiligenceBanner extends StatelessWidget {
+  const _AiDueDiligenceBanner({
+    required this.startup,
+    required this.isDark,
+  });
+
+  final StartupProfileEntity startup;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: isDark
+              ? [AppColors.surfaceDark, const Color(0xFF1B1B3A)]
+              : [AppColors.violetTint, Colors.white],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppColors.violet.withValues(alpha: 0.25),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.violet.withValues(alpha: 0.06),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: AppColors.violet,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.auto_awesome_rounded,
+                    color: Colors.white, size: 16),
+              ),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'AI Due Diligence & Deal Analyst',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.secondary,
+                  ),
+                ),
+              ),
+              InkWell(
+                onTap: () {
+                  Navigator.of(context).pushNamed(
+                    AppConstants.routeStartupAiAdvisor,
+                    arguments: {
+                      'role': AppConstants.roleInvestor,
+                      'startup': startup,
+                    },
+                  );
+                },
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.violet,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text(
+                    'Open AI',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Screen red flags, verify valuation metrics, draft an investment memo, or generate interview questions.',
+            style: TextStyle(
+              fontSize: 12,
+              color: AppColors.textSecondary,
+              height: 1.35,
+            ),
+          ),
+          const SizedBox(height: 10),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _buildActionChip(
+                  context,
+                  label: 'Due Diligence Checklist',
+                  prompt:
+                      'Generate a 12-point due diligence checklist for ${startup.startupName} (${startup.industry}, ${startup.fundingStage}).',
+                ),
+                const SizedBox(width: 6),
+                _buildActionChip(
+                  context,
+                  label: 'Red Flag Screen',
+                  prompt:
+                      'Screen potential red flags, defensibility flaws, and valuation risks for ${startup.startupName}.',
+                ),
+                const SizedBox(width: 6),
+                _buildActionChip(
+                  context,
+                  label: 'Founder Questions',
+                  prompt:
+                      'What 7 critical questions should I ask the founder of ${startup.startupName} before issuing a term sheet?',
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionChip(
+    BuildContext context, {
+    required String label,
+    required String prompt,
+  }) {
+    return InkWell(
+      onTap: () {
+        Navigator.of(context).pushNamed(
+          AppConstants.routeStartupAiAdvisor,
+          arguments: {
+            'role': AppConstants.roleInvestor,
+            'startup': startup,
+            'initialPrompt': prompt,
+          },
+        );
+      },
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.violet.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.bolt_rounded, size: 12, color: AppColors.violet),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: AppColors.violet,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+

@@ -92,6 +92,11 @@ import 'package:ethioventure/features/tracked_startups/domain/usecases/is_startu
 import 'package:ethioventure/features/tracked_startups/presentation/cubit/tracked_startups_cubit.dart';
 
 import 'package:ethioventure/core/services/user_service.dart';
+import 'package:ethioventure/features/startup_ai_advisor/data/datasources/startup_ai_advisor_remote_data_source.dart';
+import 'package:ethioventure/features/startup_ai_advisor/data/repositories/startup_ai_advisor_repository_impl.dart';
+import 'package:ethioventure/features/startup_ai_advisor/domain/repositories/startup_ai_advisor_repository.dart';
+import 'package:ethioventure/features/startup_ai_advisor/domain/usecases/ask_startup_ai_usecase.dart';
+import 'package:ethioventure/features/startup_ai_advisor/presentation/cubit/startup_ai_advisor_cubit.dart';
 
 import 'package:get_it/get_it.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -669,6 +674,38 @@ Future<void> configureDependencies({SupabaseClient? supabaseClient}) async {
         getTrackedStartups: sl<GetTrackedStartups>(),
         trackStartup: sl<TrackStartup>(),
         untrackStartup: sl<UntrackStartup>(),
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Startup AI Advisor Feature (Founders & Investors)
+  // ---------------------------------------------------------------------------
+  if (!sl.isRegistered<StartupAiAdvisorRemoteDataSource>()) {
+    sl.registerLazySingleton<StartupAiAdvisorRemoteDataSource>(
+      () => const StartupAiAdvisorRemoteDataSourceImpl(),
+    );
+  }
+
+  if (!sl.isRegistered<StartupAiAdvisorRepository>()) {
+    sl.registerLazySingleton<StartupAiAdvisorRepository>(
+      () => StartupAiAdvisorRepositoryImpl(sl<StartupAiAdvisorRemoteDataSource>()),
+    );
+  }
+
+  if (!sl.isRegistered<AskStartupAiUseCase>()) {
+    sl.registerLazySingleton<AskStartupAiUseCase>(
+      () => AskStartupAiUseCase(sl<StartupAiAdvisorRepository>()),
+    );
+  }
+
+  if (!sl.isRegistered<StartupAiAdvisorCubit>()) {
+    sl.registerFactory<StartupAiAdvisorCubit>(
+      () => StartupAiAdvisorCubit(
+        askStartupAiUseCase: sl<AskStartupAiUseCase>(),
+        userService: sl<UserService>(),
+        getStartupProfileUseCase: sl<GetStartupProfileUseCase>(),
+        searchStartupsUseCase: sl<SearchStartups>(),
       ),
     );
   }

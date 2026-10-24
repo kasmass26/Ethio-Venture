@@ -38,6 +38,7 @@ class AppConstants {
   static const String routeChat = '/chat';
   static const String routeInvestorRequests = '/investor-requests';
   static const String routeFounderRequests = '/my-requests';
+  static const String routeStartupAiAdvisor = '/startup-ai-advisor';
   
   // Admin email for special access
   static const String adminEmail = 'admin@gmail.com';
