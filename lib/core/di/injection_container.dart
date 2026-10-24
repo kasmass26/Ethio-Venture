@@ -85,6 +85,13 @@ import 'package:ethioventure/features/tracked_startups/domain/usecases/untrack_s
 import 'package:ethioventure/features/tracked_startups/domain/usecases/is_startup_tracked.dart';
 import 'package:ethioventure/features/tracked_startups/presentation/cubit/tracked_startups_cubit.dart';
 
+import 'package:ethioventure/features/verification/data/datasources/verification_remote_data_source.dart';
+import 'package:ethioventure/features/verification/data/repositories/verification_repository_impl.dart';
+import 'package:ethioventure/features/verification/domain/repositories/verification_repository.dart';
+import 'package:ethioventure/features/verification/domain/usecases/get_current_user_verification_requests.dart';
+import 'package:ethioventure/features/verification/domain/usecases/get_public_approved_badges.dart';
+import 'package:ethioventure/features/verification/domain/usecases/start_verification_request.dart';
+
 import 'package:ethioventure/core/services/user_service.dart';
 
 import 'package:get_it/get_it.dart';
@@ -581,6 +588,41 @@ Future<void> configureDependencies({SupabaseClient? supabaseClient}) async {
   }
 
   // ---------------------------------------------------------------------------
+  // Verification Feature
+  // ---------------------------------------------------------------------------
+  if (!sl.isRegistered<VerificationRemoteDataSource>()) {
+    sl.registerLazySingleton<VerificationRemoteDataSource>(
+      () => VerificationRemoteDataSourceImpl(sl<SupabaseClient>()),
+    );
+  }
+
+  if (!sl.isRegistered<VerificationRepository>()) {
+    sl.registerLazySingleton<VerificationRepository>(
+      () => VerificationRepositoryImpl(
+        remoteDataSource: sl<VerificationRemoteDataSource>(),
+      ),
+    );
+  }
+
+  if (!sl.isRegistered<GetCurrentUserVerificationRequests>()) {
+    sl.registerLazySingleton<GetCurrentUserVerificationRequests>(
+      () => GetCurrentUserVerificationRequests(sl<VerificationRepository>()),
+    );
+  }
+
+  if (!sl.isRegistered<StartVerificationRequest>()) {
+    sl.registerLazySingleton<StartVerificationRequest>(
+      () => StartVerificationRequest(sl<VerificationRepository>()),
+    );
+  }
+
+  if (!sl.isRegistered<GetPublicApprovedBadges>()) {
+    sl.registerLazySingleton<GetPublicApprovedBadges>(
+      () => GetPublicApprovedBadges(sl<VerificationRepository>()),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
   // Tracked Startups Feature
   // ---------------------------------------------------------------------------
   if (!sl.isRegistered<TrackedStartupsRemoteDataSource>()) {
@@ -633,4 +675,3 @@ Future<void> configureDependencies({SupabaseClient? supabaseClient}) async {
     );
   }
 }
-
