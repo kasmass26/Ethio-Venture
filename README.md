@@ -4,6 +4,15 @@ Ethio Venture is a mobile platform that helps startups present their businesses
 to suitable investors and helps investors discover opportunities that align
 with their industry, stage, and investment preferences.
 
+## 🎬 Video Demonstration & Presentation
+
+[![Ethio Venture Video Walkthrough](https://img.youtube.com/vi/rA5FNk2-gDE/0.jpg)](https://youtu.be/rA5FNk2-gDE)
+
+[![Watch on YouTube](https://img.shields.io/badge/YouTube-Watch%20Demo%20Video-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://youtu.be/rA5FNk2-gDE)
+
+> 📹 **[Click here to watch the full walkthrough on YouTube](https://youtu.be/rA5FNk2-gDE)**  
+> *A full end-to-end presentation covering the dual-role ecosystem (Founder & Investor), AI Pitch Deck Analysis powered by Google Gemini, institutional verification badges, and our intelligent rule-based match scoring engine.*
+
 ## The problem
 
 Fundraising and investor discovery are often fragmented and dependent on
@@ -70,31 +79,17 @@ and documented acceptance criteria.
 Read the [development guide](docs/development-guide.md) before opening a pull
 request. Configuration values must stay in local `.env` files and never be
 committed.
-# ethioventure
 
-Ethio Venture is a platform that connects startups with the right investors. The platform helps entrepreneurs showcase their businesses while enabling investors to discover promising startups based on their investment preferences, industry focus, funding stage, and other relevant criteria.
-The Problem the Project Solves
-Many startups struggle to find suitable investors, while investors often have difficulty discovering high-potential startups that match their investment interests. Existing networking methods are time-consuming, fragmented, and rely heavily on personal connections. Ethio Venture aims to simplify this process by providing an intelligent platform that efficiently matches startups with potential investors, making fundraising more accessible and transparent.
-Main Features Planned
+---
 
-* Secure user registration and authentication
-* Separate accounts for startups and investors
-* Startup profile creation and management
-* Investor profile creation and investment preferences
-* Startup search and filtering
-* Investment opportunity recommendations
-* Direct messaging between startups and investors
-* Pitch deck and business document uploads
-* Dashboard for tracking matches and interactions
-* Notifications for new matches and messages
+### Project Information & Team Members
 
+**Class:** 3004  
+**Group:** 4  
 
-Members
-1. Kassahun Shegaw  CTC-4413-26
-2. Kalkidan Mosissa CTC-719-26
-3. Mebatsion Nigussie CTC-030-26
-4. Kumala Adugan      CTC-1406-26
-5. Mahilet Andualem   CTC-1839-26
-
-Class: 3004
-Group: 4
+**Team Members:**
+1. Kassahun Shegaw (CTC-4413-26)
+2. Kalkidan Mosissa (CTC-719-26)
+3. Mebatsion Nigussie (CTC-030-26)
+4. Kumala Adugna (CTC-1406-26)
+5. Mahilet Andualem (CTC-1839-26)
