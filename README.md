@@ -4,14 +4,9 @@ Ethio Venture is a mobile platform that helps startups present their businesses
 to suitable investors and helps investors discover opportunities that align
 with their industry, stage, and investment preferences.
 
-## 🎬 Video Demonstration & Presentation
+## 🎬 Video Demonstration
 
-[![Ethio Venture Video Walkthrough](https://img.youtube.com/vi/rA5FNk2-gDE/0.jpg)](https://youtu.be/rA5FNk2-gDE)
-
-[![Watch on YouTube](https://img.shields.io/badge/YouTube-Watch%20Demo%20Video-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://youtu.be/rA5FNk2-gDE)
-
-> 📹 **[Click here to watch the full walkthrough on YouTube](https://youtu.be/rA5FNk2-gDE)**  
-> *A full end-to-end presentation covering the dual-role ecosystem (Founder & Investor), AI Pitch Deck Analysis powered by Google Gemini, institutional verification badges, and our intelligent rule-based match scoring engine.*
+https://youtu.be/rA5FNk2-gDE
 
 ## The problem
 
