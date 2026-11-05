@@ -28,30 +28,41 @@ class StartupAiAdvisorRemoteDataSourceImpl implements StartupAiAdvisorRemoteData
         : '';
     final isFounder = roleMode.toLowerCase() != 'investor';
 
-    // If API key is available and valid, call Google Gemini 1.5 Flash
+    // If API key is available and valid, call Google Gemini models
     if (apiKey.isNotEmpty && apiKey != 'YOUR_GEMINI_API_KEY') {
-      try {
-        final model = GenerativeModel(
-          model: 'gemini-1.5-flash',
-          apiKey: apiKey,
-          generationConfig: GenerationConfig(
-            responseMimeType: 'application/json',
-            temperature: 0.4,
-          ),
-        );
+      final configuredModel = dotenv.isInitialized
+          ? (dotenv.env['GEMINI_MODEL']?.trim() ?? '')
+          : '';
+      final modelsToTry = <String>{
+        if (configuredModel.isNotEmpty) configuredModel,
+        'gemini-3.5-flash',
+        'gemini-3.5-flash-lite',
+        'gemini-3.6-flash',
+        'gemini-3.1-flash-lite',
+      }.toList();
 
-        final systemInstruction = _buildSystemPrompt(
-          isFounder: isFounder,
-          startup: startupContext,
-        );
+      for (final modelName in modelsToTry) {
+        try {
+          final model = GenerativeModel(
+            model: modelName,
+            apiKey: apiKey,
+            generationConfig: GenerationConfig(
+              temperature: 0.4,
+            ),
+          );
 
-        // Build history
-        final historyContext = conversationHistory.take(6).map((m) {
-          final sender = m.isUser ? 'User' : 'Advisor';
-          return '$sender: ${m.content}';
-        }).join('\n');
+          final systemInstruction = _buildSystemPrompt(
+            isFounder: isFounder,
+            startup: startupContext,
+          );
 
-        final fullPrompt = '''
+          // Build history
+          final historyContext = conversationHistory.take(6).map((m) {
+            final sender = m.isUser ? 'User' : 'Advisor';
+            return '$sender: ${m.content}';
+          }).join('\n');
+
+          final fullPrompt = '''
 $systemInstruction
 
 ${historyContext.isNotEmpty ? 'Previous Conversation:\n$historyContext\n' : ''}
@@ -67,36 +78,37 @@ Respond strictly with valid JSON following this format:
 }
 ''';
 
-        final response = await model.generateContent([Content.text(fullPrompt)]);
-        final text = response.text;
+          final response = await model.generateContent([Content.text(fullPrompt)]);
+          final text = response.text;
 
-        if (text != null && text.trim().isNotEmpty) {
-          final jsonMap = _parseJsonResponse(text);
-          if (jsonMap != null) {
-            return AiChatMessage(
-              id: DateTime.now().millisecondsSinceEpoch.toString(),
-              content: jsonMap['content']?.toString() ?? text,
-              isUser: false,
-              timestamp: DateTime.now(),
-              roleMode: roleMode,
-              startupName: startupContext?.startupName,
-              suggestedFollowUps: (jsonMap['suggestedFollowUps'] as List?)
-                      ?.map((e) => e.toString())
-                      .toList() ??
-                  _defaultFollowUps(isFounder),
-              keyTakeaways: (jsonMap['keyTakeaways'] as List?)
-                      ?.map((e) => e.toString())
-                      .toList() ??
-                  [],
-              actionItems: (jsonMap['actionItems'] as List?)
-                      ?.map((e) => e.toString())
-                      .toList() ??
-                  [],
-            );
+          if (text != null && text.trim().isNotEmpty) {
+            final jsonMap = _parseJsonResponse(text);
+            if (jsonMap != null) {
+              return AiChatMessage(
+                id: DateTime.now().millisecondsSinceEpoch.toString(),
+                content: jsonMap['content']?.toString() ?? text,
+                isUser: false,
+                timestamp: DateTime.now(),
+                roleMode: roleMode,
+                startupName: startupContext?.startupName,
+                suggestedFollowUps: (jsonMap['suggestedFollowUps'] as List?)
+                        ?.map((e) => e.toString())
+                        .toList() ??
+                    _defaultFollowUps(isFounder),
+                keyTakeaways: (jsonMap['keyTakeaways'] as List?)
+                        ?.map((e) => e.toString())
+                        .toList() ??
+                    [],
+                actionItems: (jsonMap['actionItems'] as List?)
+                        ?.map((e) => e.toString())
+                        .toList() ??
+                    [],
+              );
+            }
           }
+        } catch (_) {
+          // Continue to next model in modelsToTry before falling back to local engine
         }
-      } catch (_) {
-        // Fall back gracefully to internal tailored domain engine if Gemini fails or rate limits
       }
     }
 
@@ -148,19 +160,19 @@ $startupInfo
 
   Map<String, dynamic>? _parseJsonResponse(String text) {
     try {
-      final trimmed = text.trim();
-      var clean = trimmed;
-      if (clean.startsWith('```json')) {
-        clean = clean.substring(7);
-      } else if (clean.startsWith('```')) {
-        clean = clean.substring(3);
-      }
-      if (clean.endsWith('```')) {
-        clean = clean.substring(0, clean.length - 3);
-      }
-      clean = clean.trim();
-      return jsonDecode(clean) as Map<String, dynamic>;
+      final sanitized = text
+          .replaceAll(RegExp(r'^```json\s*', multiLine: true), '')
+          .replaceAll(RegExp(r'^```\s*', multiLine: true), '')
+          .trim();
+      return jsonDecode(sanitized) as Map<String, dynamic>;
     } catch (_) {
+      final start = text.indexOf('{');
+      final end = text.lastIndexOf('}');
+      if (start != -1 && end != -1 && end > start) {
+        try {
+          return jsonDecode(text.substring(start, end + 1)) as Map<String, dynamic>;
+        } catch (_) {}
+      }
       return null;
     }
   }

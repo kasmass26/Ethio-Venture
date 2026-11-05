@@ -70,15 +70,15 @@ class PitchAnalysisRemoteDataSourceImpl implements PitchAnalysisRemoteDataSource
         }
       }
 
-      // 2. Initialize Google Gemini 1.5 Flash
-      final model = GenerativeModel(
-        model: 'gemini-1.5-flash',
-        apiKey: apiKey,
-        generationConfig: GenerationConfig(
-          responseMimeType: 'application/json',
-          temperature: 0.3,
-        ),
-      );
+      // 2. Prepare prompt and candidate Gemini models
+      final configuredModel = dotenv.env['GEMINI_MODEL']?.trim() ?? '';
+      final modelsToTry = <String>{
+        if (configuredModel.isNotEmpty) configuredModel,
+        'gemini-3.5-flash',
+        'gemini-3.5-flash-lite',
+        'gemini-3.6-flash',
+        'gemini-3.1-flash-lite',
+      }.toList();
 
       final prompt = '''
 You are a senior Venture Capital (VC) partner and Angel Investor evaluating a startup pitch deck on EthioVenture, Ethiopia's premier startup-investor platform.
@@ -91,9 +91,9 @@ Context:
 ${startupSector != null ? '- Startup Sector: "$startupSector"' : ''}
 ${startupStage != null ? '- Startup Stage: "$startupStage"' : ''}
 
-You MUST return a JSON object adhering STRICTLY to this schema:
+You MUST return a JSON object adhering STRICTLY to this schema (output valid JSON only, no introductory or conversational text):
 {
-  "overall_score": <number between 0 and 100>,
+  "overall_score": <integer score between 0 and 100, e.g. 78>,
   "readiness_tier": <"Investment Ready" | "Promising with Gaps" | "Early Stage / Needs Work">,
   "executive_summary": <string: 2-4 sentences summarizing the venture potential and pitch deck quality>,
   "category_scores": [
@@ -142,22 +142,66 @@ You MUST return a JSON object adhering STRICTLY to this schema:
       "target_slide": <e.g. "Slide 4", "Financials Slide", "Traction Overview">
     }
   ],
-  "ethiopian_market_fit": <string: 2-3 sentences evaluating readiness for the Ethiopian / East African ecosystem including payment integrations (Telebirr, Chapa), local regulatory nuances, infrastructure, and consumer adoption>
+  "ethiopian_market_fit": <string: 2-3 sentences evaluating readiness for the Ethiopian / East African ecosystem including payment integrations (Telebirr, Chapa, CBE Birr), local regulatory nuances, infrastructure, and consumer adoption>
 }
 ''';
 
-      final contentParts = <Part>[TextPart(prompt)];
-      if (fileBytes != null && fileBytes.isNotEmpty && mimeType == 'application/pdf') {
-        contentParts.add(DataPart(mimeType, fileBytes));
+      String? rawText;
+      Object? lastError;
+
+      for (final modelName in modelsToTry) {
+        try {
+          final model = GenerativeModel(
+            model: modelName,
+            apiKey: apiKey,
+            generationConfig: GenerationConfig(
+              temperature: 0.3,
+            ),
+          );
+
+          final contentParts = <Part>[TextPart(prompt)];
+          if (fileBytes != null &&
+              fileBytes.isNotEmpty &&
+              (mimeType == 'application/pdf' || mimeType.startsWith('image/'))) {
+            contentParts.add(DataPart(mimeType, fileBytes));
+          }
+
+          final response = await model.generateContent([
+            Content.multi(contentParts),
+          ]);
+
+          if (response.text != null && response.text!.trim().isNotEmpty) {
+            rawText = response.text;
+            break;
+          }
+        } catch (e) {
+          lastError = e;
+          // If sending file bytes caused a timeout or payload rejection, retry with text context
+          if (fileBytes != null && fileBytes.isNotEmpty) {
+            try {
+              final textOnlyModel = GenerativeModel(
+                model: modelName,
+                apiKey: apiKey,
+                generationConfig: GenerationConfig(temperature: 0.3),
+              );
+              final textResponse = await textOnlyModel.generateContent([
+                Content.text(prompt),
+              ]);
+              if (textResponse.text != null && textResponse.text!.trim().isNotEmpty) {
+                rawText = textResponse.text;
+                break;
+              }
+            } catch (_) {}
+          }
+        }
       }
 
-      final response = await model.generateContent([
-        Content.multi(contentParts),
-      ]);
-
-      final rawText = response.text;
       if (rawText == null || rawText.trim().isEmpty) {
-        throw const ServerException(message: 'AI did not return any analysis for this document.');
+        throw ServerException(
+          message: lastError != null
+              ? 'AI analysis failed: $lastError'
+              : 'AI did not return any analysis for this document.',
+        );
       }
 
       // 3. Parse JSON safely
@@ -169,7 +213,31 @@ You MUST return a JSON object adhering STRICTLY to this schema:
             .trim();
         parsedJson = jsonDecode(sanitized) as Map<String, dynamic>;
       } catch (e) {
-        throw ServerException(message: 'Failed to parse AI response: $e');
+        final start = rawText.indexOf('{');
+        final end = rawText.lastIndexOf('}');
+        if (start != -1 && end != -1 && end > start) {
+          try {
+            parsedJson = jsonDecode(rawText.substring(start, end + 1)) as Map<String, dynamic>;
+          } catch (_) {
+            throw ServerException(message: 'Failed to parse AI response: $e');
+          }
+        } else {
+          throw ServerException(message: 'Failed to parse AI response: $e');
+        }
+      }
+
+      // Normalize score if returned out of 10
+      if (parsedJson['overall_score'] is num) {
+        final num raw = parsedJson['overall_score'];
+        if (raw <= 10 && raw > 0) {
+          parsedJson['overall_score'] = (raw * 10).round();
+        }
+      }
+
+      // Normalize ethiopian_market_fit if returned as structured map
+      if (parsedJson['ethiopian_market_fit'] is Map) {
+        final fitMap = parsedJson['ethiopian_market_fit'] as Map;
+        parsedJson['ethiopian_market_fit'] = fitMap.values.join(' ');
       }
 
       // Add identifiers and timestamp
